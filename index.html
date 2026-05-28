@@ -198,8 +198,8 @@
   <!-- PAGE HEAD -->
   <div class="page-head">
     <div>
-      <h1>Soldes &amp; Créances clients</h1>
-      <p>Suivez les factures de leads facturées à vos clients, voyez qui a payé et relancez ceux qui sont en retard.</p>
+      <h1>Soldes &amp; Créances</h1>
+      <p>Suivez qui doit quoi à qui : les factures de leads dues par vos clients, et ce que vous devez à vos fournisseurs et apporteurs d'affaires.</p>
     </div>
     <div class="head-actions">
       <button class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>Archives</button>
@@ -245,6 +245,14 @@
     <button class="tab" data-view="historique">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
       Historique <span class="count">2</span>
+    </button>
+    <button class="tab" data-view="fournisseurs">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22V12"/></svg>
+      Fournisseurs <span class="count">3</span>
+    </button>
+    <button class="tab" data-view="apporteurs">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+      Apporteurs d'affaires <span class="count">3</span>
     </button>
   </nav>
 
@@ -457,6 +465,104 @@
               <td><div class="client-cell"><span class="av" style="background:#1F8A53">TO</span><div class="meta"><strong>Tech Orbite</strong><span>FA-2026-024</span></div></div></td>
               <td class="ref">FA-2026-024</td><td class="num amount-paid">1 980,00 €</td>
               <td>Stripe · SEPA</td><td><span class="badge b-paid"><span class="b-dot"></span>Payé</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: FOURNISSEURS (brands) -->
+  <div class="view" id="view-fournisseurs">
+    <div class="card">
+      <div class="card-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22V12"/></svg>
+        <h2>Balances fournisseurs</h2>
+        <span class="hint">Ce que M.lead doit à ses fournisseurs de leads (brands).</span>
+        <button class="btn btn-primary" style="margin-left:auto;height:38px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nouveau fournisseur</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Fournisseur</th><th>Leads fournis</th><th>Montant facturé</th><th>Réglé</th><th>Solde à payer</th><th>Statut</th><th style="text-align:right">Actions</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="client-cell"><span class="av" style="background:#D2691E">LF</span><div class="meta"><strong>LeadFactory</strong><span>facturation@leadfactory.io</span></div></div></td>
+              <td class="num">320 leads</td><td class="num">1 600,00 €</td><td class="num">0,00 €</td><td class="num amount-due">1 600,00 €</td>
+              <td><span class="badge b-pending"><span class="b-dot"></span>À payer</span></td>
+              <td><div class="row-actions">
+                <button class="act act-pay" onclick="markPaid(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Régler</button>
+                <button class="act act-edit" aria-label="Modifier"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                <button class="act act-archive" aria-label="Archiver"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1z"/></svg></button>
+              </div></td>
+            </tr>
+            <tr>
+              <td><div class="client-cell"><span class="av" style="background:#2B6FC2">PH</span><div class="meta"><strong>ProspectHub</strong><span>compta@prospecthub.com</span></div></div></td>
+              <td class="num">180 leads</td><td class="num">900,00 €</td><td class="num">900,00 €</td><td class="num amount-paid">0,00 €</td>
+              <td><span class="badge b-paid"><span class="b-dot"></span>Payé</span></td>
+              <td><div class="row-actions">
+                <span style="color:var(--green);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Réglé via Stripe</span>
+              </div></td>
+            </tr>
+            <tr>
+              <td><div class="client-cell"><span class="av" style="background:#6A4FE6">DS</span><div class="meta"><strong>DataSource Pro</strong><span>billing@datasource.pro</span></div></div></td>
+              <td class="num">95 leads</td><td class="num">760,00 €</td><td class="num">0,00 €</td><td class="num amount-due">760,00 €</td>
+              <td><span class="badge b-late"><span class="b-dot"></span>En retard</span></td>
+              <td><div class="row-actions">
+                <button class="act act-pay" onclick="markPaid(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Régler</button>
+                <button class="act act-edit" aria-label="Modifier"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                <button class="act act-archive" aria-label="Archiver"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1z"/></svg></button>
+              </div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: APPORTEURS D'AFFAIRES -->
+  <div class="view" id="view-apporteurs">
+    <div class="card">
+      <div class="card-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+        <h2>Commissions apporteurs d'affaires</h2>
+        <span class="hint">Commissions dues aux personnes qui vous amènent des clients.</span>
+        <button class="btn btn-primary" style="margin-left:auto;height:38px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nouvel apporteur</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Apporteur</th><th>Clients apportés</th><th>CA généré</th><th>Taux</th><th>Commission due</th><th>Statut</th><th style="text-align:right">Actions</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="client-cell"><span class="av" style="background:#3E8E7E">JM</span><div class="meta"><strong>Julien Marchand</strong><span>j.marchand@gmail.com</span></div></div></td>
+              <td class="num">3 clients</td><td class="num">4 200,00 €</td><td class="num">10 %</td><td class="num amount-due">420,00 €</td>
+              <td><span class="badge b-pending"><span class="b-dot"></span>À verser</span></td>
+              <td><div class="row-actions">
+                <button class="act act-pay" onclick="markPaid(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Verser</button>
+                <button class="act act-edit" aria-label="Modifier"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                <button class="act act-archive" aria-label="Archiver"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1z"/></svg></button>
+              </div></td>
+            </tr>
+            <tr>
+              <td><div class="client-cell"><span class="av" style="background:#C28A2B">SB</span><div class="meta"><strong>Sofia Benali</strong><span>sofia.benali@outlook.fr</span></div></div></td>
+              <td class="num">2 clients</td><td class="num">2 600,00 €</td><td class="num">8 %</td><td class="num amount-due">208,00 €</td>
+              <td><span class="badge b-pending"><span class="b-dot"></span>À verser</span></td>
+              <td><div class="row-actions">
+                <button class="act act-pay" onclick="markPaid(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Verser</button>
+                <button class="act act-edit" aria-label="Modifier"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+                <button class="act act-archive" aria-label="Archiver"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8v13H3V8M1 3h22v5H1z"/></svg></button>
+              </div></td>
+            </tr>
+            <tr>
+              <td><div class="client-cell"><span class="av" style="background:#1F8A53">LD</span><div class="meta"><strong>Léa Dupont</strong><span>lea.dupont@gmail.com</span></div></div></td>
+              <td class="num">1 client</td><td class="num">2 100,00 €</td><td class="num">10 %</td><td class="num amount-paid">210,00 €</td>
+              <td><span class="badge b-paid"><span class="b-dot"></span>Versé</span></td>
+              <td><div class="row-actions">
+                <span style="color:var(--green);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Versé via Stripe</span>
+              </div></td>
             </tr>
           </tbody>
         </table>
