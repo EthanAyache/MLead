@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function AddClientForm() {
+export default function AddBrandForm() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState('')
@@ -29,7 +29,7 @@ export default function AddClientForm() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    await fetch('/api/clients', {
+    await fetch('/api/brands', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone }),
@@ -47,13 +47,13 @@ export default function AddClientForm() {
   return (
     <>
       <button onClick={() => setIsOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition">
-        + Ajouter un client
+        + Ajouter une brand
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => { setIsOpen(false); setErrors({}) }}>
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-4 text-gray-900">Nouveau client</h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-900">Nouvelle brand</h2>
             <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               <div>
                 <input value={name} onChange={(e) => { setName(e.target.value); setErrors({ ...errors, name: undefined }) }} placeholder="Nom *" className={`${inputBase} ${errors.name ? inputErr : inputOk}`} />
