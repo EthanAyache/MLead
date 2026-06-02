@@ -1,6 +1,7 @@
 'use client'
 
 import type { FilterValue } from './QuiDoitAQuiFilter'
+import InvoiceActions from './InvoiceActions'
 
 type Invoice = {
   id: string
@@ -30,18 +31,13 @@ function daysLate(dueDate: string): number {
 }
 
 export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[]; filter: FilterValue }) {
-  // Application du filtre Qui doit / À qui
   const filtered = invoices.filter(inv => {
-    // Le débiteur = celui qui doit payer = le destinataire de la facture
-    // Si la facture a un client → le client doit
-    // Si la facture a une brand → Mr.Lead doit à la brand
     const debtorIsClient = !!inv.clientId
-    const debtorIsBrand = false // jamais : la brand reçoit l'argent
     const creditorIsBrand = !!inv.brandId
     const creditorIsUser = !!inv.clientId
 
     if (filter.debtorType === 'client' && !debtorIsClient) return false
-    if (filter.debtorType === 'user' && !inv.brandId) return false // Mr.Lead doit = facture vers brand
+    if (filter.debtorType === 'user' && !inv.brandId) return false
     if (filter.debtorType === 'brand' || filter.debtorType === 'apporteur') return false
 
     if (filter.creditorType === 'brand' && !creditorIsBrand) return false
@@ -55,9 +51,7 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
     return true
   })
 
-  // Synthèse par "qui doit" : on regroupe par client (qui nous doit) ou par brand (Mr.Lead doit)
   const summary = new Map<string, { name: string; type: 'client' | 'brand'; total: number; currency: string; count: number; hasLate: boolean }>()
-
   for (const inv of filtered) {
     if (inv.status === 'PAID' || inv.status === 'CANCELLED') continue
     const key = inv.clientId ? `client-${inv.clientId}` : `brand-${inv.brandId}`
@@ -154,6 +148,7 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
                   <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Montant</th>
                   <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Échéance</th>
                   <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Statut</th>
+                  <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,6 +175,13 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
                           <span className="b-dot" />
                           {late ? 'En retard' : 'En attente'}
                         </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <InvoiceActions
+                          invoiceId={inv.id}
+                          invoiceNumber={inv.number}
+                          isPaid={inv.status === 'PAID'}
+                        />
                       </td>
                     </tr>
                   )

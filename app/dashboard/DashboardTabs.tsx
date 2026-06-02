@@ -4,22 +4,23 @@ import { useState } from 'react'
 import Tabs, { TabKey } from './Tabs'
 import QuiDoitAQuiFilter, { FilterValue } from './QuiDoitAQuiFilter'
 import InvoicesTab from './InvoicesTab'
+import ClientsTab from './ClientsTab'
+import BrandsTab from './BrandsTab'
+import ApporteursTab from './ApporteursTab'
+import HistoryTab from './HistoryTab'
 
 type Option = { id: string; name: string }
 type Counts = Record<TabKey, number>
 
 type Invoice = {
-  id: string
-  number: string
-  amount: number
-  currency: string
-  status: string
-  dueDate: string
-  clientId: string | null
-  brandId: string | null
-  client: { id: string; name: string } | null
-  brand: { id: string; name: string } | null
+  id: string; number: string; amount: number; currency: string; status: string; dueDate: string; paidAt: string | null
+  clientId: string | null; brandId: string | null
+  client: { id: string; name: string } | null; brand: { id: string; name: string } | null
 }
+
+type ClientRow = { id: string; name: string; email: string | null; phone: string | null; totalOwed: number; invoiceCount: number; hasLate: boolean }
+type BrandRow = { id: string; name: string; email: string | null; totalOwed: number; invoiceCount: number; hasLate: boolean }
+type ApporteurRow = { id: string; name: string; email: string | null; commissionType: string; commissionValue: number; clientCount: number }
 
 type Props = {
   counts: Counts
@@ -27,9 +28,13 @@ type Props = {
   clients: Option[]
   apporteurs: Option[]
   invoices: Invoice[]
+  clientRows: ClientRow[]
+  brandRows: BrandRow[]
+  apporteurRows: ApporteurRow[]
+  paidInvoices: Invoice[]
 }
 
-export default function DashboardTabs({ counts, brands, clients, apporteurs, invoices }: Props) {
+export default function DashboardTabs({ counts, brands, clients, apporteurs, invoices, clientRows, brandRows, apporteurRows, paidInvoices }: Props) {
   const [active, setActive] = useState<TabKey>('factures')
   const [filter, setFilter] = useState<FilterValue>({ debtorType: '', debtorName: '', creditorType: '', creditorName: '' })
 
@@ -43,12 +48,10 @@ export default function DashboardTabs({ counts, brands, clients, apporteurs, inv
           <InvoicesTab invoices={invoices} filter={filter} />
         </>
       )}
-
-      {active !== 'factures' && (
-        <div className="bg-white border border-dashed border-[#DCDDE6] rounded-[14px] p-12 text-center text-[#787C8A] text-sm">
-          📑 Onglet <strong className="text-[#16171D]">{active}</strong> — bientôt disponible.
-        </div>
-      )}
+      {active === 'clients' && <ClientsTab clients={clientRows} />}
+      {active === 'brands' && <BrandsTab brands={brandRows} />}
+      {active === 'apporteurs' && <ApporteursTab apporteurs={apporteurRows} />}
+      {active === 'historique' && <HistoryTab invoices={paidInvoices} />}
     </>
   )
 }
