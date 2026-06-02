@@ -44,29 +44,39 @@
   a{color:inherit}
   :focus-visible{outline:3px solid var(--brand);outline-offset:2px;border-radius:8px}
 
-  .app{max-width:1320px;margin:0 auto;padding:0 22px 64px}
+  .app{max-width:1320px;margin:0 auto;padding:22px 22px 64px}
 
-  /* Top bar */
-  .topbar{
-    display:flex;align-items:center;gap:18px;
-    padding:14px 0;margin-bottom:8px;
+  /* Top bar — bande bleue full-width */
+  .topbar-band{
+    background:linear-gradient(135deg,#1E3A8A 0%,#2563EB 100%);
+    box-shadow:0 4px 18px rgba(30,58,138,.18);
+    border-bottom:1px solid rgba(255,255,255,.08);
+    color:#fff;
   }
-  .brand{display:flex;align-items:center;gap:11px;font-family:'Bricolage Grotesque';font-weight:800;font-size:20px;letter-spacing:-.02em}
-  .logo{width:34px;height:34px;border-radius:9px;background:var(--brand);display:grid;place-items:center;color:#fff;font-family:'Bricolage Grotesque';font-weight:800;font-size:18px;box-shadow:0 4px 12px rgba(106,79,230,.35)}
-  .brand small{display:block;font-family:'Plus Jakarta Sans';font-weight:500;font-size:11.5px;color:var(--muted);letter-spacing:0;margin-top:-2px}
+  .topbar{
+    max-width:1320px;margin:0 auto;padding:16px 22px;
+    display:flex;align-items:center;gap:18px;color:#fff;
+  }
+  .brand{display:flex;align-items:center;gap:11px;font-family:'Bricolage Grotesque';font-weight:800;font-size:20px;letter-spacing:-.02em;color:#fff}
+  .logo{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.18);display:grid;place-items:center;color:#fff;font-family:'Bricolage Grotesque';font-weight:800;font-size:14px;border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px)}
+  .brand small{display:block;font-family:'Plus Jakarta Sans';font-weight:500;font-size:11.5px;color:rgba(255,255,255,.72);letter-spacing:0;margin-top:-2px}
   .topbar .search{margin-left:14px;flex:1;max-width:380px;position:relative}
   .topbar .search input{
-    width:100%;height:42px;border:1px solid var(--line-strong);border-radius:11px;
-    background:var(--surface);padding:0 14px 0 40px;font-size:14px;color:var(--ink);
+    width:100%;height:42px;border:1px solid rgba(255,255,255,.22);border-radius:11px;
+    background:rgba(255,255,255,.12);padding:0 14px 0 40px;font-size:14px;color:#fff;
+    transition:background .18s,border-color .18s;
   }
-  .topbar .search input::placeholder{color:var(--muted)}
-  .topbar .search svg{position:absolute;left:13px;top:11px;color:var(--muted)}
+  .topbar .search input::placeholder{color:rgba(255,255,255,.65)}
+  .topbar .search input:hover{background:rgba(255,255,255,.18)}
+  .topbar .search input:focus{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4);outline:none}
+  .topbar .search svg{position:absolute;left:13px;top:11px;color:rgba(255,255,255,.75)}
   .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
-  .icon-btn{width:42px;height:42px;border-radius:11px;border:1px solid var(--line-strong);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);position:relative;transition:background .18s,border-color .18s}
-  .icon-btn:hover{background:var(--surface-2);border-color:var(--line)}
-  .dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid var(--surface)}
-  .user{display:flex;align-items:center;gap:9px;height:42px;padding:0 8px 0 6px;border:1px solid var(--line-strong);border-radius:11px;background:var(--surface)}
-  .avatar{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6A4FE6,#9A7BF5);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}
+  .icon-btn{width:42px;height:42px;border-radius:11px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.12);display:grid;place-items:center;color:#fff;position:relative;transition:background .18s,border-color .18s}
+  .icon-btn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.35)}
+  .dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#FF5A5A;border:2px solid #2253C6}
+  .user{display:flex;align-items:center;gap:9px;height:42px;padding:0 10px 0 6px;border:1px solid rgba(255,255,255,.22);border-radius:11px;background:rgba(255,255,255,.12);color:#fff;font-weight:600;font-size:13.5px}
+  .user:hover{background:rgba(255,255,255,.2)}
+  .avatar{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#FFFFFF,#DBE3F5);color:#1E3A8A;display:grid;place-items:center;font-weight:800;font-size:13px}
 
   /* Page header */
   .page-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin:18px 0 18px}
@@ -80,7 +90,7 @@
   .btn-primary:hover{background:var(--brand-dark)}
 
   /* KPI cards */
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}
   .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)}
   .kpi .label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
   .kpi .label .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center}
@@ -104,15 +114,42 @@
   .card-head .hint{color:var(--muted);font-size:13px;font-weight:500;margin-left:2px}
   .card-body{padding:18px 20px}
 
-  /* Filters */
-  .filter-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:14px;align-items:end}
-  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:7px}
-  .field .pill-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:6px;margin-bottom:7px}
-  .pill-debit{background:var(--red-bg);color:var(--red)}
-  .pill-credit{background:var(--green-bg);color:var(--green)}
-  select,.input{width:100%;height:44px;border:1px solid var(--line-strong);border-radius:11px;background:var(--surface);padding:0 13px;font-size:14px;color:var(--ink);appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%23787C8A' stroke-width='2'><path d='M5 7l4 4 4-4'/></svg>");background-repeat:no-repeat;background-position:right 12px center}
-  .filter-actions{display:flex;gap:9px}
-  .filter-actions .btn{height:44px}
+  /* Filtres — style Qui doit / À qui */
+  .filter-grid{
+    display:grid;grid-template-columns:1fr 1fr 200px;gap:14px;align-items:stretch;
+  }
+  .filter-box{
+    background:#F4F1FE;
+    border:1px solid #E1DAFA;
+    border-radius:12px;
+    padding:14px 16px;
+    display:flex;flex-direction:column;
+  }
+  .filter-box .pill-tag{
+    align-self:flex-start;
+    font-size:11px;font-weight:700;letter-spacing:.02em;
+    padding:3px 11px;border-radius:999px;margin-bottom:9px;
+  }
+  .pill-debit{background:#FCE3E3;color:#C92D2D}
+  .pill-credit{background:#DCF1E5;color:#1A7C4B}
+  .filter-box label{
+    display:block;font-size:13px;color:var(--ink-2);
+    margin-bottom:6px;font-weight:500;
+  }
+  .filter-box select{background-color:#fff}
+  .sub-field{margin-top:10px;display:none}
+  .sub-field.show{display:block}
+  .sub-field label{display:block;font-size:13px;color:var(--ink-2);margin-bottom:6px;font-weight:500}
+  .sub-field input{
+    width:100%;height:42px;border:1px solid var(--line-strong);border-radius:10px;
+    background:#fff;padding:0 13px;font-size:14px;color:var(--ink);
+  }
+  .sub-field input::placeholder{color:var(--muted)}
+  .sub-field input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(106,79,230,.15)}
+  .sub-field .help{font-size:11.5px;color:var(--muted);margin-top:6px;display:block}
+  select,.input{width:100%;height:42px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);padding:0 13px;font-size:14px;color:var(--ink);appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%23787C8A' stroke-width='2'><path d='M5 7l4 4 4-4'/></svg>");background-repeat:no-repeat;background-position:right 12px center}
+  .filter-actions{display:flex;flex-direction:column;gap:10px;justify-content:center}
+  .filter-actions .btn{width:100%;justify-content:center;height:46px}
 
   /* Tables */
   .table-wrap{overflow-x:auto}
@@ -126,6 +163,16 @@
   .client-cell .av{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12.5px;flex:none}
   .client-cell .meta strong{display:block;color:var(--ink);font-weight:600}
   .client-cell .meta span{font-size:12px;color:var(--muted)}
+  .lead-pill{
+    display:inline-flex;align-items:center;gap:5px;
+    height:21px;padding:0 8px;border-radius:7px;
+    background:#E3EEFD;color:#2563EB;
+    font-size:11.5px;font-weight:700;
+    margin-left:8px;vertical-align:1px;
+    font-variant-numeric:tabular-nums;
+    border:1px solid #C9DEFB;
+  }
+  .lead-pill svg{flex:none}
   .ref{font-weight:600;color:var(--ink)}
   .amount{font-weight:700;color:var(--ink)}
   .amount-due{color:var(--red);font-weight:700}
@@ -161,10 +208,14 @@
 
   .footer-note{color:var(--muted);font-size:12.5px;text-align:center;margin-top:8px}
 
+  @media(max-width:1180px){
+    .kpis{grid-template-columns:repeat(3,1fr)}
+  }
   @media(max-width:980px){
     .kpis{grid-template-columns:repeat(2,1fr)}
     .filter-grid{grid-template-columns:1fr 1fr}
-    .filter-actions{grid-column:1 / -1}
+    .filter-actions{grid-column:1 / -1;flex-direction:row}
+    .filter-actions .btn{flex:1}
     .clients-grid{grid-template-columns:1fr}
   }
   @media(max-width:560px){
@@ -175,12 +226,11 @@
 </style>
 </head>
 <body>
-<div class="app">
-
-  <!-- TOP BAR -->
+<!-- BANDE BLEUE FULL-WIDTH -->
+<div class="topbar-band">
   <header class="topbar">
     <div class="brand">
-      <span class="logo" style="font-size:14px">ML</span>
+      <span class="logo">ML</span>
       <span>Mr.Lead<small>Monsieur Lead — Espace facturation</small></span>
     </div>
     <div class="search">
@@ -189,11 +239,14 @@
     </div>
     <div class="top-actions">
       <button class="icon-btn" aria-label="Notifications"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></button>
-      <div class="user"><span class="avatar">JB</span><span style="font-weight:600;font-size:13.5px">JBOOST</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#787C8A" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      <div class="user"><span class="avatar">JB</span><span>JBOOST</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
       </div>
     </div>
   </header>
+</div>
+
+<div class="app">
 
   <!-- PAGE HEAD -->
   <div class="page-head">
@@ -224,6 +277,11 @@
       <div class="label"><span class="ic" style="background:var(--amber-bg);color:var(--amber)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>En retard</div>
       <div class="value num" style="color:var(--red)">1 790,00 €</div>
       <div class="sub"><span class="num">2</span> factures à relancer</div>
+    </div>
+    <div class="kpi">
+      <div class="label"><span class="ic" style="background:#E3EEFD;color:#2563EB"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>Leads vendus</div>
+      <div class="value num">1 248</div>
+      <div class="sub"><span class="num">312</span> ce mois-ci · <span class="trend-up">▲ 18 %</span></div>
     </div>
     <div class="kpi">
       <div class="label"><span class="ic" style="background:var(--brand-soft);color:var(--brand)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Clients actifs</div>
@@ -259,44 +317,48 @@
   <!-- VIEW: FACTURES -->
   <div class="view active" id="view-factures">
 
-    <!-- Filters -->
+    <!-- Filters — Qui doit / À qui -->
     <div class="card">
       <div class="card-head">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></svg>
-        <h2>Filtrer les créances</h2>
-        <span class="hint">Affinez par client, statut ou période.</span>
+        <h2>Filtrer les dettes</h2>
+        <span class="hint">Reliez qui doit quoi à qui : choisissez le type de compte de chaque côté.</span>
       </div>
       <div class="card-body">
         <div class="filter-grid">
-          <div class="field">
-            <label for="f-client">Client</label>
-            <select id="f-client">
-              <option value="">Tous les clients</option>
-              <option>Agence Novalead</option>
-              <option>Cabinet Mercier</option>
-              <option>Groupe Atlas</option>
-              <option>Maison Verdier</option>
-              <option>Studio Photon</option>
-              <option>Tech Orbite</option>
+          <div class="filter-box">
+            <span class="pill-tag pill-debit">Qui doit</span>
+            <label for="f-debtor">Type de compte</label>
+            <select id="f-debtor" onchange="onTypeChange('debtor')">
+              <option value="">Tous</option>
+              <option value="client">Client</option>
+              <option value="brand">Fournisseur (brand)</option>
+              <option value="apporteur">Apporteur d'affaires</option>
+              <option value="user">Mr.Lead (interne)</option>
             </select>
+            <div class="sub-field" id="sub-debtor">
+              <label for="f-debtor-name" id="lbl-debtor">Client</label>
+              <input type="text" id="f-debtor-name" list="dl-debtor" placeholder="Tapez le nom du client…" autocomplete="off">
+              <datalist id="dl-debtor"></datalist>
+              <span class="help">Commencez à taper pour filtrer.</span>
+            </div>
           </div>
-          <div class="field">
-            <label for="f-status">Statut de paiement</label>
-            <select id="f-status">
-              <option value="all">Tous</option>
-              <option value="late">En retard</option>
-              <option value="pending">En attente</option>
-              <option value="paid">Payé</option>
+          <div class="filter-box">
+            <span class="pill-tag pill-credit">À qui</span>
+            <label for="f-creditor">Type de compte</label>
+            <select id="f-creditor" onchange="onTypeChange('creditor')">
+              <option value="">Tous</option>
+              <option value="client">Client</option>
+              <option value="brand">Fournisseur (brand)</option>
+              <option value="apporteur">Apporteur d'affaires</option>
+              <option value="user">Mr.Lead (interne)</option>
             </select>
-          </div>
-          <div class="field">
-            <label for="f-period">Période</label>
-            <select id="f-period">
-              <option>Ce mois-ci</option>
-              <option>30 derniers jours</option>
-              <option>Ce trimestre</option>
-              <option>Cette année</option>
-            </select>
+            <div class="sub-field" id="sub-creditor">
+              <label for="f-creditor-name" id="lbl-creditor">Client</label>
+              <input type="text" id="f-creditor-name" list="dl-creditor" placeholder="Tapez le nom du client…" autocomplete="off">
+              <datalist id="dl-creditor"></datalist>
+              <span class="help">Commencez à taper pour filtrer.</span>
+            </div>
           </div>
           <div class="filter-actions">
             <button class="btn btn-primary" onclick="applyFilters()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></svg>Filtrer</button>
@@ -320,22 +382,22 @@
           </tr></thead>
           <tbody>
             <tr>
-              <td><div class="client-cell"><span class="av" style="background:#E0594B">AN</span><div class="meta"><strong>Agence Novalead</strong><span>contact@novalead.fr</span></div></div></td>
+              <td><div class="client-cell"><span class="av" style="background:#E0594B">AN</span><div class="meta"><strong>Agence Novalead <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>145 leads</span></strong><span>contact@novalead.fr</span></div></div></td>
               <td class="num">1 250,00 €</td><td class="num">0,00 €</td><td class="num amount-due">1 250,00 €</td>
               <td><span class="badge b-late"><span class="b-dot"></span>En retard</span></td>
             </tr>
             <tr>
-              <td><div class="client-cell"><span class="av" style="background:#3E8E7E">CM</span><div class="meta"><strong>Cabinet Mercier</strong><span>compta@mercier.fr</span></div></div></td>
+              <td><div class="client-cell"><span class="av" style="background:#3E8E7E">CM</span><div class="meta"><strong>Cabinet Mercier <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>87 leads</span></strong><span>compta@mercier.fr</span></div></div></td>
               <td class="num">480,00 €</td><td class="num">0,00 €</td><td class="num amount-due">480,00 €</td>
               <td><span class="badge b-pending"><span class="b-dot"></span>En attente</span></td>
             </tr>
             <tr>
-              <td><div class="client-cell"><span class="av" style="background:#C28A2B">GA</span><div class="meta"><strong>Groupe Atlas</strong><span>finance@groupe-atlas.com</span></div></div></td>
+              <td><div class="client-cell"><span class="av" style="background:#C28A2B">GA</span><div class="meta"><strong>Groupe Atlas <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>162 leads</span></strong><span>finance@groupe-atlas.com</span></div></div></td>
               <td class="num">760,00 €</td><td class="num">0,00 €</td><td class="num amount-due">760,00 €</td>
               <td><span class="badge b-pending"><span class="b-dot"></span>En attente</span></td>
             </tr>
             <tr>
-              <td><div class="client-cell"><span class="av" style="background:#8A5BD0">MV</span><div class="meta"><strong>Maison Verdier</strong><span>hello@maisonverdier.fr</span></div></div></td>
+              <td><div class="client-cell"><span class="av" style="background:#8A5BD0">MV</span><div class="meta"><strong>Maison Verdier <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>74 leads</span></strong><span>hello@maisonverdier.fr</span></div></div></td>
               <td class="num">540,00 €</td><td class="num">0,00 €</td><td class="num amount-due">540,00 €</td>
               <td><span class="badge b-late"><span class="b-dot"></span>En retard</span></td>
             </tr>
@@ -431,12 +493,12 @@
       </div>
       <div class="card-body">
         <div class="clients-grid">
-          <div class="client-card"><span class="av" style="background:#E0594B">AN</span><div class="info"><strong>Agence Novalead</strong><span>contact@novalead.fr · 06 12 34 56 78</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">1 250,00 €</div></div></div>
-          <div class="client-card"><span class="av" style="background:#3E8E7E">CM</span><div class="info"><strong>Cabinet Mercier</strong><span>compta@mercier.fr · 06 98 76 54 32</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">480,00 €</div></div></div>
-          <div class="client-card"><span class="av" style="background:#C28A2B">GA</span><div class="info"><strong>Groupe Atlas</strong><span>finance@groupe-atlas.com</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">760,00 €</div></div></div>
-          <div class="client-card"><span class="av" style="background:#8A5BD0">MV</span><div class="info"><strong>Maison Verdier</strong><span>hello@maisonverdier.fr</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">540,00 €</div></div></div>
-          <div class="client-card"><span class="av" style="background:#2B6FC2">SP</span><div class="info"><strong>Studio Photon</strong><span>contact@studiophoton.fr</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-paid">0,00 €</div></div></div>
-          <div class="client-card"><span class="av" style="background:#1F8A53">TO</span><div class="info"><strong>Tech Orbite</strong><span>admin@techorbite.io</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-paid">0,00 €</div></div></div>
+          <div class="client-card"><span class="av" style="background:#E0594B">AN</span><div class="info"><strong>Agence Novalead <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>145 leads</span></strong><span>contact@novalead.fr · 06 12 34 56 78</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">1 250,00 €</div></div></div>
+          <div class="client-card"><span class="av" style="background:#3E8E7E">CM</span><div class="info"><strong>Cabinet Mercier <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>87 leads</span></strong><span>compta@mercier.fr · 06 98 76 54 32</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">480,00 €</div></div></div>
+          <div class="client-card"><span class="av" style="background:#C28A2B">GA</span><div class="info"><strong>Groupe Atlas <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>162 leads</span></strong><span>finance@groupe-atlas.com</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">760,00 €</div></div></div>
+          <div class="client-card"><span class="av" style="background:#8A5BD0">MV</span><div class="info"><strong>Maison Verdier <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>74 leads</span></strong><span>hello@maisonverdier.fr</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-due">540,00 €</div></div></div>
+          <div class="client-card"><span class="av" style="background:#2B6FC2">SP</span><div class="info"><strong>Studio Photon <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>380 leads</span></strong><span>contact@studiophoton.fr</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-paid">0,00 €</div></div></div>
+          <div class="client-card"><span class="av" style="background:#1F8A53">TO</span><div class="info"><strong>Tech Orbite <span class="lead-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>400 leads</span></strong><span>admin@techorbite.io</span></div><div class="bal"><div class="l">Solde</div><div class="num amount-paid">0,00 €</div></div></div>
         </div>
       </div>
     </div>
@@ -584,22 +646,74 @@
     });
   });
 
-  // Filtre par statut
+  // Données par catégorie pour l'auto-complétion
+  const CATEGORY_NAMES = {
+    client:    ['Agence Novalead','Cabinet Mercier','Groupe Atlas','Maison Verdier','Studio Photon','Tech Orbite'],
+    brand:     ['LeadFactory','ProspectHub','DataSource Pro'],
+    apporteur: ['Julien Marchand','Sofia Benali','Léa Dupont'],
+    user:      ['Mr.Lead (interne)']
+  };
+  const CATEGORY_LABELS = {
+    client:'Client', brand:'Fournisseur', apporteur:"Apporteur d'affaires", user:'Mr.Lead'
+  };
+
+  // Affiche/masque le sous-champ en fonction du type choisi
+  function onTypeChange(side){
+    const sel   = document.getElementById('f-'+side);
+    const sub   = document.getElementById('sub-'+side);
+    const lbl   = document.getElementById('lbl-'+side);
+    const input = document.getElementById('f-'+side+'-name');
+    const dl    = document.getElementById('dl-'+side);
+    const val   = sel.value;
+    if(!val){
+      sub.classList.remove('show');
+      input.value='';
+      return;
+    }
+    sub.classList.add('show');
+    lbl.textContent      = CATEGORY_LABELS[val];
+    input.placeholder    = 'Tapez le nom du ' + CATEGORY_LABELS[val].toLowerCase() + '…';
+    input.value          = '';
+    dl.innerHTML         = CATEGORY_NAMES[val].map(n => '<option value="'+n+'">').join('');
+  }
+
+  // Filtre Qui doit / À qui
   function applyFilters(){
-    const status=document.getElementById('f-status').value;
-    let visible=0;
-    document.querySelectorAll('#invoice-rows tr').forEach(row=>{
-      const show=(status==='all'||row.dataset.status===status);
-      row.style.display=show?'':'none';
-      if(show)visible++;
+    const debtor   = document.getElementById('f-debtor').value;
+    const creditor = document.getElementById('f-creditor').value;
+    const debtorName   = document.getElementById('f-debtor-name').value.trim().toLowerCase();
+    const creditorName = document.getElementById('f-creditor-name').value.trim().toLowerCase();
+    const note = document.getElementById('empty-note');
+
+    if(!debtor && !creditor){
+      document.querySelectorAll('#invoice-rows tr').forEach(r=>r.style.display='');
+      note.style.display='none';
+      return;
+    }
+    // Démo : si l'un des deux côtés est Mr.Lead (interne) on cache tout (les factures ici sont clients↔Mr.Lead)
+    // Logique réelle = côté backend
+    const hideAll = (debtor==='user' || creditor==='user' || debtor==='brand' || creditor==='brand' || debtor==='apporteur' || creditor==='apporteur');
+    let visible = 0;
+    document.querySelectorAll('#invoice-rows tr').forEach(r=>{
+      let show = !hideAll;
+      // Si un nom précis est tapé côté débiteur, on filtre par nom du client de la ligne
+      if(show && debtorName){
+        const name = (r.querySelector('.client-cell .meta strong')?.firstChild?.textContent || '').toLowerCase();
+        if(!name.includes(debtorName)) show=false;
+      }
+      r.style.display = show ? '' : 'none';
+      if(show) visible++;
     });
-    document.getElementById('empty-note').style.display=visible?'none':'block';
+    note.style.display = visible ? 'none' : 'block';
   }
   function resetFilters(){
-    document.getElementById('f-client').value='';
-    document.getElementById('f-status').value='all';
-    document.getElementById('f-period').selectedIndex=0;
-    applyFilters();
+    ['debtor','creditor'].forEach(side=>{
+      document.getElementById('f-'+side).value='';
+      document.getElementById('sub-'+side).classList.remove('show');
+      document.getElementById('f-'+side+'-name').value='';
+    });
+    document.querySelectorAll('#invoice-rows tr').forEach(r=>r.style.display='');
+    document.getElementById('empty-note').style.display='none';
   }
 
   // Marquer comme payé
