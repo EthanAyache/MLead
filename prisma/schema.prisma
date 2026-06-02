@@ -1,0 +1,184 @@
+// =====================================================
+//  Mr.Lead — Schéma de la base de données
+// =====================================================
+//  Ce fichier décrit toutes les tables de la base et
+//  les relations entre elles. Prisma génère ensuite
+//  le code TypeScript pour lire/écrire dedans.
+// =====================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// =====================================================
+//  ENUMS — Listes de valeurs autorisées
+// =====================================================
+
+// Devises supportées (€, ₪, $)
+enum Currency {
+  EUR
+  ILS
+  USD
+}
+
+// Statuts d'une facture
+enum InvoiceStatus {
+  PENDING   // En attente de paiement
+  PAID      // Payée
+  LATE      // En retard
+  CANCELLED // Annulée
+}
+
+// Type de commission apporteur (% de la marge, ou montant fixe)
+enum CommissionType {
+  PERCENT // ex: 10% de la marge
+  FIXED   // ex: 50€ par client apporté
+}
+
+// =====================================================
+//  TABLES PRINCIPALES
+// =====================================================
+
+// Une BRAND = un fournisseur de leads (LeadFactory, ProspectHub...)
+model Brand {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations : une brand fournit plusieurs leads et reçoit plusieurs factures
+  leads    Lead[]
+  invoices Invoice[]
+}
+
+// Un CLIENT = quelqu'un à qui on revend les leads (Agence Novalead...)
+model Client {
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  stripeCustomerId String? @unique // ID Stripe pour la facturation
+  archived      Boolean  @default(false)
+  apporteurId   String?  // Si ce client a été amené par un apporteur
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  apporteur Apporteur? @relation(fields: [apporteurId], references: [id])
+  leads     Lead[]
+  invoices  Invoice[]
+}
+
+// Un APPORTEUR = personne qui amène des clients (Julien Marchand...)
+model Apporteur {
+  id              String         @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  commissionType  CommissionType @default(PERCENT)
+  commissionValue Float          // 10 (%) ou 50 (€) selon le type
+  archived        Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  clients     Client[]
+  commissions Commission[]
+}
+
+// Un LEAD = une transaction (achat à brand + vente à client)
+// C'est la table centrale, inspirée de la feuille manuscrite
+model Lead {
+  id          String   @id @default(cuid())
+  brandId     String
+  clientId    String
+  
+  // Prix d'achat à la brand
+  buyPrice    Float
+  buyCurrency Currency @default(EUR)
+  
+  // Prix de vente au client
+  sellPrice    Float
+  sellCurrency Currency @default(EUR)
+  
+  // Métadonnées
+  label       String?  // ex: "Permis de conduire", "Casque Apple"
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  brand  Brand  @relation(fields: [brandId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@index([date])
+  @@index([brandId])
+  @@index([clientId])
+}
+
+// Une FACTURE = à émettre (client) ou à payer (brand)
+model Invoice {
+  id          String        @id @default(cuid())
+  number      String        @unique // ex: "FA-2026-014"
+  amount      Float
+  currency    Currency      @default(EUR)
+  status      InvoiceStatus @default(PENDING)
+  issueDate   DateTime      @default(now())
+  dueDate     DateTime
+  paidAt      DateTime?
+  
+  // Une facture concerne SOIT un client SOIT une brand
+  clientId    String?
+  brandId     String?
+  
+  // ID Stripe (rempli quand on crée la facture sur Stripe)
+  stripeInvoiceId String? @unique
+  
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  client   Client?   @relation(fields: [clientId], references: [id])
+  brand    Brand?    @relation(fields: [brandId], references: [id])
+  payments Payment[]
+
+  @@index([status])
+  @@index([dueDate])
+}
+
+// Un PAIEMENT = mouvement d'argent réel (rattaché à une facture)
+model Payment {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  amount      Float
+  currency    Currency @default(EUR)
+  method      String?  // "stripe_card", "stripe_sepa", "virement"...
+  stripePaymentId String? @unique
+  paidAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+// Une COMMISSION = à verser à un apporteur
+model Commission {
+  id          String        @id @default(cuid())
+  apporteurId String
+  amount      Float
+  currency    Currency      @default(EUR)
+  status      InvoiceStatus @default(PENDING)
+  paidAt      DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  apporteur Apporteur @relation(fields: [apporteurId], references: [id])
+}
