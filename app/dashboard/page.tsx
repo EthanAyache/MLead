@@ -1,16 +1,20 @@
-export const dynamic = 'force-dynamic'
+export const revalidate = 5
 
+import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import Header from './Header'
 import Kpis from './Kpis'
 import DashboardTabs from './DashboardTabs'
 import AddInvoiceButton from './AddInvoiceButton'
 
-export default async function DashboardPage() {
-  const [unpaidCount, clientsCount, historyCount, brandsCount, apporteursCount, brands, clients, apporteurs, invoicesAll] = await Promise.all([
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ archives?: string }> }) {
+  const params = await searchParams
+  const showArchives = params.archives === '1'
+
+  const [unpaidCount, clientsCount, historyCount, brandsCount, apporteursCount, brands, clients, apporteurs, invoicesAll, archivedAll] = await Promise.all([
     prisma.invoice.count({ where: { archived: false, status: { in: ['PENDING', 'LATE'] } } }),
     prisma.client.count({ where: { archived: false } }),
-    prisma.invoice.count({ where: { status: 'PAID' } }),
+    prisma.invoice.count({ where: { archived: false, status: 'PAID' } }),
     prisma.brand.count({ where: { archived: false } }),
     prisma.apporteur.count({ where: { archived: false } }),
     prisma.brand.findMany({ where: { archived: false }, orderBy: { name: 'asc' } }),
@@ -24,9 +28,23 @@ export default async function DashboardPage() {
         brand: { select: { id: true, name: true } },
       },
     }),
+    prisma.invoice.findMany({
+      where: { archived: true },
+      orderBy: { issueDate: 'desc' },
+      include: {
+        client: { select: { id: true, name: true } },
+        brand: { select: { id: true, name: true } },
+      },
+    }),
   ])
 
   const invoices = invoicesAll.map(i => ({
+    ...i,
+    dueDate: i.dueDate.toISOString(),
+    paidAt: i.paidAt ? i.paidAt.toISOString() : null,
+  }))
+
+  const archivedInvoices = archivedAll.map(i => ({
     ...i,
     dueDate: i.dueDate.toISOString(),
     paidAt: i.paidAt ? i.paidAt.toISOString() : null,
@@ -81,21 +99,35 @@ export default async function DashboardPage() {
         <div className="flex items-start gap-4 flex-wrap mb-[18px] mt-2">
           <div>
             <h1 className="font-bricolage text-[27px] font-bold text-[#16171D] tracking-tight">
-              Soldes &amp; Créances
+              {showArchives ? 'Archives' : 'Soldes & Créances'}
             </h1>
             <p className="text-[#787C8A] text-sm mt-1 max-w-[560px]">
-              Suivez qui doit quoi à qui : factures dues par vos clients, sommes dues à vos brands et apporteurs.
+              {showArchives
+                ? 'Factures archivées. Cliquez sur « Restaurer » pour remettre une facture active.'
+                : 'Suivez qui doit quoi à qui : factures dues par vos clients, sommes dues à vos brands et apporteurs.'}
             </p>
           </div>
           <div className="ml-auto flex gap-2.5 flex-wrap">
-            <button className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition">
-              Archives
-            </button>
-            <AddInvoiceButton />
+            {showArchives ? (
+              <Link href="/dashboard" className="h-[42px] px-4 rounded-[11px] bg-[#6A4FE6] hover:bg-[#5840CC] text-white font-semibold text-sm shadow-[0_6px_16px_rgba(106,79,230,.3)] transition flex items-center gap-2">
+                ← Retour au dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/dashboard?archives=1" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 8v13H3V8M1 3h22v5H1z" />
+                  </svg>
+                  Archives {archivedAll.length > 0 && `(${archivedAll.length})`}
+                </Link>
+                <AddInvoiceButton />
+              </>
+            )}
           </div>
         </div>
 
-        <Kpis />
+        {!showArchives && <Kpis />}
+
         <DashboardTabs
           counts={counts}
           brands={brandOptions}
@@ -106,6 +138,8 @@ export default async function DashboardPage() {
           brandRows={brandRows}
           apporteurRows={apporteurRows}
           paidInvoices={paidInvoices}
+          archivedInvoices={archivedInvoices}
+          showArchives={showArchives}
         />
       </main>
     </div>

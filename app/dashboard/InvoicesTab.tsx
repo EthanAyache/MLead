@@ -12,6 +12,7 @@ type Invoice = {
   dueDate: string
   clientId: string | null
   brandId: string | null
+  stripeInvoiceId: string | null
   client: { id: string; name: string } | null
   brand: { id: string; name: string } | null
 }
@@ -72,12 +73,12 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
 
   return (
     <div className="space-y-[18px]">
-      {/* SYNTHÈSE */}
       <section className="bg-white border border-[#E8E9EF] rounded-[14px] shadow-[0_1px_2px_rgba(20,22,30,.04),0_6px_24px_rgba(20,22,30,.05)] overflow-hidden">
         <div className="px-5 py-[17px] border-b border-[#E8E9EF] flex items-center gap-2.5 flex-wrap">
           <h2 className="title-badge font-bricolage">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M3 3v18h18" /><path d="M7 14l4-4 3 3 5-6" />
+              <path d="M3 3v18h18" />
+              <path d="M7 14l4-4 3 3 5-6" />
             </svg>
             Synthèse par destinataire
           </h2>
@@ -121,12 +122,12 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
         )}
       </section>
 
-      {/* DÉTAIL */}
       <section className="bg-white border border-[#E8E9EF] rounded-[14px] shadow-[0_1px_2px_rgba(20,22,30,.04),0_6px_24px_rgba(20,22,30,.05)] overflow-hidden">
         <div className="px-5 py-[17px] border-b border-[#E8E9EF] flex items-center gap-2.5 flex-wrap">
           <h2 className="title-badge font-bricolage">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" />
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <path d="M14 2v6h6" />
             </svg>
             Factures détaillées
           </h2>
@@ -157,7 +158,20 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
                   const dl = late ? daysLate(inv.dueDate) : 0
                   return (
                     <tr key={inv.id} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition">
-                      <td className="px-5 py-3.5 font-bold text-[#16171D]">{inv.number}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[#16171D]">{inv.number}</span>
+                          {inv.stripeInvoiceId ? (
+                            <a href={`https://dashboard.stripe.com/test/invoices/${inv.stripeInvoiceId}`} target="_blank" rel="noopener noreferrer" title="Ouvrir sur Stripe" className="w-6 h-6 rounded-md bg-[#635BFF]/10 hover:bg-[#635BFF]/20 text-[#635BFF] flex items-center justify-center transition">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                <polyline points="15 3 21 3 21 9" />
+                                <line x1="10" y1="14" x2="21" y2="3" />
+                              </svg>
+                            </a>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-5 py-3.5 text-[#414350] font-medium">{inv.client?.name ?? inv.brand?.name ?? '—'}</td>
                       <td className="px-5 py-3.5">
                         {inv.clientId ? (
@@ -177,11 +191,7 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <InvoiceActions
-                          invoiceId={inv.id}
-                          invoiceNumber={inv.number}
-                          isPaid={inv.status === 'PAID'}
-                        />
+                        <InvoiceActions invoiceId={inv.id} invoiceNumber={inv.number} isPaid={inv.status === 'PAID'} />
                       </td>
                     </tr>
                   )

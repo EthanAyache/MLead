@@ -8,13 +8,14 @@ import ClientsTab from './ClientsTab'
 import BrandsTab from './BrandsTab'
 import ApporteursTab from './ApporteursTab'
 import HistoryTab from './HistoryTab'
+import ArchivesTab from './ArchivesTab'
 
 type Option = { id: string; name: string }
 type Counts = Record<TabKey, number>
 
 type Invoice = {
   id: string; number: string; amount: number; currency: string; status: string; dueDate: string; paidAt: string | null
-  clientId: string | null; brandId: string | null
+  clientId: string | null; brandId: string | null; stripeInvoiceId: string | null
   client: { id: string; name: string } | null; brand: { id: string; name: string } | null
 }
 
@@ -32,11 +33,18 @@ type Props = {
   brandRows: BrandRow[]
   apporteurRows: ApporteurRow[]
   paidInvoices: Invoice[]
+  archivedInvoices: Invoice[]
+  showArchives: boolean
 }
 
-export default function DashboardTabs({ counts, brands, clients, apporteurs, invoices, clientRows, brandRows, apporteurRows, paidInvoices }: Props) {
+export default function DashboardTabs({ counts, brands, clients, apporteurs, invoices, clientRows, brandRows, apporteurRows, paidInvoices, archivedInvoices, showArchives }: Props) {
   const [active, setActive] = useState<TabKey>('factures')
   const [filter, setFilter] = useState<FilterValue>({ debtorType: '', debtorName: '', creditorType: '', creditorName: '' })
+
+  // Mode archives : on n'affiche QUE l'onglet archives
+  if (showArchives) {
+    return <ArchivesTab archived={archivedInvoices} />
+  }
 
   return (
     <>
