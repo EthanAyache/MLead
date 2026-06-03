@@ -1,6 +1,9 @@
-'use client'
+import { getCurrentUser } from '@/lib/auth'
+import UserMenu from './UserMenu'
 
-export default function Header() {
+export default async function Header() {
+  const user = await getCurrentUser()
+
   return (
     <header className="bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] shadow-[0_4px_18px_rgba(30,58,138,.18)] border-b border-white/10 sticky top-0 z-40">
       <div className="max-w-[1320px] mx-auto px-[22px] py-4 flex items-center gap-[18px]">
@@ -30,7 +33,7 @@ export default function Header() {
           />
         </div>
 
-        {/* Notifications + user */}
+        {/* Notifications + menu utilisateur */}
         <div className="ml-auto flex items-center gap-2.5">
           <button className="relative w-[42px] h-[42px] rounded-[11px] bg-white/[0.12] border border-white/[0.22] hover:bg-white/[0.22] hover:border-white/35 transition flex items-center justify-center text-white" aria-label="Notifications">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -39,10 +42,14 @@ export default function Header() {
             </svg>
             <span className="absolute top-[9px] right-2.5 w-2 h-2 rounded-full bg-[#FF5A5A] border-2 border-[#2253C6]" />
           </button>
-          <div className="h-[42px] px-2.5 pl-1.5 rounded-[11px] bg-white/[0.12] border border-white/[0.22] hover:bg-white/20 flex items-center gap-2.5 text-white text-[13.5px] font-semibold transition">
-            <div className="w-[30px] h-[30px] rounded-lg bg-gradient-to-br from-white to-[#DBE3F5] text-[#1E3A8A] font-extrabold text-[13px] flex items-center justify-center">JB</div>
-            <span>JBOOST</span>
-          </div>
+
+          {user && (
+            <UserMenu
+              name={user.name || user.email}
+              email={user.email}
+              role={user.role as 'ADMIN' | 'USER'}
+            />
+          )}
         </div>
       </div>
     </header>

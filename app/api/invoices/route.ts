@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 
 export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
   const invoices = await prisma.invoice.findMany({
-    where: { archived: false },
+    where: { archived: false, ...visibilityFilter(user) },
     orderBy: { issueDate: 'desc' },
     include: {
       client: { select: { id: true, name: true } },
@@ -15,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
   const body = await request.json()
 
   if (!body.number) return NextResponse.json({ error: 'Numéro obligatoire' }, { status: 400 })
@@ -33,18 +40,12 @@ export async function POST(request: Request) {
   if (body.clientId) {
     try {
       const client = await prisma.client.findUnique({ where: { id: body.clientId } })
-      if (!client) {
-        return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
-      }
+      if (!client) return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
 
-      // 1. S'assurer que le client a un customer Stripe
       let stripeCustomerId = client.stripeCustomerId
       if (!stripeCustomerId) {
         if (!client.email) {
-          return NextResponse.json(
-            { error: 'Le client doit avoir un email pour recevoir la facture Stripe' },
-            { status: 400 }
-          )
+          return NextResponse.json({ error: 'Le client doit avoir un email' }, { status: 400 })
         }
         const customer = await stripe.customers.create({
           name: client.name,
@@ -52,13 +53,9 @@ export async function POST(request: Request) {
           phone: client.phone ?? undefined,
         })
         stripeCustomerId = customer.id
-        await prisma.client.update({
-          where: { id: client.id },
-          data: { stripeCustomerId },
-        })
+        await prisma.client.update({ where: { id: client.id }, data: { stripeCustomerId } })
       }
 
-      // 2. Créer la facture EN BROUILLON D'ABORD
       const stripeInvoice = await stripe.invoices.create({
         customer: stripeCustomerId,
         collection_method: 'send_invoice',
@@ -66,11 +63,8 @@ export async function POST(request: Request) {
         metadata: { mrlead_invoice_number: body.number },
       })
 
-      if (!stripeInvoice.id) {
-        throw new Error('Stripe n\'a pas renvoyé d\'ID de facture')
-      }
+      if (!stripeInvoice.id) throw new Error('Stripe : pas d\'ID de facture')
 
-      // 3. Ajouter l'item EN PRÉCISANT la facture à laquelle il appartient
       await stripe.invoiceItems.create({
         customer: stripeCustomerId,
         invoice: stripeInvoice.id,
@@ -79,16 +73,13 @@ export async function POST(request: Request) {
         description: body.label || `Facture ${body.number}`,
       })
 
-      // 4. Finaliser + envoyer par email
       await stripe.invoices.finalizeInvoice(stripeInvoice.id)
       await stripe.invoices.sendInvoice(stripeInvoice.id)
 
       stripeInvoiceId = stripeInvoice.id
-    } catch (err: unknown) {
-      console.error('=== ERREUR STRIPE ===')
-      console.error(err)
-      console.error('=== FIN ERREUR ===')
-      const message = err instanceof Error ? err.message : 'Erreur Stripe inconnue'
+    } catch (err) {
+      console.error('Erreur Stripe:', err)
+      const message = err instanceof Error ? err.message : 'Erreur Stripe'
       return NextResponse.json({ error: 'Stripe : ' + message }, { status: 500 })
     }
   }
@@ -103,6 +94,7 @@ export async function POST(request: Request) {
       clientId: body.clientId || null,
       brandId: body.brandId || null,
       stripeInvoiceId,
+      userId: user.id,
     },
   })
 

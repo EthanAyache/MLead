@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 
 export async function GET() {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
   const leads = await prisma.lead.findMany({
+    where: visibilityFilter(user),
     orderBy: { date: 'desc' },
     include: {
       brand: { select: { id: true, name: true } },
@@ -13,12 +18,18 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
+  const body = await request.json()
   if (!body.brandId) return NextResponse.json({ error: 'Brand obligatoire' }, { status: 400 })
   if (!body.clientId) return NextResponse.json({ error: 'Client obligatoire' }, { status: 400 })
-  if (!body.buyPrice) return NextResponse.json({ error: "Prix d'achat obligatoire" }, { status: 400 })
-  if (!body.sellPrice) return NextResponse.json({ error: 'Prix de vente obligatoire' }, { status: 400 })
+  if (!body.buyPrice || parseFloat(body.buyPrice) < 0) {
+    return NextResponse.json({ error: 'Prix d\'achat invalide' }, { status: 400 })
+  }
+  if (!body.sellPrice || parseFloat(body.sellPrice) < 0) {
+    return NextResponse.json({ error: 'Prix de vente invalide' }, { status: 400 })
+  }
 
   const lead = await prisma.lead.create({
     data: {
@@ -29,7 +40,7 @@ export async function POST(request: Request) {
       sellPrice: parseFloat(body.sellPrice),
       sellCurrency: body.sellCurrency || 'EUR',
       label: body.label || null,
-      date: body.date ? new Date(body.date) : new Date(),
+      userId: user.id,
     },
   })
   return NextResponse.json(lead, { status: 201 })

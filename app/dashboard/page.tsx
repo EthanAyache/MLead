@@ -1,27 +1,33 @@
 export const revalidate = 5
 
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from './Header'
 import Kpis from './Kpis'
 import DashboardTabs from './DashboardTabs'
 import AddInvoiceButton from './AddInvoiceButton'
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ archives?: string }> }) {
+  const me = await getCurrentUser()
+  if (!me) redirect('/login')
+
   const params = await searchParams
   const showArchives = params.archives === '1'
+  const filter = visibilityFilter(me)
 
   const [unpaidCount, clientsCount, historyCount, brandsCount, apporteursCount, brands, clients, apporteurs, invoicesAll, archivedAll] = await Promise.all([
-    prisma.invoice.count({ where: { archived: false, status: { in: ['PENDING', 'LATE'] } } }),
-    prisma.client.count({ where: { archived: false } }),
-    prisma.invoice.count({ where: { archived: false, status: 'PAID' } }),
-    prisma.brand.count({ where: { archived: false } }),
-    prisma.apporteur.count({ where: { archived: false } }),
-    prisma.brand.findMany({ where: { archived: false }, orderBy: { name: 'asc' } }),
-    prisma.client.findMany({ where: { archived: false }, orderBy: { name: 'asc' } }),
-    prisma.apporteur.findMany({ where: { archived: false }, orderBy: { name: 'asc' } }),
+    prisma.invoice.count({ where: { archived: false, status: { in: ['PENDING', 'LATE'] }, ...filter } }),
+    prisma.client.count({ where: { archived: false, ...filter } }),
+    prisma.invoice.count({ where: { archived: false, status: 'PAID', ...filter } }),
+    prisma.brand.count({ where: { archived: false, ...filter } }),
+    prisma.apporteur.count({ where: { archived: false, ...filter } }),
+    prisma.brand.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
+    prisma.client.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
+    prisma.apporteur.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
     prisma.invoice.findMany({
-      where: { archived: false },
+      where: { archived: false, ...filter },
       orderBy: { issueDate: 'desc' },
       include: {
         client: { select: { id: true, name: true } },
@@ -29,7 +35,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       },
     }),
     prisma.invoice.findMany({
-      where: { archived: true },
+      where: { archived: true, ...filter },
       orderBy: { issueDate: 'desc' },
       include: {
         client: { select: { id: true, name: true } },
@@ -76,7 +82,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const apporteurRows = await Promise.all(apporteurs.map(async a => ({
     id: a.id, name: a.name, email: a.email,
     commissionType: a.commissionType, commissionValue: a.commissionValue,
-    clientCount: await prisma.client.count({ where: { apporteurId: a.id, archived: false } }),
+    clientCount: await prisma.client.count({ where: { apporteurId: a.id, archived: false, ...filter } }),
   })))
 
   const counts = {
