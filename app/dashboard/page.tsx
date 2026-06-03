@@ -1,4 +1,4 @@
-export const revalidate = 5
+export const revalidate = 30
 
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
