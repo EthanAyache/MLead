@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -31,13 +31,18 @@ enum CommissionType {
 }
 
 model User {
-  id         String       @id  // ID Supabase Auth
-  email      String       @unique
-  name       String?
-  role       Role         @default(USER)
-  createdAt  DateTime     @default(now())
-  archived   Boolean      @default(false)
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?   @db.Text
+  role          Role      @default(USER)
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  archived      Boolean   @default(false)
 
+  accounts   Account[]
+  sessions   Session[]
   brands     Brand[]
   clients    Client[]
   apporteurs Apporteur[]
@@ -45,38 +50,82 @@ model User {
   invoices   Invoice[]
 }
 
+// --- Tables NextAuth ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Tables métier ---
+
 model Brand {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
   email     String?
   phone     String?
-  archived  Boolean   @default(false)
-  createdAt DateTime  @default(now())
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  leads     Lead[]
-  invoices  Invoice[]
+  leads    Lead[]
+  invoices Invoice[]
+
+  @@index([userId])
 }
 
 model Client {
-  id                String    @id @default(cuid())
-  name              String
-  email             String?
-  phone             String?
-  stripeCustomerId  String?
-  archived          Boolean   @default(false)
-  createdAt         DateTime  @default(now())
+  id               String   @id @default(cuid())
+  name             String
+  email            String?
+  phone            String?
+  stripeCustomerId String?
+  archived         Boolean  @default(false)
+  createdAt        DateTime @default(now())
 
-  userId            String
-  user              User      @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  apporteurId       String?
-  apporteur         Apporteur? @relation(fields: [apporteurId], references: [id])
+  apporteurId String?
+  apporteur   Apporteur? @relation(fields: [apporteurId], references: [id])
 
-  leads             Lead[]
-  invoices          Invoice[]
+  leads    Lead[]
+  invoices Invoice[]
+
+  @@index([userId])
+  @@index([apporteurId])
 }
 
 model Apporteur {
@@ -89,11 +138,13 @@ model Apporteur {
   archived        Boolean        @default(false)
   createdAt       DateTime       @default(now())
 
-  userId          String
-  user            User           @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  clients         Client[]
-  commissions     Commission[]
+  clients     Client[]
+  commissions Commission[]
+
+  @@index([userId])
 }
 
 model Lead {
@@ -105,37 +156,45 @@ model Lead {
   sellCurrency Currency @default(EUR)
   label        String?
 
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  brandId      String
-  brand        Brand    @relation(fields: [brandId], references: [id])
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id])
 
-  clientId     String
-  client       Client   @relation(fields: [clientId], references: [id])
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  @@index([userId])
+  @@index([brandId])
+  @@index([clientId])
 }
 
 model Invoice {
-  id                String         @id @default(cuid())
-  number            String         @unique
-  amount            Float
-  currency          Currency       @default(EUR)
-  status            InvoiceStatus  @default(PENDING)
-  issueDate         DateTime       @default(now())
-  dueDate           DateTime
-  paidAt            DateTime?
-  stripeInvoiceId   String?
-  archived          Boolean        @default(false)
+  id              String        @id @default(cuid())
+  number          String        @unique
+  amount          Float
+  currency        Currency      @default(EUR)
+  status          InvoiceStatus @default(PENDING)
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  paidAt          DateTime?
+  stripeInvoiceId String?
+  archived        Boolean       @default(false)
 
-  userId            String
-  user              User           @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  clientId          String?
-  client            Client?        @relation(fields: [clientId], references: [id])
-  brandId           String?
-  brand             Brand?         @relation(fields: [brandId], references: [id])
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+  brandId  String?
+  brand    Brand?  @relation(fields: [brandId], references: [id])
 
-  payments          Payment[]
+  payments Payment[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([brandId])
 }
 
 model Payment {
@@ -146,17 +205,21 @@ model Payment {
   stripePaymentId String?
   paidAt          DateTime @default(now())
 
-  invoiceId       String
-  invoice         Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
 }
 
 model Commission {
-  id           String    @id @default(cuid())
-  amount       Float
-  currency     Currency  @default(EUR)
-  status       String    @default("PENDING")
-  paidAt       DateTime?
+  id       String    @id @default(cuid())
+  amount   Float
+  currency Currency  @default(EUR)
+  status   String    @default("PENDING")
+  paidAt   DateTime?
 
-  apporteurId  String
-  apporteur    Apporteur @relation(fields: [apporteurId], references: [id])
+  apporteurId String
+  apporteur   Apporteur @relation(fields: [apporteurId], references: [id])
+
+  @@index([apporteurId])
 }
