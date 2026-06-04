@@ -91,7 +91,6 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
           <div className="flex items-start justify-between mb-4">
             <div>
               <span className="pill-tag pill-debit">1. Qui doit ?</span>
-              <h2 className="font-bricolage text-[17px] font-bold text-[#16171D]">Compte débiteur</h2>
             </div>
             <div className="w-9 h-9 rounded-full bg-[#FCEAEA] flex items-center justify-center text-[#D23B3B]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -101,10 +100,22 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
           </div>
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Type de compte</label>
-          <select value={debtorType} onChange={(e) => { setDebtorType(e.target.value as EntityType); setDebtorId('') }} className={`${inputBase} ${ok} mb-3`}>
-            <option value="client">Client</option>
-            <option value="user">Mr.Lead (interne)</option>
-          </select>
+          <div className="flex gap-2 mb-3">
+            {([{ v: 'client', label: 'Client' }, { v: 'user', label: 'Mr.Lead (interne)' }] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => { setDebtorType(opt.v); setDebtorId('') }}
+                className={`flex-1 h-[42px] rounded-[10px] border font-semibold text-sm transition ${
+                  debtorType === opt.v
+                    ? 'bg-[#EFEBFD] border-[#6A4FE6] text-[#6A4FE6]'
+                    : 'bg-white border-[#DCDDE6] text-[#414350] hover:bg-[#FAFAFC]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Sélection du débiteur</label>
           <select value={debtorId} onChange={(e) => { setDebtorId(e.target.value); setErrors({ ...errors, debtorId: '' }) }} className={`${inputBase} ${errors.debtorId ? err : ok}`}>
@@ -121,7 +132,6 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
           <div className="flex items-start justify-between mb-4">
             <div>
               <span className="pill-tag pill-credit">2. À qui ?</span>
-              <h2 className="font-bricolage text-[17px] font-bold text-[#16171D]">Compte créditeur</h2>
             </div>
             <div className="w-9 h-9 rounded-full bg-[#E6F5ED] flex items-center justify-center text-[#1F8A53]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -131,10 +141,22 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
           </div>
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Type de compte</label>
-          <select value={creditorType} onChange={(e) => { setCreditorType(e.target.value as EntityType); setCreditorId(e.target.value === 'user' ? 'mrlead' : '') }} className={`${inputBase} ${ok} mb-3`}>
-            <option value="user">Mr.Lead (interne)</option>
-            <option value="brand">Brand</option>
-          </select>
+          <div className="flex gap-2 mb-3">
+            {([{ v: 'user', label: 'Mr.Lead (interne)' }, { v: 'brand', label: 'Brand' }] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => { setCreditorType(opt.v); setCreditorId(opt.v === 'user' ? 'mrlead' : '') }}
+                className={`flex-1 h-[42px] rounded-[10px] border font-semibold text-sm transition ${
+                  creditorType === opt.v
+                    ? 'bg-[#EFEBFD] border-[#6A4FE6] text-[#6A4FE6]'
+                    : 'bg-white border-[#DCDDE6] text-[#414350] hover:bg-[#FAFAFC]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Sélection du créditeur</label>
           <select value={creditorId} onChange={(e) => { setCreditorId(e.target.value); setErrors({ ...errors, creditorId: '' }) }} className={`${inputBase} ${errors.creditorId ? err : ok}`}>
