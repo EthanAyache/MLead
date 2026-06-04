@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { signOut } from 'next-auth/react'
 
 type Props = {
   name: string
@@ -12,7 +11,6 @@ type Props = {
 }
 
 export default function UserMenu({ name, email, role }: Props) {
-  const router = useRouter()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -26,10 +24,7 @@ export default function UserMenu({ name, email, role }: Props) {
   }, [])
 
   async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    await signOut({ callbackUrl: '/login' })
   }
 
   // Initiales pour l'avatar

@@ -12,9 +12,7 @@ export default {
 
       const isAuthPage =
         p.startsWith("/login") ||
-        p.startsWith("/signup") ||
-        p.startsWith("/forgot-password") ||
-        p.startsWith("/reset-password")
+        p.startsWith("/signup")
 
       if (isAuthPage) {
         if (isLoggedIn) return Response.redirect(new URL("/dashboard", nextUrl))

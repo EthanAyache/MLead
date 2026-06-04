@@ -67,9 +67,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-4 flex justify-between text-sm">
+        <div className="mt-4 text-sm">
           <Link href="/signup" className="text-blue-600 hover:underline">Créer un compte</Link>
-          <Link href="/forgot-password" className="text-gray-500 hover:underline">Mot de passe oublié ?</Link>
         </div>
       </div>
     </div>

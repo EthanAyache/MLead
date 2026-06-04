@@ -23,6 +23,43 @@ export default function UsersTable({ users }: { users: User[] }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Réinitialisation du mot de passe par l'admin
+  const [resetUser, setResetUser] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [resetDone, setResetDone] = useState(false)
+
+  function openReset(u: User) {
+    setResetUser(u)
+    setNewPassword('')
+    setResetError(null)
+    setResetDone(false)
+  }
+
+  async function handleReset(ev: React.FormEvent) {
+    ev.preventDefault()
+    if (!resetUser) return
+    setResetError(null)
+    if (newPassword.length < 6) {
+      setResetError('Au moins 6 caractères.')
+      return
+    }
+    setResetLoading(true)
+    const res = await fetch(`/api/admin/users/${resetUser.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: newPassword }),
+    })
+    setResetLoading(false)
+    if (!res.ok) {
+      const err = await res.json()
+      setResetError(err.error || 'Erreur')
+      return
+    }
+    setResetDone(true)
+  }
+
   async function handleAdd(ev: React.FormEvent) {
     ev.preventDefault()
     setError(null)
@@ -111,6 +148,40 @@ export default function UsersTable({ users }: { users: User[] }) {
         </div>
       )}
 
+      {resetUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setResetUser(null)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-bricolage text-xl font-bold mb-1 text-gray-900">Réinitialiser le mot de passe</h2>
+            <p className="text-gray-500 text-sm mb-4">{resetUser.email}</p>
+
+            {resetDone ? (
+              <>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5 text-sm text-emerald-800">
+                  ✓ Mot de passe modifié. Communiquez-le à l&apos;utilisateur.
+                </div>
+                <div className="flex justify-end pt-4">
+                  <button type="button" onClick={() => setResetUser(null)} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold">Fermer</button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={handleReset} className="space-y-3" autoComplete="off">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Nouveau mot de passe *</label>
+                  <PasswordInput value={newPassword} onChange={setNewPassword} placeholder="6 caractères minimum" />
+                </div>
+                {resetError && <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">⚠ {resetError}</div>}
+                <div className="flex gap-2 justify-end pt-2">
+                  <button type="button" onClick={() => setResetUser(null)} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
+                  <button type="submit" disabled={resetLoading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50">
+                    {resetLoading ? 'Modification...' : 'Modifier'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-[#E8E9EF] rounded-[14px] shadow-[0_1px_2px_rgba(20,22,30,.04)] overflow-hidden">
         {users.length === 0 ? (
           <div className="p-12 text-center text-[#787C8A] text-sm">Aucun utilisateur.</div>
@@ -151,11 +222,16 @@ export default function UsersTable({ users }: { users: User[] }) {
                   </td>
                   <td className="px-5 py-3.5 text-[#787C8A] text-xs">{new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
                   <td className="px-5 py-3.5 text-right">
-                    {!u.isMe && (
-                      <button onClick={() => deleteUser(u.id, u.email)} className="text-red-600 hover:text-red-800 text-sm font-semibold">
-                        Supprimer
+                    <div className="flex items-center justify-end gap-3">
+                      <button onClick={() => openReset(u)} className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
+                        Mot de passe
                       </button>
-                    )}
+                      {!u.isMe && (
+                        <button onClick={() => deleteUser(u.id, u.email)} className="text-red-600 hover:text-red-800 text-sm font-semibold">
+                          Supprimer
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

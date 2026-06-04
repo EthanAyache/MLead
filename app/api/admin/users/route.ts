@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 
 // GET — liste tous les utilisateurs (admin only)
 export async function GET() {
@@ -33,24 +33,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Rôle invalide' }, { status: 400 })
   }
 
-  // 1. Créer le compte côté Supabase Auth
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
-    email: body.email,
-    password: body.password,
-    email_confirm: true,
-    user_metadata: { name: body.name || null },
-  })
-
-  if (error || !data.user) {
-    return NextResponse.json({ error: error?.message || 'Erreur création' }, { status: 500 })
+  // Email déjà pris ?
+  const existing = await prisma.user.findUnique({ where: { email: body.email } })
+  if (existing) {
+    return NextResponse.json({ error: 'Cet email est déjà utilisé.' }, { status: 409 })
   }
 
-  // 2. Créer l'entrée dans notre table User
+  const hashed = await bcrypt.hash(body.password, 10)
+
   const user = await prisma.user.create({
     data: {
-      id: data.user.id,
       email: body.email,
       name: body.name || null,
+      password: hashed,
       role: body.role,
     },
   })

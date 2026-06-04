@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 
-// PATCH — modifier le rôle d'un utilisateur
+// PATCH — modifier le rôle / le nom / le mot de passe d'un utilisateur
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser()
   if (!me) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
@@ -20,6 +20,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (body.name !== undefined) data.name = body.name
   if (body.role && ['ADMIN', 'USER'].includes(body.role)) data.role = body.role
 
+  // Réinitialisation du mot de passe par l'admin
+  if (body.password !== undefined) {
+    if (typeof body.password !== 'string' || body.password.length < 6) {
+      return NextResponse.json({ error: 'Mot de passe : 6 caractères minimum' }, { status: 400 })
+    }
+    data.password = await bcrypt.hash(body.password, 10)
+  }
+
   const user = await prisma.user.update({ where: { id }, data })
   return NextResponse.json(user)
 }
@@ -35,8 +43,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Vous ne pouvez pas supprimer votre propre compte' }, { status: 400 })
   }
 
-  // Supprime côté Supabase Auth + côté Prisma
-  await supabaseAdmin.auth.admin.deleteUser(id)
   await prisma.user.delete({ where: { id } })
 
   return NextResponse.json({ ok: true })
