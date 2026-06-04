@@ -6,8 +6,8 @@ type Invoice = {
   amount: number
   currency: string
   paidAt: string | null
-  client: { id: string; name: string } | null
-  brand: { id: string; name: string } | null
+  debtorName: string
+  creditorName: string
 }
 
 function symbol(c: string) {
@@ -42,7 +42,7 @@ export default function HistoryTab({ invoices }: { invoices: Invoice[] }) {
               <tr>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Date paiement</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">N° facture</th>
-                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Destinataire</th>
+                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Débiteur → Créditeur</th>
                 <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Montant</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Statut</th>
               </tr>
@@ -52,7 +52,7 @@ export default function HistoryTab({ invoices }: { invoices: Invoice[] }) {
                 <tr key={i.id} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition">
                   <td className="px-5 py-3.5 text-[#414350] text-xs">{i.paidAt ? new Date(i.paidAt).toLocaleDateString('fr-FR') : '—'}</td>
                   <td className="px-5 py-3.5 font-bold text-[#16171D]">{i.number}</td>
-                  <td className="px-5 py-3.5 text-[#414350] font-medium">{i.client?.name ?? i.brand?.name ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-[#414350] font-medium">{i.debtorName} <span className="text-[#787C8A]">→</span> {i.creditorName}</td>
                   <td className="px-5 py-3.5 text-right font-bold text-[#1F8A53] num">{fmt(i.amount, i.currency)}</td>
                   <td className="px-5 py-3.5">
                     <span className="badge b-paid"><span className="b-dot" />Payée</span>

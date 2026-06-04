@@ -15,8 +15,9 @@ type Counts = Record<TabKey, number>
 
 type Invoice = {
   id: string; number: string; amount: number; currency: string; status: string; dueDate: string; paidAt: string | null
-  clientId: string | null; brandId: string | null; stripeInvoiceId: string | null
-  client: { id: string; name: string } | null; brand: { id: string; name: string } | null
+  clientId: string | null; brandId: string | null; apporteurId: string | null; stripeInvoiceId: string | null
+  debtorType: string; creditorType: string; debtorName: string; creditorName: string
+  client: { id: string; name: string } | null; brand: { id: string; name: string } | null; apporteur: { id: string; name: string } | null
 }
 
 type ClientRow = { id: string; name: string; email: string | null; phone: string | null; totalOwed: number; invoiceCount: number; hasLate: boolean }

@@ -13,9 +13,17 @@ export async function GET() {
     include: {
       client: { select: { id: true, name: true } },
       brand: { select: { id: true, name: true } },
+      apporteur: { select: { id: true, name: true } },
     },
   })
   return NextResponse.json(invoices)
+}
+
+// Chaque côté de la facture : CLIENT | BRAND | APPORTEUR | MRLEAD (Mr.Lead interne).
+// L'option "mrlead" dans la liste des brands => Mr.Lead (type MRLEAD, sans FK).
+function normalizeSide(type: string, id: string | null | undefined) {
+  if (!id || id === 'mrlead') return { type: 'MRLEAD' as const, id: null }
+  return { type, id }
 }
 
 export async function POST(request: Request) {
@@ -24,22 +32,44 @@ export async function POST(request: Request) {
 
   const body = await request.json()
 
-  if (!body.number) return NextResponse.json({ error: 'Numéro obligatoire' }, { status: 400 })
-  if (!body.amount) return NextResponse.json({ error: 'Montant obligatoire' }, { status: 400 })
+  if (!body.number?.trim()) return NextResponse.json({ error: 'Numéro obligatoire' }, { status: 400 })
+  if (!body.amount || parseFloat(body.amount) <= 0) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
   if (!body.dueDate) return NextResponse.json({ error: 'Échéance obligatoire' }, { status: 400 })
-  if (!body.clientId && !body.brandId) {
-    return NextResponse.json({ error: 'Choisissez un client OU une brand' }, { status: 400 })
+
+  const debtor = normalizeSide(body.debtorType, body.debtorId)
+  const creditor = normalizeSide(body.creditorType, body.creditorId)
+
+  // Débiteur et créditeur identiques ?
+  if (debtor.type === creditor.type && debtor.id === creditor.id) {
+    return NextResponse.json({ error: 'Le débiteur et le créditeur ne peuvent pas être identiques.' }, { status: 400 })
+  }
+  // On ne sait stocker qu'une entité par type (un seul clientId, brandId, apporteurId).
+  if (debtor.type !== 'MRLEAD' && debtor.type === creditor.type) {
+    return NextResponse.json({ error: 'Les deux côtés ne peuvent pas être du même type (ex : deux brands). Mets Mr.Lead d\'un côté.' }, { status: 400 })
+  }
+  if (debtor.type !== 'MRLEAD' && !debtor.id) return NextResponse.json({ error: 'Sélectionnez un débiteur' }, { status: 400 })
+  if (creditor.type !== 'MRLEAD' && !creditor.id) return NextResponse.json({ error: 'Sélectionnez un créditeur' }, { status: 400 })
+
+  // FK selon les types impliqués
+  let clientId: string | null = null
+  let brandId: string | null = null
+  let apporteurId: string | null = null
+  for (const side of [debtor, creditor]) {
+    if (side.type === 'CLIENT') clientId = side.id
+    if (side.type === 'BRAND') brandId = side.id
+    if (side.type === 'APPORTEUR') apporteurId = side.id
   }
 
   const due = new Date(body.dueDate)
   const status = due < new Date() ? 'LATE' : 'PENDING'
   const amount = parseFloat(body.amount)
 
+  // Stripe : le débiteur est celui qui paie. On crée une facture Stripe seulement
+  // si le débiteur est un client (qui a un email).
   let stripeInvoiceId: string | null = null
-
-  if (body.clientId) {
+  if (debtor.type === 'CLIENT' && clientId) {
     try {
-      const client = await prisma.client.findUnique({ where: { id: body.clientId } })
+      const client = await prisma.client.findUnique({ where: { id: clientId } })
       if (!client) return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
 
       let stripeCustomerId = client.stripeCustomerId
@@ -91,8 +121,11 @@ export async function POST(request: Request) {
       currency: body.currency || 'EUR',
       status,
       dueDate: due,
-      clientId: body.clientId || null,
-      brandId: body.brandId || null,
+      debtorType: debtor.type,
+      creditorType: creditor.type,
+      clientId,
+      brandId,
+      apporteurId,
       stripeInvoiceId,
       userId: user.id,
     },

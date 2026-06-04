@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 type Option = { id: string; name: string; email?: string | null }
-type EntityType = 'client' | 'brand' | 'user'
+type EntityType = 'CLIENT' | 'BRAND' | 'APPORTEUR'
 
 type Props = {
   clients: Option[]
@@ -13,12 +13,20 @@ type Props = {
   apporteurs: Option[]
 }
 
-export default function NewInvoiceForm({ clients, brands }: Props) {
+const TYPES: { v: EntityType; label: string }[] = [
+  { v: 'CLIENT', label: 'Client' },
+  { v: 'BRAND', label: 'Brand' },
+  { v: 'APPORTEUR', label: "Apporteur" },
+]
+
+const MRLEAD = { id: 'mrlead', name: 'Mr.Lead (interne)' }
+
+export default function NewInvoiceForm({ clients, brands, apporteurs }: Props) {
   const router = useRouter()
 
-  const [debtorType, setDebtorType] = useState<EntityType>('client')
+  const [debtorType, setDebtorType] = useState<EntityType>('CLIENT')
   const [debtorId, setDebtorId] = useState('')
-  const [creditorType, setCreditorType] = useState<EntityType>('user')
+  const [creditorType, setCreditorType] = useState<EntityType>('BRAND')
   const [creditorId, setCreditorId] = useState('mrlead')
 
   const [number, setNumber] = useState('')
@@ -30,23 +38,30 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // Pour le type "Brand", Mr.Lead est proposé en premier (et sélectionné par défaut).
   function optionsFor(type: EntityType): Option[] {
-    if (type === 'client') return clients
-    if (type === 'brand') return brands
-    return [{ id: 'mrlead', name: 'Mr.Lead (interne)' }]
+    if (type === 'CLIENT') return clients
+    if (type === 'BRAND') return [MRLEAD, ...brands]
+    return apporteurs
+  }
+
+  // Au changement de type : Brand -> Mr.Lead par défaut, sinon "à choisir".
+  function defaultIdFor(type: EntityType) {
+    return type === 'BRAND' ? 'mrlead' : ''
   }
 
   function validate() {
     const e: Record<string, string> = {}
-    if (debtorType === creditorType && debtorId === creditorId) {
-      e.same = 'Le débiteur et le créditeur ne peuvent pas être identiques.'
-    }
-    const isInternal = debtorType === 'user' || creditorType === 'user'
-    if (!isInternal) {
-      e.internal = "Une facture doit impliquer Mr.Lead d'un côté (débiteur ou créditeur)."
-    }
+    const debtorIsMrlead = debtorType === 'BRAND' && debtorId === 'mrlead'
+    const creditorIsMrlead = creditorType === 'BRAND' && creditorId === 'mrlead'
+
     if (!debtorId) e.debtorId = 'Sélectionnez un débiteur'
     if (!creditorId) e.creditorId = 'Sélectionnez un créditeur'
+    if (debtorType === creditorType && debtorId === creditorId) {
+      e.same = 'Le débiteur et le créditeur ne peuvent pas être identiques.'
+    } else if (debtorType === creditorType && !debtorIsMrlead && !creditorIsMrlead) {
+      e.same = 'Les deux côtés ne peuvent pas être du même type. Mets Mr.Lead d\'un côté.'
+    }
     if (!number.trim()) e.number = 'Numéro obligatoire (ex: FA-2026-001)'
     if (!amount || parseFloat(amount) <= 0) e.amount = 'Montant invalide'
     if (!dueDate) e.dueDate = "Date d'échéance obligatoire"
@@ -59,14 +74,10 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
     if (!validate()) return
     setLoading(true)
 
-    const payload: Record<string, unknown> = { number, amount, currency, dueDate, label }
-    if (debtorType === 'client') payload.clientId = debtorId
-    if (creditorType === 'brand') payload.brandId = creditorId
-
     await fetch('/api/invoices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ number, amount, currency, dueDate, label, debtorType, debtorId, creditorType, creditorId }),
     })
 
     setLoading(false)
@@ -78,11 +89,33 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
   const ok = "border-[#DCDDE6] focus:ring-[#6A4FE6]"
   const err = "border-[#D23B3B] bg-[#FCEAEA] focus:ring-[#D23B3B]"
 
+  // Bloc de boutons de type (Client / Brand / Apporteur)
+  function TypeButtons({ value, onPick }: { value: EntityType; onPick: (t: EntityType) => void }) {
+    return (
+      <div className="flex gap-2 mb-3">
+        {TYPES.map((t) => (
+          <button
+            key={t.v}
+            type="button"
+            onClick={() => onPick(t.v)}
+            className={`flex-1 h-[42px] rounded-[10px] border font-semibold text-sm transition ${
+              value === t.v
+                ? 'bg-[#EFEBFD] border-[#6A4FE6] text-[#6A4FE6]'
+                : 'bg-white border-[#DCDDE6] text-[#414350] hover:bg-[#FAFAFC]'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-[18px]">
-      {(errors.same || errors.internal) && (
+      {errors.same && (
         <div className="bg-[#FCEAEA] border border-[#F5C5C5] rounded-[10px] px-4 py-3 text-[13px] text-[#D23B3B] font-semibold">
-          ⚠ {errors.same || errors.internal}
+          ⚠ {errors.same}
         </div>
       )}
 
@@ -100,22 +133,7 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
           </div>
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Type de compte</label>
-          <div className="flex gap-2 mb-3">
-            {([{ v: 'client', label: 'Client' }, { v: 'user', label: 'Mr.Lead (interne)' }] as const).map((opt) => (
-              <button
-                key={opt.v}
-                type="button"
-                onClick={() => { setDebtorType(opt.v); setDebtorId('') }}
-                className={`flex-1 h-[42px] rounded-[10px] border font-semibold text-sm transition ${
-                  debtorType === opt.v
-                    ? 'bg-[#EFEBFD] border-[#6A4FE6] text-[#6A4FE6]'
-                    : 'bg-white border-[#DCDDE6] text-[#414350] hover:bg-[#FAFAFC]'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <TypeButtons value={debtorType} onPick={(t) => { setDebtorType(t); setDebtorId(defaultIdFor(t)) }} />
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Sélection du débiteur</label>
           <select value={debtorId} onChange={(e) => { setDebtorId(e.target.value); setErrors({ ...errors, debtorId: '' }) }} className={`${inputBase} ${errors.debtorId ? err : ok}`}>
@@ -123,9 +141,7 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
             {optionsFor(debtorType).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
           {errors.debtorId && <p className="text-[#D23B3B] text-xs mt-1.5">⚠ {errors.debtorId}</p>}
-          <p className="text-[11.5px] text-[#787C8A] mt-2">
-            {debtorType === 'client' ? 'Le client devra payer cette facture.' : "Mr.Lead doit payer (facture reçue d'une brand)."}
-          </p>
+          <p className="text-[11.5px] text-[#787C8A] mt-2">Ce compte doit payer la facture.</p>
         </section>
 
         <section className="bg-white border border-[#E8E9EF] rounded-[14px] p-5 shadow-[0_1px_2px_rgba(20,22,30,.04)]">
@@ -141,22 +157,7 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
           </div>
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Type de compte</label>
-          <div className="flex gap-2 mb-3">
-            {([{ v: 'user', label: 'Mr.Lead (interne)' }, { v: 'brand', label: 'Brand' }] as const).map((opt) => (
-              <button
-                key={opt.v}
-                type="button"
-                onClick={() => { setCreditorType(opt.v); setCreditorId(opt.v === 'user' ? 'mrlead' : '') }}
-                className={`flex-1 h-[42px] rounded-[10px] border font-semibold text-sm transition ${
-                  creditorType === opt.v
-                    ? 'bg-[#EFEBFD] border-[#6A4FE6] text-[#6A4FE6]'
-                    : 'bg-white border-[#DCDDE6] text-[#414350] hover:bg-[#FAFAFC]'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <TypeButtons value={creditorType} onPick={(t) => { setCreditorType(t); setCreditorId(defaultIdFor(t)) }} />
 
           <label className="block text-[13px] font-semibold text-[#414350] mb-1.5">Sélection du créditeur</label>
           <select value={creditorId} onChange={(e) => { setCreditorId(e.target.value); setErrors({ ...errors, creditorId: '' }) }} className={`${inputBase} ${errors.creditorId ? err : ok}`}>
@@ -164,9 +165,7 @@ export default function NewInvoiceForm({ clients, brands }: Props) {
             {optionsFor(creditorType).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
           {errors.creditorId && <p className="text-[#D23B3B] text-xs mt-1.5">⚠ {errors.creditorId}</p>}
-          <p className="text-[11.5px] text-[#787C8A] mt-2">
-            {creditorType === 'brand' ? 'La brand recevra le paiement.' : 'Mr.Lead encaissera cette facture.'}
-          </p>
+          <p className="text-[11.5px] text-[#787C8A] mt-2">Ce compte recevra le paiement.</p>
         </section>
       </div>
 

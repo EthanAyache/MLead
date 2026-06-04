@@ -10,11 +10,11 @@ type Invoice = {
   currency: string
   status: string
   dueDate: string
-  clientId: string | null
-  brandId: string | null
+  debtorType: string
+  creditorType: string
+  debtorName: string
+  creditorName: string
   stripeInvoiceId: string | null
-  client: { id: string; name: string } | null
-  brand: { id: string; name: string } | null
 }
 
 function symbol(c: string) {
@@ -32,39 +32,27 @@ function daysLate(dueDate: string): number {
 }
 
 export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[]; filter: FilterValue }) {
+  // Filtre par recherche de nom (débiteur ou créditeur)
   const filtered = invoices.filter(inv => {
-    const debtorIsClient = !!inv.clientId
-    const creditorIsBrand = !!inv.brandId
-    const creditorIsUser = !!inv.clientId
-
-    if (filter.debtorType === 'client' && !debtorIsClient) return false
-    if (filter.debtorType === 'user' && !inv.brandId) return false
-    if (filter.debtorType === 'brand' || filter.debtorType === 'apporteur') return false
-
-    if (filter.creditorType === 'brand' && !creditorIsBrand) return false
-    if (filter.creditorType === 'user' && !creditorIsUser) return false
-    if (filter.creditorType === 'client' || filter.creditorType === 'apporteur') return false
-
     if (filter.debtorName) {
-      const name = (inv.client?.name || inv.brand?.name || '').toLowerCase()
-      if (!name.includes(filter.debtorName.toLowerCase())) return false
+      const hay = `${inv.debtorName} ${inv.creditorName}`.toLowerCase()
+      if (!hay.includes(filter.debtorName.toLowerCase())) return false
     }
     return true
   })
 
-  const summary = new Map<string, { name: string; type: 'client' | 'brand'; total: number; currency: string; count: number; hasLate: boolean }>()
+  // Synthèse : on regroupe les factures impayées par débiteur (celui qui doit).
+  const summary = new Map<string, { name: string; total: number; currency: string; count: number; hasLate: boolean }>()
   for (const inv of filtered) {
     if (inv.status === 'PAID' || inv.status === 'CANCELLED') continue
-    const key = inv.clientId ? `client-${inv.clientId}` : `brand-${inv.brandId}`
-    const name = inv.client?.name ?? inv.brand?.name ?? '—'
-    const type = inv.clientId ? 'client' : 'brand'
+    const key = inv.debtorName
     const existing = summary.get(key)
     if (existing) {
       existing.total += inv.amount
       existing.count += 1
       if (inv.status === 'LATE') existing.hasLate = true
     } else {
-      summary.set(key, { name, type, total: inv.amount, currency: inv.currency, count: 1, hasLate: inv.status === 'LATE' })
+      summary.set(key, { name: inv.debtorName, total: inv.amount, currency: inv.currency, count: 1, hasLate: inv.status === 'LATE' })
     }
   }
 
@@ -80,22 +68,21 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
               <path d="M3 3v18h18" />
               <path d="M7 14l4-4 3 3 5-6" />
             </svg>
-            Synthèse par destinataire
+            Synthèse par débiteur
           </h2>
           <span className="text-[#787C8A] text-[13px] font-medium">
-            Soldes nets dus, regroupés par client ou brand.
+            Montants dus, regroupés par compte qui doit.
           </span>
         </div>
 
         {summaryRows.length === 0 ? (
-          <div className="p-12 text-center text-[#787C8A] text-sm">Aucune dette ouverte avec ce filtre.</div>
+          <div className="p-12 text-center text-[#787C8A] text-sm">Aucune dette ouverte.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-[#FAFAFC] border-b border-[#E8E9EF]">
                 <tr>
-                  <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Destinataire</th>
-                  <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Type</th>
+                  <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Débiteur</th>
                   <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Factures</th>
                   <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Solde dû</th>
                   <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">État</th>
@@ -105,7 +92,6 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
                 {summaryRows.map((row) => (
                   <tr key={row.name} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition">
                     <td className="px-5 py-3.5 font-semibold text-[#16171D]">{row.name}</td>
-                    <td className="px-5 py-3.5 text-[#414350]">{row.type === 'client' ? 'Client (nous doit)' : 'Brand (on doit)'}</td>
                     <td className="px-5 py-3.5 text-right text-[#414350] num">{row.count}</td>
                     <td className="px-5 py-3.5 text-right font-bold text-[#D23B3B] num">{fmt(row.total, row.currency)}</td>
                     <td className="px-5 py-3.5">
@@ -137,15 +123,14 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
         </div>
 
         {unpaid.length === 0 ? (
-          <div className="p-12 text-center text-[#787C8A] text-sm">Aucune facture impayée avec ce filtre.</div>
+          <div className="p-12 text-center text-[#787C8A] text-sm">Aucune facture impayée.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-[#FAFAFC] border-b border-[#E8E9EF]">
                 <tr>
                   <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">N°</th>
-                  <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Destinataire</th>
-                  <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Type</th>
+                  <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Débiteur → Créditeur</th>
                   <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Montant</th>
                   <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Échéance</th>
                   <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Statut</th>
@@ -172,13 +157,8 @@ export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[];
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-[#414350] font-medium">{inv.client?.name ?? inv.brand?.name ?? '—'}</td>
-                      <td className="px-5 py-3.5">
-                        {inv.clientId ? (
-                          <span className="text-xs px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 font-semibold">À émettre</span>
-                        ) : (
-                          <span className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-700 font-semibold">À payer</span>
-                        )}
+                      <td className="px-5 py-3.5 text-[#414350] font-medium">
+                        {inv.debtorName} <span className="text-[#787C8A]">→</span> {inv.creditorName}
                       </td>
                       <td className="px-5 py-3.5 text-right font-bold text-[#16171D] num">{fmt(inv.amount, inv.currency)}</td>
                       <td className={`px-5 py-3.5 text-xs ${late ? 'text-[#D23B3B] font-semibold' : 'text-[#414350]'}`}>

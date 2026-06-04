@@ -10,11 +10,10 @@ type Invoice = {
   status: string
   dueDate: string
   paidAt: string | null
-  clientId: string | null
-  brandId: string | null
+  creditorType: string
+  debtorName: string
+  creditorName: string
   stripeInvoiceId: string | null
-  client: { id: string; name: string } | null
-  brand: { id: string; name: string } | null
 }
 
 function symbol(c: string) {
@@ -56,7 +55,7 @@ export default function ArchivesTab({ archived }: { archived: Invoice[] }) {
             <thead className="bg-[#FAFAFC] border-b border-[#E8E9EF]">
               <tr>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">N°</th>
-                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Destinataire</th>
+                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Débiteur → Créditeur</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Type</th>
                 <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Montant</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Statut</th>
@@ -67,9 +66,9 @@ export default function ArchivesTab({ archived }: { archived: Invoice[] }) {
               {archived.map((inv) => (
                 <tr key={inv.id} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition opacity-75">
                   <td className="px-5 py-3.5 font-bold text-[#16171D]">{inv.number}</td>
-                  <td className="px-5 py-3.5 text-[#414350] font-medium">{inv.client?.name ?? inv.brand?.name ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-[#414350] font-medium">{inv.debtorName} <span className="text-[#787C8A]">→</span> {inv.creditorName}</td>
                   <td className="px-5 py-3.5">
-                    {inv.clientId ? (
+                    {inv.creditorType === 'MRLEAD' ? (
                       <span className="text-xs px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 font-semibold">À émettre</span>
                     ) : (
                       <span className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-700 font-semibold">À payer</span>

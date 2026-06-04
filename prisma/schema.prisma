@@ -143,6 +143,7 @@ model Apporteur {
 
   clients     Client[]
   commissions Commission[]
+  invoices    Invoice[]
 
   @@index([userId])
 }
@@ -185,16 +186,24 @@ model Invoice {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  clientId String?
-  client   Client? @relation(fields: [clientId], references: [id])
-  brandId  String?
-  brand    Brand?  @relation(fields: [brandId], references: [id])
+  // Parties de la facture. Mr.Lead = type "MRLEAD" (interne, pas de FK).
+  // Le débiteur doit, le créditeur reçoit. Chaque côté ∈ CLIENT | BRAND | APPORTEUR | MRLEAD.
+  debtorType   String @default("CLIENT")
+  creditorType String @default("MRLEAD")
+
+  clientId    String?
+  client      Client?    @relation(fields: [clientId], references: [id])
+  brandId     String?
+  brand       Brand?     @relation(fields: [brandId], references: [id])
+  apporteurId String?
+  apporteur   Apporteur? @relation(fields: [apporteurId], references: [id])
 
   payments Payment[]
 
   @@index([userId])
   @@index([clientId])
   @@index([brandId])
+  @@index([apporteurId])
 }
 
 model Payment {

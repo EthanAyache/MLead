@@ -32,6 +32,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       include: {
         client: { select: { id: true, name: true } },
         brand: { select: { id: true, name: true } },
+        apporteur: { select: { id: true, name: true } },
       },
     }),
     prisma.invoice.findMany({
@@ -40,20 +41,39 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       include: {
         client: { select: { id: true, name: true } },
         brand: { select: { id: true, name: true } },
+        apporteur: { select: { id: true, name: true } },
       },
     }),
   ])
+
+  // Nom affiché pour un côté de la facture (Mr.Lead = interne, sans FK).
+  type InvoiceParties = {
+    client: { name: string } | null
+    brand: { name: string } | null
+    apporteur: { name: string } | null
+  }
+  const partyName = (type: string, inv: InvoiceParties) => {
+    if (type === 'MRLEAD') return 'Mr.Lead'
+    if (type === 'CLIENT') return inv.client?.name ?? '—'
+    if (type === 'BRAND') return inv.brand?.name ?? '—'
+    if (type === 'APPORTEUR') return inv.apporteur?.name ?? '—'
+    return '—'
+  }
 
   const invoices = invoicesAll.map(i => ({
     ...i,
     dueDate: i.dueDate.toISOString(),
     paidAt: i.paidAt ? i.paidAt.toISOString() : null,
+    debtorName: partyName(i.debtorType, i),
+    creditorName: partyName(i.creditorType, i),
   }))
 
   const archivedInvoices = archivedAll.map(i => ({
     ...i,
     dueDate: i.dueDate.toISOString(),
     paidAt: i.paidAt ? i.paidAt.toISOString() : null,
+    debtorName: partyName(i.debtorType, i),
+    creditorName: partyName(i.creditorType, i),
   }))
 
   const unpaidInvoices = invoices.filter(i => i.status === 'PENDING' || i.status === 'LATE')
