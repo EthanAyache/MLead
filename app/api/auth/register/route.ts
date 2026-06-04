@@ -1,25 +1,32 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextResponse } from "next/server"
+import bcrypt from "bcryptjs"
+import { prisma } from "@/lib/prisma"
 
-export async function POST(request: Request) {
-  const body = await request.json()
+export async function POST(req: Request) {
+  const { name, email, password } = await req.json()
 
-  if (!body.id || !body.email) {
-    return NextResponse.json({ error: 'Champs manquants' }, { status: 400 })
+  if (!email || !password) {
+    return NextResponse.json({ error: "Email et mot de passe requis." }, { status: 400 })
+  }
+  if (password.length < 6) {
+    return NextResponse.json({ error: "Mot de passe : 6 caractères minimum." }, { status: 400 })
   }
 
-  // Vérifie si c'est le PREMIER user → on le met admin automatiquement
-  const userCount = await prisma.user.count()
-  const role = userCount === 0 ? 'ADMIN' : 'USER'
+  // Email déjà pris ?
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) {
+    return NextResponse.json({ error: "Cet email est déjà utilisé." }, { status: 409 })
+  }
 
-  const user = await prisma.user.create({
-    data: {
-      id: body.id,
-      email: body.email,
-      name: body.name || null,
-      role,
-    },
+  // Premier inscrit → ADMIN, les suivants → USER
+  const userCount = await prisma.user.count()
+  const role = userCount === 0 ? "ADMIN" : "USER"
+
+  const hashed = await bcrypt.hash(password, 10)
+
+  await prisma.user.create({
+    data: { name: name || null, email, password: hashed, role },
   })
 
-  return NextResponse.json(user, { status: 201 })
+  return NextResponse.json({ ok: true })
 }
