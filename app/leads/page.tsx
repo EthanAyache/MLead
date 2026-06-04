@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import Header from '@/app/dashboard/Header'
 import AddLeadForm from './AddLeadForm'
 
 function currencySymbol(c: string) {
@@ -24,7 +25,9 @@ export default async function LeadsPage() {
   const totalMargin = totalRevenue - totalCost
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -91,6 +94,7 @@ export default async function LeadsPage() {
           )}
         </div>
       </div>
-    </main>
+      </main>
+    </>
   )
 }

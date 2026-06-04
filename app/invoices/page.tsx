@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import Header from '@/app/dashboard/Header'
 import AddInvoiceForm from './AddInvoiceForm'
 
 function symbol(c: string) {
@@ -31,7 +32,9 @@ export default async function InvoicesPage() {
   ])
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -87,6 +90,7 @@ export default async function InvoicesPage() {
           )}
         </div>
       </div>
-    </main>
+      </main>
+    </>
   )
 }

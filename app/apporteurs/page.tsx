@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
+import Header from '@/app/dashboard/Header'
 import AddApporteurForm from './AddApporteurForm'
 import SearchAndList from './SearchAndList'
 
@@ -17,7 +18,9 @@ export default async function ApporteursPage() {
   })
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold text-sm mb-4">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -38,6 +41,7 @@ export default async function ApporteursPage() {
 
         <SearchAndList apporteurs={apporteurs} />
       </div>
-    </main>
+      </main>
+    </>
   )
 }

@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth'
 import UserMenu from './UserMenu'
+import LogoLink from './LogoLink'
 
 export default async function Header() {
   const user = await getCurrentUser()
@@ -7,18 +8,8 @@ export default async function Header() {
   return (
     <header className="bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] shadow-[0_4px_18px_rgba(30,58,138,.18)] border-b border-white/10 sticky top-0 z-40">
       <div className="max-w-[1320px] mx-auto px-[22px] py-4 flex items-center gap-[18px]">
-        {/* Logo + nom */}
-        <div className="flex items-center gap-[11px]">
-          <div className="w-[34px] h-[34px] rounded-[9px] bg-white/[0.18] border border-white/25 flex items-center justify-center text-white font-bricolage font-extrabold text-sm backdrop-blur-sm">
-            ML
-          </div>
-          <div className="font-bricolage font-extrabold text-[20px] text-white tracking-tight leading-tight">
-            Mr.Lead
-            <div className="font-jakarta font-medium text-[11.5px] text-white/70 -mt-0.5">
-              Monsieur Lead — Espace facturation
-            </div>
-          </div>
-        </div>
+        {/* Logo + nom (clic → dashboard + refresh) */}
+        <LogoLink />
 
         {/* Recherche */}
         <div className="ml-[14px] flex-1 max-w-[380px] relative">
