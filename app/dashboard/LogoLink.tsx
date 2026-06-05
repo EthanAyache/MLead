@@ -17,7 +17,7 @@ export default function LogoLink() {
       <img
         src="/logo.png"
         alt="Mr.Lead"
-        className="w-[34px] h-[34px] rounded-[9px] object-cover border border-white/25 group-hover:opacity-90 transition"
+        className="w-[46px] h-[46px] rounded-[12px] object-cover border border-white/25 group-hover:opacity-90 transition"
       />
       <div className="font-bricolage font-extrabold text-[20px] text-white tracking-tight leading-tight">
         Mr.Lead
