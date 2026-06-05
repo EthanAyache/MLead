@@ -17,6 +17,10 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Mr.Lead — Soldes & Créances",
   description: "Espace facturation Mr.Lead",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
