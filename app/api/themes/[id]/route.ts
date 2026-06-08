@@ -44,8 +44,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  // Suppression réservée aux administrateurs
+  if (user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Suppression réservée aux administrateurs' }, { status: 403 })
+  }
 
   const { id } = await params
-  await prisma.theme.update({ where: { id }, data: { archived: true } })
+
+  const theme = await prisma.theme.findUnique({ where: { id } })
+  if (!theme) return NextResponse.json({ error: 'Thème introuvable' }, { status: 404 })
+
+  // Garde-fou : on n'efface jamais un thème dont des leads ont été vendus
+  const soldCount = await prisma.prospect.count({ where: { themeId: id, status: 'SOLD' } })
+  if (soldCount > 0) {
+    return NextResponse.json(
+      { error: `Impossible de supprimer : ${soldCount} lead(s) ont déjà été vendu(s) dans ce thème.` },
+      { status: 409 },
+    )
+  }
+
+  // Suppression complète (les paliers et les leads en stock sont supprimés en cascade)
+  await prisma.theme.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }
