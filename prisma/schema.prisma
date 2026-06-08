@@ -256,6 +256,9 @@ model Theme {
   archived     Boolean  @default(false)
   createdAt    DateTime @default(now())
 
+  // Champs personnalisés du thème : [{ key, label, type: "text"|"number" }]
+  fields Json?
+
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
@@ -285,6 +288,8 @@ model Prospect {
   email     String?
   phone     String?
   details   String?        @db.Text
+  // Valeurs des champs personnalisés du thème : { [key]: string }
+  data      Json?
   source    String?
   status    ProspectStatus @default(AVAILABLE)
   createdAt DateTime       @default(now())

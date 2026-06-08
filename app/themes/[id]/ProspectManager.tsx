@@ -3,21 +3,25 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
+import type { ThemeField } from '@/lib/themeFields'
 
-type Parsed = { name: string; email: string; phone: string; details: string }
+type Parsed = { name: string; email: string; phone: string; details: string; data: Record<string, string> }
+
+const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 
 // Détecte les colonnes à partir d'un tableau de lignes (chaque ligne = tableau de cellules).
-// En-tête optionnel détecté automatiquement.
-// Colonnes reconnues : nom/name/prenom, email/mail, telephone/phone/tel, details/detail/note.
-function parseRows(rows: string[][]): Parsed[] {
+// En-tête optionnel détecté automatiquement. Mappe aussi les champs personnalisés du thème par leur libellé.
+function parseRows(rows: string[][], fields: ThemeField[]): Parsed[] {
   const clean = rows.map((r) => r.map((c) => String(c ?? '').trim())).filter((r) => r.some((c) => c !== ''))
   if (clean.length === 0) return []
 
-  const headerKeywords = ['nom', 'name', 'email', 'mail', 'tel', 'phone', 'detail', 'note', 'prenom']
-  const first = clean[0].map((c) => c.toLowerCase())
+  const headerKeywords = ['nom', 'name', 'email', 'mail', 'tel', 'phone', 'detail', 'note', 'prenom', ...fields.map((f) => norm(f.label))]
+  const first = clean[0].map((c) => norm(c))
   const hasHeader = first.some((c) => headerKeywords.some((k) => c.includes(k)))
 
   let idx = { name: 0, email: 1, phone: 2, details: 3 }
+  // colonne pour chaque champ perso (par défaut -1 = absent)
+  const fieldIdx = new Map<string, number>(fields.map((f) => [f.key, -1]))
   let dataRows = clean
 
   if (hasHeader) {
@@ -28,31 +32,46 @@ function parseRows(rows: string[][]): Parsed[] {
       phone: find(['tel', 'phone']),
       details: find(['detail', 'note']),
     }
+    for (const f of fields) {
+      const target = norm(f.label)
+      fieldIdx.set(f.key, first.findIndex((c) => c === target || c.includes(target)))
+    }
     dataRows = clean.slice(1)
   }
 
   return dataRows
-    .map((cols) => ({
-      name: (cols[idx.name] ?? '').trim(),
-      email: idx.email >= 0 ? (cols[idx.email] ?? '').trim() : '',
-      phone: idx.phone >= 0 ? (cols[idx.phone] ?? '').trim() : '',
-      details: idx.details >= 0 ? (cols[idx.details] ?? '').trim() : '',
-    }))
+    .map((cols) => {
+      const data: Record<string, string> = {}
+      for (const f of fields) {
+        const ci = fieldIdx.get(f.key) ?? -1
+        if (ci >= 0) {
+          const v = (cols[ci] ?? '').trim()
+          if (v) data[f.key] = v
+        }
+      }
+      return {
+        name: (cols[idx.name] ?? '').trim(),
+        email: idx.email >= 0 ? (cols[idx.email] ?? '').trim() : '',
+        phone: idx.phone >= 0 ? (cols[idx.phone] ?? '').trim() : '',
+        details: idx.details >= 0 ? (cols[idx.details] ?? '').trim() : '',
+        data,
+      }
+    })
     .filter((p) => p.name !== '')
 }
 
 // Lit un fichier CSV / XLS / XLSX et renvoie les prospects détectés.
-function parseFile(buffer: ArrayBuffer): Parsed[] {
+function parseFile(buffer: ArrayBuffer, fields: ThemeField[]): Parsed[] {
   const wb = XLSX.read(buffer, { type: 'array' })
   const sheet = wb.Sheets[wb.SheetNames[0]]
   if (!sheet) return []
   const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: '' })
-  return parseRows(rows)
+  return parseRows(rows, fields)
 }
 
 type ImportResult = { created: number; skipped: number }
 
-export default function ProspectManager({ themeId }: { themeId: string }) {
+export default function ProspectManager({ themeId, fields }: { themeId: string; fields: ThemeField[] }) {
   const router = useRouter()
   const [mode, setMode] = useState<null | 'manual' | 'csv'>(null)
   const [loading, setLoading] = useState(false)
@@ -64,6 +83,7 @@ export default function ProspectManager({ themeId }: { themeId: string }) {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [details, setDetails] = useState('')
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
 
   // Import
   const [parsed, setParsed] = useState<Parsed[]>([])
@@ -72,7 +92,7 @@ export default function ProspectManager({ themeId }: { themeId: string }) {
 
   function close() {
     setMode(null); setError(''); setResult(null)
-    setName(''); setEmail(''); setPhone(''); setDetails('')
+    setName(''); setEmail(''); setPhone(''); setDetails(''); setFieldValues({})
     setParsed([]); setFileName(''); setDedupe(true)
     router.refresh()
   }
@@ -96,7 +116,7 @@ export default function ProspectManager({ themeId }: { themeId: string }) {
   async function submitManual(ev: React.FormEvent) {
     ev.preventDefault()
     if (!name.trim()) { setError('Le nom est obligatoire'); return }
-    const r = await send([{ name, email, phone, details }])
+    const r = await send([{ name, email, phone, details, data: fieldValues }])
     if (!r) return
     if (r.created === 0 && r.skipped > 0) {
       setError('Ce lead existe déjà dans ce thème (même email ou téléphone).')
@@ -113,7 +133,7 @@ export default function ProspectManager({ themeId }: { themeId: string }) {
     const reader = new FileReader()
     reader.onload = () => {
       try {
-        const rows = parseFile(reader.result as ArrayBuffer)
+        const rows = parseFile(reader.result as ArrayBuffer, fields)
         if (rows.length === 0) setError('Aucune ligne valide trouvée (le nom est obligatoire).')
         setParsed(rows)
       } catch {
@@ -164,6 +184,21 @@ export default function ProspectManager({ themeId }: { themeId: string }) {
                       <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" className={inputBase} />
                     </div>
                   </div>
+                  {fields.length > 0 && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {fields.map((f) => (
+                        <div key={f.key}>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">{f.label}</label>
+                          <input
+                            type={f.type === 'number' ? 'number' : 'text'}
+                            value={fieldValues[f.key] ?? ''}
+                            onChange={(e) => setFieldValues({ ...fieldValues, [f.key]: e.target.value })}
+                            className={inputBase}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Détails (champ libre)</label>
                     <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Tout ce qui caractérise ce lead : besoin, budget, message…" className={inputBase} />
@@ -183,7 +218,8 @@ export default function ProspectManager({ themeId }: { themeId: string }) {
               <>
                 <h2 className="text-xl font-bold mb-1 text-gray-900">Importer des leads</h2>
                 <p className="text-xs text-gray-500 mb-4">
-                  Formats : <strong>CSV, XLS, XLSX</strong>. Colonnes reconnues : <strong>nom</strong>, email, téléphone, détails. La ligne d&apos;en-tête est détectée automatiquement.
+                  Formats : <strong>CSV, XLS, XLSX</strong>. Colonnes reconnues : <strong>nom</strong>, email, téléphone, détails
+                  {fields.length > 0 && <> et les champs du thème ({fields.map((f) => f.label).join(', ')})</>}. La ligne d&apos;en-tête (basée sur ces libellés) est détectée automatiquement.
                 </p>
 
                 {result ? (

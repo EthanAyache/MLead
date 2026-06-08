@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
-type RawProspect = { name?: unknown; email?: unknown; phone?: unknown; details?: unknown; source?: unknown }
+type RawProspect = { name?: unknown; email?: unknown; phone?: unknown; details?: unknown; source?: unknown; data?: unknown }
+
+// Nettoie les valeurs des champs personnalisés : { [key]: string } (clés/valeurs string, vides ignorées)
+function cleanData(input: unknown): Record<string, string> | null {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    const val = String(v ?? '').trim()
+    if (val !== '') out[String(k)] = val
+  }
+  return Object.keys(out).length ? out : null
+}
 
 function clean(input: RawProspect) {
   const name = String(input.name ?? '').trim()
@@ -13,6 +25,7 @@ function clean(input: RawProspect) {
     phone: String(input.phone ?? '').trim() || null,
     details: String(input.details ?? '').trim() || null,
     source: String(input.source ?? '').trim() || null,
+    data: cleanData(input.data),
   }
 }
 
@@ -81,7 +94,16 @@ export async function POST(request: Request) {
 
   const created = toCreate.length
     ? (await prisma.prospect.createMany({
-        data: toCreate.map((r) => ({ ...r, themeId, userId: user.id })),
+        data: toCreate.map((r) => ({
+          name: r.name,
+          email: r.email,
+          phone: r.phone,
+          details: r.details,
+          source: r.source,
+          data: r.data ?? Prisma.DbNull,
+          themeId,
+          userId: user.id,
+        })),
       })).count
     : 0
 

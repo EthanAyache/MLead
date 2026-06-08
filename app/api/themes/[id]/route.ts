@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { normalizeFields } from '@/lib/themeFields'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
@@ -18,6 +19,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     data.pricePerLead = p
   }
   if (body.currency) data.currency = body.currency
+  if ('fields' in body) data.fields = normalizeFields(body.fields)
 
   // Remplacement complet des paliers si fournis
   if (Array.isArray(body.tiers)) {

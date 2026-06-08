@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { readFields } from '@/lib/themeFields'
 import Header from '@/app/dashboard/Header'
 import ProspectManager from './ProspectManager'
 
@@ -25,6 +26,7 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
   if (!theme || theme.archived) notFound()
 
   const sym = currencySymbol(theme.currency)
+  const fields = readFields(theme.fields)
   const available = theme.prospects.filter((p) => p.status === 'AVAILABLE')
   const sold = theme.prospects.filter((p) => p.status === 'SOLD')
 
@@ -79,7 +81,7 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
             </div>
           )}
 
-          <ProspectManager themeId={theme.id} />
+          <ProspectManager themeId={theme.id} fields={fields} />
 
           {/* Stock */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm mt-6">
@@ -94,6 +96,9 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Nom</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Téléphone</th>
+                    {fields.map((f) => (
+                      <th key={f.key} className="text-left px-4 py-3 font-semibold text-gray-700">{f.label}</th>
+                    ))}
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Détails</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Statut</th>
                   </tr>
@@ -104,6 +109,10 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
                       <td className="px-4 py-3 text-gray-900 font-medium">{p.name}</td>
                       <td className="px-4 py-3 text-gray-600">{p.email ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{p.phone ?? '—'}</td>
+                      {fields.map((f) => {
+                        const val = (p.data as Record<string, string> | null)?.[f.key]
+                        return <td key={f.key} className="px-4 py-3 text-gray-600">{val || '—'}</td>
+                      })}
                       <td className="px-4 py-3 text-gray-500 max-w-xs truncate" title={p.details ?? ''}>{p.details ?? '—'}</td>
                       <td className="px-4 py-3">
                         {p.status === 'SOLD' ? (

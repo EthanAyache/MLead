@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { normalizeFields } from '@/lib/themeFields'
 
 function slugify(input: string) {
   return input
@@ -33,6 +34,9 @@ export async function POST(request: Request) {
         .filter((t: { minQty: number; pricePerLead: number }) => t.minQty > 0 && t.pricePerLead >= 0)
     : []
 
+  // Champs personnalisés du thème
+  const fields = normalizeFields(body.fields)
+
   // Slug unique
   let slug = slugify(name)
   const exists = await prisma.theme.findUnique({ where: { slug } })
@@ -45,6 +49,7 @@ export async function POST(request: Request) {
       description: body.description?.trim() || null,
       pricePerLead,
       currency: body.currency || 'EUR',
+      fields,
       userId: user.id,
       tiers: { create: tiers },
     },
