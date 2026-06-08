@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import ProspectManager from './ProspectManager'
 import DeleteThemeButton from './DeleteThemeButton'
+import ProspectTable, { type Row } from './ProspectTable'
 
 function currencySymbol(c: string) {
   return c === 'EUR' ? '€' : c === 'ILS' ? '₪' : '$'
@@ -33,6 +34,17 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
   const fields = readFields(theme.fields)
   const available = theme.prospects.filter((p) => p.status === 'AVAILABLE')
   const sold = theme.prospects.filter((p) => p.status === 'SOLD')
+
+  const rows: Row[] = theme.prospects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    email: p.email,
+    phone: p.phone,
+    details: p.details,
+    status: p.status,
+    buyerBrandName: p.buyerBrand?.name ?? null,
+    data: (p.data as Record<string, string> | null) ?? {},
+  }))
 
   return (
     <>
@@ -91,53 +103,7 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
           <ProspectManager themeId={theme.id} fields={fields} />
 
           {/* Stock */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm mt-6">
-            {theme.prospects.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
-                Aucun lead dans ce thème. Ajoutez-en manuellement ou importez un fichier CSV.
-              </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Nom</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Téléphone</th>
-                    {fields.map((f) => (
-                      <th key={f.key} className="text-left px-4 py-3 font-semibold text-gray-700">{f.label}</th>
-                    ))}
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Détails</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700">Statut</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {theme.prospects.map((p) => (
-                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                      <td className="px-4 py-3 text-gray-900 font-medium">{p.name}</td>
-                      <td className="px-4 py-3 text-gray-600">{p.email ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-600">{p.phone ?? '—'}</td>
-                      {fields.map((f) => {
-                        const val = (p.data as Record<string, string> | null)?.[f.key]
-                        return <td key={f.key} className="px-4 py-3 text-gray-600">{val || '—'}</td>
-                      })}
-                      <td className="px-4 py-3 text-gray-500 max-w-xs truncate" title={p.details ?? ''}>{p.details ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        {p.status === 'SOLD' ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
-                            Vendu{p.buyerBrand ? ` · ${p.buyerBrand.name}` : ''}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
-                            En stock
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <ProspectTable rows={rows} fields={fields} />
         </div>
       </main>
     </>

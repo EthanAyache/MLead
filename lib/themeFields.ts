@@ -1,11 +1,22 @@
 // Champs personnalisés d'un thème (stockés en JSON sur Theme.fields)
-export type FieldType = 'text' | 'number'
+// - text   : texte libre
+// - number : nombre
+// - group  : nombre de personnes + un âge optionnel par personne
+export type FieldType = 'text' | 'number' | 'group'
 
 export type ThemeField = {
   key: string
   label: string
   type: FieldType
 }
+
+const FIELD_TYPES: FieldType[] = ['text', 'number', 'group']
+function coerceType(t: unknown): FieldType {
+  return FIELD_TYPES.includes(t as FieldType) ? (t as FieldType) : 'text'
+}
+
+// Clé sous laquelle sont stockés les âges d'un champ "group" (JSON array de strings)
+export const agesKey = (fieldKey: string) => `${fieldKey}__ages`
 
 export function slugify(input: string) {
   return (
@@ -27,7 +38,7 @@ export function normalizeFields(raw: unknown): ThemeField[] {
   for (const item of raw) {
     const label = String((item as { label?: unknown })?.label ?? '').trim()
     if (!label) continue
-    const type: FieldType = (item as { type?: unknown })?.type === 'number' ? 'number' : 'text'
+    const type = coerceType((item as { type?: unknown })?.type)
     let key = slugify(label)
     let n = 2
     while (used.has(key)) key = `${slugify(label)}_${n++}`
@@ -42,5 +53,5 @@ export function readFields(value: unknown): ThemeField[] {
   if (!Array.isArray(value)) return []
   return value
     .filter((f): f is ThemeField => !!f && typeof (f as ThemeField).key === 'string' && typeof (f as ThemeField).label === 'string')
-    .map((f) => ({ key: f.key, label: f.label, type: f.type === 'number' ? 'number' : 'text' }))
+    .map((f) => ({ key: f.key, label: f.label, type: coerceType(f.type) }))
 }

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 type Tier = { minQty: string; pricePerLead: string }
-type Field = { label: string; type: 'text' | 'number' }
+type Field = { label: string; type: 'text' | 'number' | 'group' }
 
 export default function ThemeForm() {
   const router = useRouter()
@@ -137,6 +137,7 @@ export default function ThemeForm() {
                       <select value={f.type} onChange={(e) => updateField(i, 'type', e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1.5 text-gray-900 text-sm">
                         <option value="text">Texte</option>
                         <option value="number">Nombre</option>
+                        <option value="group">Personnes (avec âges)</option>
                       </select>
                       <button type="button" onClick={() => removeField(i)} className="text-red-500 hover:text-red-600 text-sm">✕</button>
                     </div>

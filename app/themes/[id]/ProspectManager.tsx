@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
-import type { ThemeField } from '@/lib/themeFields'
+import { agesKey, type ThemeField } from '@/lib/themeFields'
 
 type Parsed = { name: string; email: string; phone: string; details: string; data: Record<string, string> }
 
@@ -113,6 +113,29 @@ export default function ProspectManager({ themeId, fields }: { themeId: string; 
     return res.json()
   }
 
+  // --- Helpers pour les champs "Personnes (avec âges)" ---
+  function getAges(key: string): string[] {
+    try {
+      const a = JSON.parse(fieldValues[agesKey(key)] || '[]')
+      return Array.isArray(a) ? a.map(String) : []
+    } catch {
+      return []
+    }
+  }
+  function setCount(key: string, val: string) {
+    const count = Math.max(0, parseInt(val || '0', 10) || 0)
+    const ages = getAges(key).slice(0, count)
+    const hasAny = ages.some((x) => x.trim() !== '')
+    setFieldValues({ ...fieldValues, [key]: val, [agesKey(key)]: hasAny ? JSON.stringify(ages) : '' })
+  }
+  function setAge(key: string, i: number, val: string) {
+    const count = Math.max(0, parseInt(fieldValues[key] || '0', 10) || 0)
+    const arr = Array.from({ length: count }, (_, idx) => getAges(key)[idx] ?? '')
+    arr[i] = val
+    const hasAny = arr.some((x) => x.trim() !== '')
+    setFieldValues({ ...fieldValues, [agesKey(key)]: hasAny ? JSON.stringify(arr) : '' })
+  }
+
   async function submitManual(ev: React.FormEvent) {
     ev.preventDefault()
     if (!name.trim()) { setError('Le nom est obligatoire'); return }
@@ -184,9 +207,9 @@ export default function ProspectManager({ themeId, fields }: { themeId: string; 
                       <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" className={inputBase} />
                     </div>
                   </div>
-                  {fields.length > 0 && (
+                  {fields.filter((f) => f.type !== 'group').length > 0 && (
                     <div className="grid grid-cols-2 gap-3">
-                      {fields.map((f) => (
+                      {fields.filter((f) => f.type !== 'group').map((f) => (
                         <div key={f.key}>
                           <label className="block text-xs font-semibold text-gray-700 mb-1">{f.label}</label>
                           <input
@@ -199,6 +222,43 @@ export default function ProspectManager({ themeId, fields }: { themeId: string; 
                       ))}
                     </div>
                   )}
+
+                  {fields.filter((f) => f.type === 'group').map((f) => {
+                    const count = Math.min(Math.max(0, parseInt(fieldValues[f.key] || '0', 10) || 0), 30)
+                    const ages = getAges(f.key)
+                    return (
+                      <div key={f.key} className="border border-gray-200 rounded-lg p-3 bg-gray-50/60">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">{f.label} (nombre)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={fieldValues[f.key] ?? ''}
+                          onChange={(e) => setCount(f.key, e.target.value)}
+                          className={`${inputBase} bg-white`}
+                        />
+                        {count > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1.5">Âge de chaque personne (optionnel)</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {Array.from({ length: count }, (_, i) => (
+                                <div key={i}>
+                                  <span className="block text-[10px] text-gray-400 mb-0.5">#{i + 1}</span>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    placeholder="âge"
+                                    value={ages[i] ?? ''}
+                                    onChange={(e) => setAge(f.key, i, e.target.value)}
+                                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">Détails (champ libre)</label>
                     <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Tout ce qui caractérise ce lead : besoin, budget, message…" className={inputBase} />
