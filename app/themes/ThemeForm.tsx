@@ -2,30 +2,53 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { ThemeField } from '@/lib/themeFields'
 
 type Tier = { minQty: string; pricePerLead: string }
-type Field = { label: string; type: 'text' | 'number' | 'group' }
+type Field = { key?: string; label: string; type: 'text' | 'number' | 'group' }
 
-export default function ThemeForm() {
+export type ThemeData = {
+  id: string
+  name: string
+  description: string | null
+  pricePerLead: number
+  currency: string
+  tiers: { minQty: number; pricePerLead: number }[]
+  fields: ThemeField[]
+}
+
+export default function ThemeForm({ theme }: { theme?: ThemeData }) {
   const router = useRouter()
+  const isEdit = !!theme
+
   const [isOpen, setIsOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [pricePerLead, setPricePerLead] = useState('')
-  const [currency, setCurrency] = useState('EUR')
-  const [tiers, setTiers] = useState<Tier[]>([])
-  const [fields, setFields] = useState<Field[]>([])
+  const [name, setName] = useState(theme?.name ?? '')
+  const [description, setDescription] = useState(theme?.description ?? '')
+  const [pricePerLead, setPricePerLead] = useState(theme ? String(theme.pricePerLead) : '')
+  const [currency, setCurrency] = useState(theme?.currency ?? 'EUR')
+  const [tiers, setTiers] = useState<Tier[]>(
+    theme?.tiers.map((t) => ({ minQty: String(t.minQty), pricePerLead: String(t.pricePerLead) })) ?? [],
+  )
+  const [fields, setFields] = useState<Field[]>(
+    theme?.fields.map((f) => ({ key: f.key, label: f.label, type: f.type })) ?? [],
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  function reset() {
-    setName(''); setDescription(''); setPricePerLead(''); setCurrency('EUR'); setTiers([]); setFields([]); setError('')
+  function resetToInitial() {
+    setName(theme?.name ?? '')
+    setDescription(theme?.description ?? '')
+    setPricePerLead(theme ? String(theme.pricePerLead) : '')
+    setCurrency(theme?.currency ?? 'EUR')
+    setTiers(theme?.tiers.map((t) => ({ minQty: String(t.minQty), pricePerLead: String(t.pricePerLead) })) ?? [])
+    setFields(theme?.fields.map((f) => ({ key: f.key, label: f.label, type: f.type })) ?? [])
+    setError('')
   }
 
   function addField() {
     setFields([...fields, { label: '', type: 'text' }])
   }
-  function updateField(i: number, key: keyof Field, value: string) {
+  function updateField(i: number, key: 'label' | 'type', value: string) {
     setFields(fields.map((f, idx) => (idx === i ? { ...f, [key]: value } : f)))
   }
   function removeField(i: number) {
@@ -42,24 +65,30 @@ export default function ThemeForm() {
     setTiers(tiers.filter((_, idx) => idx !== i))
   }
 
+  function close() {
+    setIsOpen(false)
+    setError('')
+    if (isEdit) resetToInitial()
+  }
+
   async function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault()
     if (!name.trim()) { setError('Le nom est obligatoire'); return }
     if (!pricePerLead || parseFloat(pricePerLead) < 0) { setError('Prix par lead invalide'); return }
     setLoading(true)
     setError('')
-    const res = await fetch('/api/themes', {
-      method: 'POST',
+    const res = await fetch(isEdit ? `/api/themes/${theme!.id}` : '/api/themes', {
+      method: isEdit ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, description, pricePerLead, currency, tiers, fields }),
     })
     setLoading(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      setError(data.error || 'Erreur lors de la création')
+      setError(data.error || (isEdit ? 'Erreur lors de la modification' : 'Erreur lors de la création'))
       return
     }
-    reset()
+    if (!isEdit) resetToInitial()
     setIsOpen(false)
     router.refresh()
   }
@@ -69,14 +98,27 @@ export default function ThemeForm() {
 
   return (
     <>
-      <button onClick={() => setIsOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition">
-        + Nouveau thème
-      </button>
+      {isEdit ? (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="h-[38px] px-3 rounded-lg border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition flex items-center gap-1.5"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+          Modifier
+        </button>
+      ) : (
+        <button onClick={() => setIsOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+          + Nouveau thème
+        </button>
+      )}
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setIsOpen(false); setError('') }}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={close}>
           <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-4 text-gray-900">Nouveau thème</h2>
+            <h2 className="text-xl font-bold mb-4 text-gray-900">{isEdit ? 'Modifier le thème' : 'Nouveau thème'}</h2>
             <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Nom du thème *</label>
@@ -128,12 +170,15 @@ export default function ThemeForm() {
                   <button type="button" onClick={addField} className="text-xs font-semibold text-blue-600 hover:text-blue-700">+ Ajouter un champ</button>
                 </div>
                 {fields.length === 0 && (
-                  <p className="text-xs text-gray-400">Ex. pour un thème voyage : « Nb adultes », « Nb enfants », « Âges des enfants ». Le contact (nom, email, tél) est déjà géré.</p>
+                  <p className="text-xs text-gray-400">Ex. pour un thème voyage : « Adultes », « Enfants » (type « Personnes »). Le contact (nom, email, tél) est déjà géré.</p>
+                )}
+                {isEdit && fields.length > 0 && (
+                  <p className="text-xs text-amber-600 mb-1">⚠ Renommer un champ déjà utilisé peut détacher les valeurs déjà saisies sur les leads existants.</p>
                 )}
                 <div className="space-y-2">
                   {fields.map((f, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <input value={f.label} onChange={(e) => updateField(i, 'label', e.target.value)} placeholder="Nom du champ (ex: Nb enfants)" className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-gray-900 text-sm" />
+                      <input value={f.label} onChange={(e) => updateField(i, 'label', e.target.value)} placeholder="Nom du champ (ex: Enfants)" className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-gray-900 text-sm" />
                       <select value={f.type} onChange={(e) => updateField(i, 'type', e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1.5 text-gray-900 text-sm">
                         <option value="text">Texte</option>
                         <option value="number">Nombre</option>
@@ -148,9 +193,9 @@ export default function ThemeForm() {
               {error && <p className="text-red-600 text-sm">⚠ {error}</p>}
 
               <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => { setIsOpen(false); setError('') }} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
+                <button type="button" onClick={close} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
                 <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50">
-                  {loading ? 'Création…' : 'Créer le thème'}
+                  {loading ? 'Enregistrement…' : isEdit ? 'Enregistrer' : 'Créer le thème'}
                 </button>
               </div>
             </form>

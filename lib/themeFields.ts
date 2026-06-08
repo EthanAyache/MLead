@@ -39,9 +39,12 @@ export function normalizeFields(raw: unknown): ThemeField[] {
     const label = String((item as { label?: unknown })?.label ?? '').trim()
     if (!label) continue
     const type = coerceType((item as { type?: unknown })?.type)
-    let key = slugify(label)
+    // En édition, on conserve la clé existante (sinon les données déjà saisies seraient détachées).
+    const existingKey = String((item as { key?: unknown })?.key ?? '').trim()
+    const base = existingKey || slugify(label)
+    let key = base
     let n = 2
-    while (used.has(key)) key = `${slugify(label)}_${n++}`
+    while (used.has(key)) key = `${base}_${n++}`
     used.add(key)
     out.push({ key, label, type })
   }

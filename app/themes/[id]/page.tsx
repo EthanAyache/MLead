@@ -7,6 +7,7 @@ import Header from '@/app/dashboard/Header'
 import ProspectManager from './ProspectManager'
 import DeleteThemeButton from './DeleteThemeButton'
 import ProspectTable, { type Row } from './ProspectTable'
+import ThemeForm, { type ThemeData } from '../ThemeForm'
 
 function currencySymbol(c: string) {
   return c === 'EUR' ? '€' : c === 'ILS' ? '₪' : '$'
@@ -32,6 +33,16 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
   const isAdmin = user?.role === 'ADMIN'
   const sym = currencySymbol(theme.currency)
   const fields = readFields(theme.fields)
+
+  const themeData: ThemeData = {
+    id: theme.id,
+    name: theme.name,
+    description: theme.description,
+    pricePerLead: theme.pricePerLead,
+    currency: theme.currency,
+    tiers: theme.tiers.map((t) => ({ minQty: t.minQty, pricePerLead: t.pricePerLead })),
+    fields,
+  }
   const available = theme.prospects.filter((p) => p.status === 'AVAILABLE')
   const sold = theme.prospects.filter((p) => p.status === 'SOLD')
 
@@ -58,9 +69,10 @@ export default async function ThemeDetailPage({ params }: { params: Promise<{ id
               <h1 className="text-3xl font-bold text-gray-900">{theme.name}</h1>
               {theme.description && <p className="text-gray-500 text-sm mt-1 max-w-2xl">{theme.description}</p>}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5">
+              <ThemeForm theme={themeData} />
               {isAdmin && <DeleteThemeButton themeId={theme.id} themeName={theme.name} />}
-              <div className="text-right">
+              <div className="text-right ml-1.5">
                 <div className="text-2xl font-bold text-blue-700">{theme.pricePerLead.toFixed(2)} {sym}</div>
                 <div className="text-xs text-gray-400">prix de base / lead</div>
               </div>
