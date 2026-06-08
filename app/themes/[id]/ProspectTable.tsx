@@ -132,8 +132,16 @@ function FragmentRow({
           )}
         </td>
         <td className="px-4 py-3 text-gray-900 font-medium">{r.name}</td>
-        <td className="px-4 py-3 text-gray-600">{r.email ?? '—'}</td>
-        <td className="px-4 py-3 text-gray-600">{r.phone ?? '—'}</td>
+        <td className="px-4 py-3">
+          {r.email
+            ? <a href={`mailto:${r.email}`} onClick={(e) => e.stopPropagation()} className="text-blue-600 hover:underline">{r.email}</a>
+            : <span className="text-gray-400">—</span>}
+        </td>
+        <td className="px-4 py-3">
+          {r.phone
+            ? <a href={`tel:${r.phone.replace(/[^\d+]/g, '')}`} onClick={(e) => e.stopPropagation()} className="text-blue-600 hover:underline whitespace-nowrap">{r.phone}</a>
+            : <span className="text-gray-400">—</span>}
+        </td>
         {fields.map((f) => (
           <td key={f.key} className="px-4 py-3 text-gray-600">{r.data[f.key] || '—'}</td>
         ))}
