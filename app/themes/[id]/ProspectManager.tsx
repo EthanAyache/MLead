@@ -1,0 +1,251 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import * as XLSX from 'xlsx'
+
+type Parsed = { name: string; email: string; phone: string; details: string }
+
+// Détecte les colonnes à partir d'un tableau de lignes (chaque ligne = tableau de cellules).
+// En-tête optionnel détecté automatiquement.
+// Colonnes reconnues : nom/name/prenom, email/mail, telephone/phone/tel, details/detail/note.
+function parseRows(rows: string[][]): Parsed[] {
+  const clean = rows.map((r) => r.map((c) => String(c ?? '').trim())).filter((r) => r.some((c) => c !== ''))
+  if (clean.length === 0) return []
+
+  const headerKeywords = ['nom', 'name', 'email', 'mail', 'tel', 'phone', 'detail', 'note', 'prenom']
+  const first = clean[0].map((c) => c.toLowerCase())
+  const hasHeader = first.some((c) => headerKeywords.some((k) => c.includes(k)))
+
+  let idx = { name: 0, email: 1, phone: 2, details: 3 }
+  let dataRows = clean
+
+  if (hasHeader) {
+    const find = (keys: string[]) => first.findIndex((c) => keys.some((k) => c.includes(k)))
+    idx = {
+      name: Math.max(find(['nom', 'name', 'prenom']), 0),
+      email: find(['email', 'mail']),
+      phone: find(['tel', 'phone']),
+      details: find(['detail', 'note']),
+    }
+    dataRows = clean.slice(1)
+  }
+
+  return dataRows
+    .map((cols) => ({
+      name: (cols[idx.name] ?? '').trim(),
+      email: idx.email >= 0 ? (cols[idx.email] ?? '').trim() : '',
+      phone: idx.phone >= 0 ? (cols[idx.phone] ?? '').trim() : '',
+      details: idx.details >= 0 ? (cols[idx.details] ?? '').trim() : '',
+    }))
+    .filter((p) => p.name !== '')
+}
+
+// Lit un fichier CSV / XLS / XLSX et renvoie les prospects détectés.
+function parseFile(buffer: ArrayBuffer): Parsed[] {
+  const wb = XLSX.read(buffer, { type: 'array' })
+  const sheet = wb.Sheets[wb.SheetNames[0]]
+  if (!sheet) return []
+  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: '' })
+  return parseRows(rows)
+}
+
+type ImportResult = { created: number; skipped: number }
+
+export default function ProspectManager({ themeId }: { themeId: string }) {
+  const router = useRouter()
+  const [mode, setMode] = useState<null | 'manual' | 'csv'>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [result, setResult] = useState<ImportResult | null>(null)
+
+  // Manuel
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [details, setDetails] = useState('')
+
+  // Import
+  const [parsed, setParsed] = useState<Parsed[]>([])
+  const [fileName, setFileName] = useState('')
+  const [dedupe, setDedupe] = useState(true)
+
+  function close() {
+    setMode(null); setError(''); setResult(null)
+    setName(''); setEmail(''); setPhone(''); setDetails('')
+    setParsed([]); setFileName(''); setDedupe(true)
+    router.refresh()
+  }
+
+  async function send(prospects: Parsed[]): Promise<ImportResult | null> {
+    setLoading(true); setError('')
+    const res = await fetch('/api/prospects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ themeId, prospects, dedupe }),
+    })
+    setLoading(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || "Erreur lors de l'enregistrement")
+      return null
+    }
+    return res.json()
+  }
+
+  async function submitManual(ev: React.FormEvent) {
+    ev.preventDefault()
+    if (!name.trim()) { setError('Le nom est obligatoire'); return }
+    const r = await send([{ name, email, phone, details }])
+    if (!r) return
+    if (r.created === 0 && r.skipped > 0) {
+      setError('Ce lead existe déjà dans ce thème (même email ou téléphone).')
+      return
+    }
+    close()
+  }
+
+  function onFile(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0]
+    if (!file) return
+    setFileName(file.name)
+    setError('')
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const rows = parseFile(reader.result as ArrayBuffer)
+        if (rows.length === 0) setError('Aucune ligne valide trouvée (le nom est obligatoire).')
+        setParsed(rows)
+      } catch {
+        setError('Fichier illisible. Formats acceptés : CSV, XLS, XLSX.')
+        setParsed([])
+      }
+    }
+    reader.readAsArrayBuffer(file)
+  }
+
+  async function submitImport() {
+    const r = await send(parsed)
+    if (r) setResult(r)
+  }
+
+  const inputBase = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition'
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <button onClick={() => setMode('manual')} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+          + Ajouter un lead
+        </button>
+        <button onClick={() => setMode('csv')} className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold px-4 py-2 rounded-lg shadow-sm transition">
+          ⬆ Importer (CSV / Excel)
+        </button>
+      </div>
+
+      {mode && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={close}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+
+            {mode === 'manual' && (
+              <>
+                <h2 className="text-xl font-bold mb-4 text-gray-900">Ajouter un lead</h2>
+                <form onSubmit={submitManual} className="space-y-3" noValidate>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Nom *</label>
+                    <input value={name} onChange={(e) => { setName(e.target.value); setError('') }} placeholder="Nom du prospect" className={inputBase} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+                      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemple.com" className={inputBase} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Téléphone</label>
+                      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" className={inputBase} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Détails (champ libre)</label>
+                    <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={3} placeholder="Tout ce qui caractérise ce lead : besoin, budget, message…" className={inputBase} />
+                  </div>
+                  {error && <p className="text-red-600 text-sm">⚠ {error}</p>}
+                  <div className="flex gap-2 justify-end pt-2">
+                    <button type="button" onClick={close} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
+                    <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50">
+                      {loading ? 'Enregistrement…' : 'Ajouter'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+
+            {mode === 'csv' && (
+              <>
+                <h2 className="text-xl font-bold mb-1 text-gray-900">Importer des leads</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  Formats : <strong>CSV, XLS, XLSX</strong>. Colonnes reconnues : <strong>nom</strong>, email, téléphone, détails. La ligne d&apos;en-tête est détectée automatiquement.
+                </p>
+
+                {result ? (
+                  <div className="text-center py-6">
+                    <div className="text-4xl mb-2">✅</div>
+                    <p className="text-lg font-bold text-gray-900">{result.created} lead{result.created > 1 ? 's' : ''} importé{result.created > 1 ? 's' : ''}</p>
+                    {result.skipped > 0 && (
+                      <p className="text-sm text-gray-500 mt-1">{result.skipped} doublon{result.skipped > 1 ? 's' : ''} ignoré{result.skipped > 1 ? 's' : ''} (email ou téléphone déjà présent)</p>
+                    )}
+                    <button onClick={close} className="mt-5 px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold">Terminé</button>
+                  </div>
+                ) : (
+                  <>
+                    <input type="file" accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={onFile} className="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100" />
+
+                    {parsed.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">{parsed.length} lead{parsed.length > 1 ? 's' : ''} détecté{parsed.length > 1 ? 's' : ''} dans « {fileName} »</p>
+                        <div className="border border-gray-200 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                          <table className="w-full text-xs">
+                            <thead className="bg-gray-50 sticky top-0">
+                              <tr>
+                                <th className="text-left px-2 py-1.5 font-semibold text-gray-600">Nom</th>
+                                <th className="text-left px-2 py-1.5 font-semibold text-gray-600">Email</th>
+                                <th className="text-left px-2 py-1.5 font-semibold text-gray-600">Tél.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {parsed.slice(0, 50).map((p, i) => (
+                                <tr key={i} className="border-t border-gray-100">
+                                  <td className="px-2 py-1 text-gray-800">{p.name}</td>
+                                  <td className="px-2 py-1 text-gray-500">{p.email || '—'}</td>
+                                  <td className="px-2 py-1 text-gray-500">{p.phone || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {parsed.length > 50 && <p className="text-xs text-gray-400 mt-1">… et {parsed.length - 50} de plus</p>}
+                      </div>
+                    )}
+
+                    <label className="flex items-center gap-2 mt-4 text-sm text-gray-700 cursor-pointer select-none">
+                      <input type="checkbox" checked={dedupe} onChange={(e) => setDedupe(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                      Ignorer les doublons (même email ou téléphone, dans le fichier et le stock existant)
+                    </label>
+
+                    {error && <p className="text-red-600 text-sm mt-3">⚠ {error}</p>}
+
+                    <div className="flex gap-2 justify-end pt-4">
+                      <button type="button" onClick={close} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
+                      <button type="button" disabled={loading || parsed.length === 0} onClick={submitImport} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50">
+                        {loading ? 'Import…' : `Importer ${parsed.length || ''} lead${parsed.length > 1 ? 's' : ''}`}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}

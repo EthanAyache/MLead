@@ -30,6 +30,12 @@ enum CommissionType {
   FIXED
 }
 
+// Statut d'un prospect du stock marketplace
+enum ProspectStatus {
+  AVAILABLE
+  SOLD
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -48,6 +54,8 @@ model User {
   apporteurs Apporteur[]
   leads      Lead[]
   invoices   Invoice[]
+  themes     Theme[]
+  prospects  Prospect[]
 }
 
 // --- Tables NextAuth ---
@@ -100,8 +108,9 @@ model Brand {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  leads    Lead[]
-  invoices Invoice[]
+  leads             Lead[]
+  invoices          Invoice[]
+  purchasedProspects Prospect[] @relation("BrandPurchasedProspects")
 
   @@index([userId])
 }
@@ -231,4 +240,67 @@ model Commission {
   apporteur   Apporteur @relation(fields: [apporteurId], references: [id])
 
   @@index([apporteurId])
+}
+
+// --- Marketplace de leads ---
+
+// Un thème = une catégorie de leads vendue aux brands (ex: "Voyage cacher").
+// Prix de base par lead + paliers de remise quantité (PriceTier).
+model Theme {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?  @db.Text
+  pricePerLead Float
+  currency     Currency @default(EUR)
+  archived     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  tiers     PriceTier[]
+  prospects Prospect[]
+
+  @@index([userId])
+}
+
+// Palier de remise : à partir de `minQty` leads achetés, le prix unitaire passe à `pricePerLead`.
+model PriceTier {
+  id           String @id @default(cuid())
+  minQty       Int
+  pricePerLead Float
+
+  themeId String
+  theme   Theme  @relation(fields: [themeId], references: [id], onDelete: Cascade)
+
+  @@index([themeId])
+}
+
+// Un prospect du stock : contact + champ libre "détails", rattaché à un thème.
+// Exclusif : une fois vendu (status SOLD), il est attribué à une brand acheteuse et sort du stock.
+model Prospect {
+  id        String         @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  details   String?        @db.Text
+  source    String?
+  status    ProspectStatus @default(AVAILABLE)
+  createdAt DateTime       @default(now())
+  soldAt    DateTime?
+
+  themeId String
+  theme   Theme  @relation(fields: [themeId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  buyerBrandId String?
+  buyerBrand   Brand?  @relation("BrandPurchasedProspects", fields: [buyerBrandId], references: [id])
+
+  @@index([themeId])
+  @@index([userId])
+  @@index([buyerBrandId])
+  @@index([status])
 }
