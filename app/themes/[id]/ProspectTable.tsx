@@ -164,9 +164,11 @@ function FragmentRow({
                     <div className="text-xs font-semibold text-gray-500 uppercase mb-1.5">{f.label} ({count || ages.length})</div>
                     <div className="flex flex-wrap gap-1.5">
                       {Array.from({ length: Math.max(count, ages.length) }, (_, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-white border border-gray-200 text-gray-700">
-                          <span className="text-gray-400">#{i + 1}</span>
-                          {ages[i] ? `${ages[i]} ans` : '— non précisé'}
+                        <span key={i} className="inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full text-xs bg-white border border-gray-200">
+                          <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-[10px]">{i + 1}</span>
+                          {ages[i]
+                            ? <span className="font-semibold text-gray-800">{ages[i]} ans</span>
+                            : <span className="text-gray-400 italic">non précisé</span>}
                         </span>
                       ))}
                     </div>
