@@ -370,10 +370,30 @@ model Dossier {
   campagneId String
   campagne   Campagne @relation(fields: [campagneId], references: [id], onDelete: Cascade)
 
-  leads InboundLead[]
+  leads  InboundLead[]
+  offers Offer[]
 
   @@index([campagneId])
   @@index([token])
+}
+
+// Une offre (= un "contrat") proposée sur un site. Un site peut en avoir plusieurs.
+// Quand un lead affecté à JBoost accepte, on enregistre l'offre qu'il a choisie.
+model Offer {
+  id              String         @id @default(cuid())
+  name            String
+  commissionType  CommissionType @default(PERCENT) // PERCENT (%) ou FIXED (€)
+  commissionValue Float          @default(0)
+  sellPrice       Float          @default(0)
+  deposit         Float? // acompte, optionnel
+  createdAt       DateTime       @default(now())
+
+  dossierId String
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  leads InboundLead[]
+
+  @@index([dossierId])
 }
 
 // Un lead reçu via l'API, rattaché à un dossier. Statut auto (VALID/DUPLICATE) ou manuel (REJECTED).
@@ -393,6 +413,10 @@ model InboundLead {
   dossierId String
   dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
 
+  // Offre choisie par le lead (quand il a accepté via la liste "À appeler"). Null = pas encore pris.
+  chosenOfferId String?
+  chosenOffer   Offer?  @relation(fields: [chosenOfferId], references: [id], onDelete: SetNull)
+
   // Facture mensuelle où ce lead a été comptabilisé (évite la double facturation).
   monthlyInvoiceId String?
   monthlyInvoice   MonthlyInvoice? @relation(fields: [monthlyInvoiceId], references: [id])
@@ -400,6 +424,8 @@ model InboundLead {
   @@index([dossierId, status])
   @@index([receivedAt])
   @@index([monthlyInvoiceId])
+  @@index([assignedToJboost])
+  @@index([chosenOfferId])
 }
 
 // Facture mensuelle agrégée d'un client (pay-per-lead). Une seule par client et par période.

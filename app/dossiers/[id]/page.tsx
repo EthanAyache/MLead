@@ -6,7 +6,7 @@ import { getCurrentUser } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import DossierSettings from './DossierSettings'
 import LeadsList, { type LeadRow } from './LeadsList'
-import ContractTermsButton from './ContractTermsButton'
+import ContractTermsButton, { type OfferRow } from './ContractTermsButton'
 
 export default async function DossierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser()
@@ -23,9 +23,19 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     include: {
       campagne: { include: { client: { select: { id: true, name: true } } } },
       leads: { orderBy: { receivedAt: 'desc' } },
+      offers: { orderBy: { createdAt: 'asc' } },
     },
   })
   if (!dossier) notFound()
+
+  const offerRows: OfferRow[] = dossier.offers.map((o) => ({
+    id: o.id,
+    name: o.name,
+    commissionType: o.commissionType,
+    commissionValue: o.commissionValue,
+    sellPrice: o.sellPrice,
+    deposit: o.deposit,
+  }))
 
   const isAdmin = me.role === 'ADMIN'
 
@@ -68,7 +78,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
-                <ContractTermsButton dossierId={dossier.id} terms={dossier.contractTerms} />
+                <ContractTermsButton dossierId={dossier.id} offers={offerRows} />
               </div>
               <p className="text-gray-400 text-xs mt-1">Site (source) — reçoit les leads via son lien API</p>
             </div>

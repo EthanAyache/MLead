@@ -13,6 +13,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params
   const body = await request.json()
 
+  const lead = await prisma.inboundLead.findUnique({ where: { id } })
+  if (!lead) return NextResponse.json({ error: 'Lead introuvable' }, { status: 404 })
+  // On ne modifie pas un lead déjà facturé (cohérence comptable)
+  if (lead.monthlyInvoiceId) {
+    return NextResponse.json({ error: 'Lead déjà facturé, modification verrouillée' }, { status: 409 })
+  }
+
   const data: Record<string, unknown> = {}
   if ('status' in body) {
     const status = body.status as Status
@@ -25,15 +32,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if ('assignedToJboost' in body) {
     data.assignedToJboost = !!body.assignedToJboost
   }
-  if (Object.keys(data).length === 0) {
-    return NextResponse.json({ error: 'Rien à modifier' }, { status: 400 })
+  // Offre choisie par le lead (depuis la liste "À appeler"). '' / null = on déselectionne.
+  if ('chosenOfferId' in body) {
+    const offerId = body.chosenOfferId ? String(body.chosenOfferId) : null
+    if (offerId) {
+      const offer = await prisma.offer.findUnique({ where: { id: offerId } })
+      // L'offre doit appartenir au site (dossier) de ce lead
+      if (!offer || offer.dossierId !== lead.dossierId) {
+        return NextResponse.json({ error: 'Offre invalide pour ce lead' }, { status: 400 })
+      }
+    }
+    data.chosenOfferId = offerId
   }
 
-  const lead = await prisma.inboundLead.findUnique({ where: { id } })
-  if (!lead) return NextResponse.json({ error: 'Lead introuvable' }, { status: 404 })
-  // On ne modifie pas un lead déjà facturé (cohérence comptable)
-  if (lead.monthlyInvoiceId) {
-    return NextResponse.json({ error: 'Lead déjà facturé, modification verrouillée' }, { status: 409 })
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: 'Rien à modifier' }, { status: 400 })
   }
 
   const updated = await prisma.inboundLead.update({ where: { id }, data })
