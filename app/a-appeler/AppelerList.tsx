@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -18,11 +18,24 @@ export type CallRow = {
   siteId: string
   chosenOfferIds: string[]
   owed: number
-  offers: { id: string; name: string }[]
+  offers: Offer[]
+}
+
+type Offer = {
+  id: string
+  name: string
+  commissionType: 'PERCENT' | 'FIXED'
+  commissionValue: number
+  sellPrice: number
+  deposit: number | null
 }
 
 function eur(n: number) {
   return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+}
+
+function commissionLabel(o: Offer) {
+  return o.commissionType === 'FIXED' ? `${o.commissionValue} €` : `${o.commissionValue} %`
 }
 
 export default function AppelerList({ rows }: { rows: CallRow[] }) {
@@ -30,6 +43,7 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'todo' | 'pris' | 'all'>('todo')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
 
   const isPris = (r: CallRow) => r.chosenOfferIds.length > 0
   const todoCount = rows.filter((r) => !isPris(r)).length
@@ -114,49 +128,80 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
-              <tr key={r.id} className={`border-b border-gray-100 hover:bg-gray-50 transition align-top ${isPris(r) ? 'bg-green-50/40' : ''}`}>
-                <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(r.receivedAt).toLocaleDateString('fr-FR')}</td>
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-900">{r.name || '—'}</div>
-                  <div className="text-xs space-x-2">
-                    {r.phone && <a href={`tel:${r.phone.replace(/[^\d+]/g, '')}`} className="text-blue-600 hover:underline whitespace-nowrap">{r.phone}</a>}
-                    {r.email && <a href={`mailto:${r.email}`} className="text-blue-600 hover:underline">{r.email}</a>}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-xs text-gray-600">
-                  <div className="font-semibold text-gray-800">{r.clientName}</div>
-                  <div>{r.campagneName} · <Link href={`/dossiers/${r.siteId}`} className="text-blue-600 hover:underline">{r.siteName}</Link></div>
-                </td>
-                <td className="px-4 py-3">
-                  {r.offers.length === 0 ? (
-                    <Link href={`/dossiers/${r.siteId}`} className="text-xs text-amber-600 hover:underline">Aucune offre — en créer</Link>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5 max-w-[260px]">
-                      {r.offers.map((o) => {
-                        const on = r.chosenOfferIds.includes(o.id)
-                        return (
-                          <button
-                            key={o.id}
-                            onClick={() => toggleOffer(r, o.id)}
-                            disabled={busyId === r.id}
-                            className={`px-2 py-1 rounded-full text-xs font-medium border transition disabled:opacity-50 ${on ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-                          >
-                            {on ? '✓ ' : ''}{o.name}
+            {filtered.map((r) => {
+              const chosen = r.offers.filter((o) => r.chosenOfferIds.includes(o.id))
+              const open = expanded === r.id
+              return (
+                <Fragment key={r.id}>
+                  <tr className={`border-b border-gray-100 hover:bg-gray-50 transition align-top ${isPris(r) ? 'bg-green-50/40' : ''}`}>
+                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(r.receivedAt).toLocaleDateString('fr-FR')}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{r.name || '—'}</div>
+                      <div className="text-xs space-x-2">
+                        {r.phone && <a href={`tel:${r.phone.replace(/[^\d+]/g, '')}`} className="text-blue-600 hover:underline whitespace-nowrap">{r.phone}</a>}
+                        {r.email && <a href={`mailto:${r.email}`} className="text-blue-600 hover:underline">{r.email}</a>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-600">
+                      <div className="font-semibold text-gray-800">{r.clientName}</div>
+                      <div>{r.campagneName} · <Link href={`/dossiers/${r.siteId}`} className="text-blue-600 hover:underline">{r.siteName}</Link></div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.offers.length === 0 ? (
+                        <Link href={`/dossiers/${r.siteId}`} className="text-xs text-amber-600 hover:underline">Aucune offre — en créer</Link>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5 max-w-[260px]">
+                          {r.offers.map((o) => {
+                            const on = r.chosenOfferIds.includes(o.id)
+                            return (
+                              <button
+                                key={o.id}
+                                onClick={() => toggleOffer(r, o.id)}
+                                disabled={busyId === r.id}
+                                className={`px-2 py-1 rounded-full text-xs font-medium border transition disabled:opacity-50 ${on ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                              >
+                                {on ? '✓ ' : ''}{o.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
+                      {isPris(r) ? <span className="text-green-700">{eur(r.owed)}</span> : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-3">
+                        {isPris(r) && (
+                          <button onClick={() => setExpanded(open ? null : r.id)} className="text-xs font-semibold text-blue-600 hover:text-blue-700">
+                            {open ? 'Masquer' : '📋 Rappel'}
                           </button>
-                        )
-                      })}
-                    </div>
+                        )}
+                        <button onClick={() => patch(r.id, { assignedToJboost: false })} disabled={busyId === r.id} className="text-xs font-semibold text-gray-600 hover:text-gray-800 disabled:opacity-50">↩ Rendre au client</button>
+                      </div>
+                    </td>
+                  </tr>
+                  {open && chosen.length > 0 && (
+                    <tr className="bg-blue-50/40 border-b border-gray-100">
+                      <td colSpan={6} className="px-4 py-3">
+                        <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Offre{chosen.length > 1 ? 's' : ''} prise{chosen.length > 1 ? 's' : ''} par {r.name || 'ce lead'}</div>
+                        <div className="flex flex-wrap gap-3">
+                          {chosen.map((o) => (
+                            <div key={o.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                              <div className="font-semibold text-gray-900">{o.name}</div>
+                              <div className="text-xs text-gray-600 mt-0.5">
+                                Commission <strong>{commissionLabel(o)}</strong> · Vente <strong>{eur(o.sellPrice)}</strong>
+                                {o.deposit != null ? <> · Acompte <strong>{eur(o.deposit)}</strong></> : ''}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                </td>
-                <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
-                  {isPris(r) ? <span className="text-green-700">{eur(r.owed)}</span> : <span className="text-gray-300">—</span>}
-                </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <button onClick={() => patch(r.id, { assignedToJboost: false })} disabled={busyId === r.id} className="text-xs font-semibold text-gray-600 hover:text-gray-800 disabled:opacity-50">↩ Rendre au client</button>
-                </td>
-              </tr>
-            ))}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       )}

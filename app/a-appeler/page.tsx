@@ -47,7 +47,14 @@ export default async function AAppelerPage() {
       siteId: l.dossier.id,
       chosenOfferIds: [...chosenIds],
       owed,
-      offers: l.dossier.offers.map((o) => ({ id: o.id, name: o.name })),
+      offers: l.dossier.offers.map((o) => ({
+        id: o.id,
+        name: o.name,
+        commissionType: o.commissionType,
+        commissionValue: o.commissionValue,
+        sellPrice: o.sellPrice,
+        deposit: o.deposit,
+      })),
     }
   })
 

@@ -22,7 +22,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     where: { id },
     include: {
       campagne: { include: { client: { select: { id: true, name: true } } } },
-      leads: { orderBy: { receivedAt: 'desc' } },
+      leads: { orderBy: { receivedAt: 'desc' }, include: { chosenOffers: true } },
       offers: { orderBy: { createdAt: 'asc' } },
     },
   })
@@ -39,14 +39,25 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
 
   const isAdmin = me.role === 'ADMIN'
 
-  // Compteur du mois en cours. Les leads affectés à JBoost sont exclus de la facturation.
+  // Ce que le client nous doit, sur le mois en cours.
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const billableThisMonth = dossier.leads.filter(
-    (l) => l.status === 'VALID' && !l.assignedToJboost && l.receivedAt >= startOfMonth,
-  ).length
-  const receivedThisMonth = dossier.leads.filter((l) => l.receivedAt >= startOfMonth).length
-  const forecast = billableThisMonth * dossier.unitPrice
+  const monthLeads = dossier.leads.filter((l) => l.receivedAt >= startOfMonth)
+  const receivedThisMonth = monthLeads.length
+
+  // 1) Par lead (pay-per-lead) : leads valides NON affectés à JBoost × prix unitaire.
+  const billableThisMonth = monthLeads.filter((l) => l.status === 'VALID' && !l.assignedToJboost).length
+  const duePerLead = billableThisMonth * dossier.unitPrice
+
+  // 2) Par commission : leads affectés à JBoost ayant pris des offres → commission de chaque offre.
+  const owedForOffer = (o: { commissionType: string; commissionValue: number; sellPrice: number }) =>
+    o.commissionType === 'FIXED' ? o.commissionValue : (o.sellPrice * o.commissionValue) / 100
+  const dueCommission = monthLeads
+    .filter((l) => l.assignedToJboost)
+    .reduce((sum, l) => sum + l.chosenOffers.reduce((s, o) => s + owedForOffer(o), 0), 0)
+
+  // 3) Total dû
+  const totalDue = duePerLead + dueCommission
 
   const rows: LeadRow[] = dossier.leads.map((l) => ({
     id: l.id,
@@ -84,20 +95,27 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {/* KPIs du mois */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          {/* Ce que le client nous doit ce mois-ci */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
               <div className="text-xs font-semibold text-gray-500 uppercase">Reçus ce mois</div>
               <div className="text-2xl font-bold text-gray-900 mt-1">{receivedThisMonth}</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} facturable{billableThisMonth > 1 ? 's' : ''}</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-              <div className="text-xs font-semibold text-gray-500 uppercase">Facturables ce mois</div>
-              <div className="text-2xl font-bold text-green-700 mt-1">{billableThisMonth}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">Valides, hors affectés à JBoost</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase">Dû par lead</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{duePerLead.toFixed(2)} €</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} × {dossier.unitPrice.toFixed(2)} €</div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="text-xs font-semibold text-gray-500 uppercase">Dû par commission</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{dueCommission.toFixed(2)} €</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">offres prises (leads appelés par JBoost)</div>
             </div>
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-              <div className="text-xs font-semibold text-blue-700 uppercase">Montant prévisionnel</div>
-              <div className="text-2xl font-bold text-blue-700 mt-1">{forecast.toFixed(2)} €</div>
+              <div className="text-xs font-semibold text-blue-700 uppercase">Total dû ce mois</div>
+              <div className="text-2xl font-bold text-blue-700 mt-1">{totalDue.toFixed(2)} €</div>
+              <div className="text-[11px] text-blue-500/70 mt-0.5">par lead + commission</div>
             </div>
           </div>
 
