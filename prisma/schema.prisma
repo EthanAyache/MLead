@@ -36,6 +36,30 @@ enum ProspectStatus {
   SOLD
 }
 
+// --- Inbound (API de réception de leads + facturation pay-per-lead) ---
+
+// Mode de paiement d'un client : AUTO = prélèvement carte (Stripe charge_automatically),
+// INVOICE = facture envoyée à régler (Stripe send_invoice).
+enum PaymentMode {
+  AUTO
+  INVOICE
+}
+
+// Statut d'un lead reçu via l'API. Seuls les VALID sont facturés.
+enum LeadStatus {
+  VALID
+  DUPLICATE
+  REJECTED
+}
+
+// Statut d'une facture mensuelle agrégée.
+enum MonthlyInvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  FAILED
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -116,13 +140,15 @@ model Brand {
 }
 
 model Client {
-  id               String   @id @default(cuid())
+  id               String      @id @default(cuid())
   name             String
   email            String?
   phone            String?
   stripeCustomerId String?
-  archived         Boolean  @default(false)
-  createdAt        DateTime @default(now())
+  // Mode de facturation pay-per-lead : AUTO (prélèvement carte) ou INVOICE (facture à régler)
+  paymentMode      PaymentMode @default(AUTO)
+  archived         Boolean     @default(false)
+  createdAt        DateTime    @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -130,8 +156,10 @@ model Client {
   apporteurId String?
   apporteur   Apporteur? @relation(fields: [apporteurId], references: [id])
 
-  leads    Lead[]
-  invoices Invoice[]
+  leads           Lead[]
+  invoices        Invoice[]
+  dossiers        Dossier[]
+  monthlyInvoices MonthlyInvoice[]
 
   @@index([userId])
   @@index([apporteurId])
@@ -308,4 +336,69 @@ model Prospect {
   @@index([userId])
   @@index([buyerBrandId])
   @@index([status])
+}
+
+// --- Inbound : dossiers, leads reçus, factures mensuelles ---
+
+// Un dossier = une source/un site d'un client, avec son propre token API et son prix unitaire.
+// Un client peut avoir plusieurs dossiers (tarifs différents).
+model Dossier {
+  id        String   @id @default(cuid())
+  name      String
+  token     String   @unique // 'ml_' + 32 hex, identifie le dossier dans l'URL de l'API
+  unitPrice Float    @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leads InboundLead[]
+
+  @@index([clientId])
+  @@index([token])
+}
+
+// Un lead reçu via l'API, rattaché à un dossier. Statut auto (VALID/DUPLICATE) ou manuel (REJECTED).
+model InboundLead {
+  id         String     @id @default(cuid())
+  name       String?
+  email      String?
+  phone      String?
+  message    String?    @db.Text
+  source     String?
+  status     LeadStatus @default(VALID)
+  ip         String?
+  receivedAt DateTime   @default(now())
+
+  dossierId String
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  // Facture mensuelle où ce lead a été comptabilisé (évite la double facturation).
+  monthlyInvoiceId String?
+  monthlyInvoice   MonthlyInvoice? @relation(fields: [monthlyInvoiceId], references: [id])
+
+  @@index([dossierId, status])
+  @@index([receivedAt])
+  @@index([monthlyInvoiceId])
+}
+
+// Facture mensuelle agrégée d'un client (pay-per-lead). Une seule par client et par période.
+model MonthlyInvoice {
+  id              String               @id @default(cuid())
+  period          String               // format "AAAA-MM"
+  leadCount       Int                  @default(0)
+  amount          Float                @default(0)
+  currency        Currency             @default(EUR)
+  stripeInvoiceId String?
+  status          MonthlyInvoiceStatus @default(DRAFT)
+  createdAt       DateTime             @default(now())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leads InboundLead[]
+
+  @@unique([clientId, period])
+  @@index([clientId])
 }
