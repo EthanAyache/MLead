@@ -1,0 +1,96 @@
+import Link from 'next/link'
+import { headers } from 'next/headers'
+import { notFound, redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
+import Header from '@/app/dashboard/Header'
+import DossierSettings from './DossierSettings'
+import LeadsList, { type LeadRow } from './LeadsList'
+
+export default async function DossierDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const me = await getCurrentUser()
+  if (!me) redirect('/login')
+
+  const h = await headers()
+  const host = h.get('x-forwarded-host') || h.get('host') || 'monsieurlead.jboost.fr'
+  const proto = h.get('x-forwarded-proto') || 'https'
+  const origin = `${proto}://${host}`
+
+  const { id } = await params
+  const dossier = await prisma.dossier.findUnique({
+    where: { id },
+    include: {
+      client: { select: { id: true, name: true } },
+      leads: { orderBy: { receivedAt: 'desc' } },
+    },
+  })
+  if (!dossier) notFound()
+
+  const isAdmin = me.role === 'ADMIN'
+
+  // Compteur du mois en cours
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const validThisMonth = dossier.leads.filter((l) => l.status === 'VALID' && l.receivedAt >= startOfMonth).length
+  const receivedThisMonth = dossier.leads.filter((l) => l.receivedAt >= startOfMonth).length
+  const forecast = validThisMonth * dossier.unitPrice
+
+  const rows: LeadRow[] = dossier.leads.map((l) => ({
+    id: l.id,
+    name: l.name,
+    email: l.email,
+    phone: l.phone,
+    message: l.message,
+    source: l.source,
+    status: l.status,
+    receivedAt: l.receivedAt.toISOString(),
+    billed: l.monthlyInvoiceId !== null,
+  }))
+
+  return (
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-6xl mx-auto">
+          <Link href="/dossiers" className="text-sm text-blue-600 hover:text-blue-700 font-medium">← Tous les dossiers</Link>
+
+          <div className="flex items-start justify-between gap-4 mt-2 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Client : <Link href="/clients" className="text-blue-600 hover:underline">{dossier.client.name}</Link>
+              </p>
+            </div>
+          </div>
+
+          {/* KPIs du mois */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="text-xs font-semibold text-gray-500 uppercase">Reçus ce mois</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{receivedThisMonth}</div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="text-xs font-semibold text-gray-500 uppercase">Valides ce mois</div>
+              <div className="text-2xl font-bold text-green-700 mt-1">{validThisMonth}</div>
+            </div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+              <div className="text-xs font-semibold text-blue-700 uppercase">Montant prévisionnel</div>
+              <div className="text-2xl font-bold text-blue-700 mt-1">{forecast.toFixed(2)} €</div>
+            </div>
+          </div>
+
+          <DossierSettings
+            dossierId={dossier.id}
+            token={dossier.token}
+            unitPrice={dossier.unitPrice}
+            active={dossier.active}
+            isAdmin={isAdmin}
+            origin={origin}
+          />
+
+          <LeadsList rows={rows} />
+        </div>
+      </main>
+    </>
+  )
+}
