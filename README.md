@@ -36,6 +36,104 @@ des factures, d'encaisser les clients via Stripe, et de garder un historique des
 `User`, `Account`, `Session`, `VerificationToken` (NextAuth), `Brand`, `Client`, `Apporteur`,
 `Lead`, `Invoice`, `Payment`, `Commission`.
 
+Réception de leads : `Campagne`, `Dossier` (= un **site**, porte le token API + le prix par lead),
+`InboundLead`, `MonthlyInvoice`.
+
+## Intégration de l'API de réception de leads
+
+Chaque **site** d'un client possède un **lien API** unique (visible sur sa page, bouton
+« Afficher le lien API ») de la forme :
+
+```
+https://monsieurlead.jboost.fr/api/ingest?token=ml_xxxxxxxxxxxxxxxx
+```
+
+Le formulaire du site continue d'envoyer le lead par e-mail **comme avant**, et **en parallèle**
+fait un `POST` vers ce lien. L'appel ne doit **jamais bloquer** le formulaire : si l'API est
+indisponible, l'utilisateur voit quand même sa confirmation.
+
+**Champs acceptés** (JSON ou `application/x-www-form-urlencoded`) :
+`nom`, `email`, `telephone`, `message`, `source`, et un champ piège anti-robot `website`
+(honeypot : s'il est rempli, le lead est ignoré).
+
+**Réponse** : `{ "status": "ok", "statut": "valide" | "doublon" }` (un doublon = même e-mail ou
+téléphone déjà reçu sur ce site). Token invalide → `401`.
+
+### Exemple HTML + JavaScript (à coller sur le site client)
+
+```html
+<form id="contact-form">
+  <input name="nom" placeholder="Nom" required />
+  <input name="email" type="email" placeholder="Email" />
+  <input name="telephone" placeholder="Téléphone" />
+  <textarea name="message" placeholder="Votre demande"></textarea>
+  <!-- Honeypot anti-robot : caché, laissé vide par un humain -->
+  <input name="website" tabindex="-1" autocomplete="off"
+         style="position:absolute;left:-9999px" aria-hidden="true" />
+  <button type="submit">Envoyer</button>
+</form>
+
+<script>
+  const API = "https://monsieurlead.jboost.fr/api/ingest?token=ml_xxxxxxxxxxxxxxxx";
+  document.getElementById("contact-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.source = location.hostname; // d'où vient le lead
+
+    // 1) ton envoi habituel (e-mail au client) reste inchangé ici…
+
+    // 2) envoi vers Mr.Lead, sans jamais bloquer le formulaire
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).catch(() => {}); // si l'API tombe, on ignore
+
+    alert("Merci, votre demande a bien été envoyée !");
+    e.target.reset();
+  });
+</script>
+```
+
+### Exemple PHP (côté serveur, après l'envoi du mail)
+
+```php
+<?php
+// … ton code d'envoi d'e-mail au client (inchangé) …
+
+// Puis on pousse le lead vers Mr.Lead, sans bloquer en cas d'erreur :
+$token   = 'ml_xxxxxxxxxxxxxxxx';
+$payload = json_encode([
+  'nom'       => $_POST['nom']       ?? '',
+  'email'     => $_POST['email']     ?? '',
+  'telephone' => $_POST['telephone'] ?? '',
+  'message'   => $_POST['message']   ?? '',
+  'source'    => $_SERVER['HTTP_HOST'] ?? '',
+]);
+
+$ch = curl_init("https://monsieurlead.jboost.fr/api/ingest?token=$token");
+curl_setopt_array($ch, [
+  CURLOPT_POST           => true,
+  CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+  CURLOPT_POSTFIELDS     => $payload,
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_TIMEOUT        => 4,
+]);
+curl_exec($ch); // on n'interrompt pas le visiteur si ça échoue
+curl_close($ch);
+```
+
+### Tester rapidement (curl)
+
+```bash
+curl -X POST "https://monsieurlead.jboost.fr/api/ingest?token=ml_xxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"nom":"Jean Test","email":"jean@test.fr","telephone":"0600000000","message":"Devis"}'
+# → {"status":"ok","statut":"valide"}
+```
+
+Le lead apparaît alors sur la page du site (Client → Campagne → Site).
+
 ## Développement local
 
 ```bash
