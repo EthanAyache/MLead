@@ -4,9 +4,8 @@ import Header from '../Header'
 import NewInvoiceForm from './NewInvoiceForm'
 
 export default async function NewInvoicePage() {
-  const [clients, brands, apporteurs] = await Promise.all([
+  const [clients, apporteurs] = await Promise.all([
     prisma.client.findMany({ where: { archived: false }, select: { id: true, name: true, email: true }, orderBy: { name: 'asc' } }),
-    prisma.brand.findMany({ where: { archived: false }, select: { id: true, name: true, email: true }, orderBy: { name: 'asc' } }),
     prisma.apporteur.findMany({ where: { archived: false }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
   ])
 
@@ -42,7 +41,7 @@ export default async function NewInvoicePage() {
           </p>
         </div>
 
-        <NewInvoiceForm clients={clients} brands={brands} apporteurs={apporteurs} />
+        <NewInvoiceForm clients={clients} apporteurs={apporteurs} />
       </main>
 
       <footer className="text-center text-xs text-[#787C8A] py-6">

@@ -5,23 +5,23 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 type Option = { id: string; name: string; email?: string | null }
+// En interne, Mr.Lead reste de type "BRAND" avec l'id 'mrlead' (l'API le mappe en MRLEAD).
 type EntityType = 'CLIENT' | 'BRAND' | 'APPORTEUR'
 
 type Props = {
   clients: Option[]
-  brands: Option[]
   apporteurs: Option[]
 }
 
 const TYPES: { v: EntityType; label: string }[] = [
   { v: 'CLIENT', label: 'Client' },
-  { v: 'BRAND', label: 'Brand' },
+  { v: 'BRAND', label: 'Mr.Lead' },
   { v: 'APPORTEUR', label: "Apporteur" },
 ]
 
 const MRLEAD = { id: 'mrlead', name: 'Mr.Lead (interne)' }
 
-export default function NewInvoiceForm({ clients, brands, apporteurs }: Props) {
+export default function NewInvoiceForm({ clients, apporteurs }: Props) {
   const router = useRouter()
 
   const [debtorType, setDebtorType] = useState<EntityType>('CLIENT')
@@ -38,14 +38,14 @@ export default function NewInvoiceForm({ clients, brands, apporteurs }: Props) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Pour le type "Brand", Mr.Lead est proposé en premier (et sélectionné par défaut).
+  // Le type "Mr.Lead" ne propose que Mr.Lead (entité interne).
   function optionsFor(type: EntityType): Option[] {
     if (type === 'CLIENT') return clients
-    if (type === 'BRAND') return [MRLEAD, ...brands]
+    if (type === 'BRAND') return [MRLEAD]
     return apporteurs
   }
 
-  // Au changement de type : Brand -> Mr.Lead par défaut, sinon "à choisir".
+  // Au changement de type : Mr.Lead -> sélectionné d'office, sinon "à choisir".
   function defaultIdFor(type: EntityType) {
     return type === 'BRAND' ? 'mrlead' : ''
   }

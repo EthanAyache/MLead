@@ -52,7 +52,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
       <Header />
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-6xl mx-auto">
-          <Link href="/dossiers" className="text-sm text-blue-600 hover:text-blue-700 font-medium">← Tous les dossiers</Link>
+          <Link href={`/clients/${dossier.client.id}`} className="text-sm text-blue-600 hover:text-blue-700 font-medium">← Campagnes de {dossier.client.name}</Link>
 
           <div className="flex items-start justify-between gap-4 mt-2 mb-6">
             <div>
@@ -63,7 +63,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
                 Client : {dossier.client.name}
               </div>
               <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
-              <p className="text-gray-400 text-xs mt-1">Dossier (source / site) du client ci-dessus</p>
+              <p className="text-gray-400 text-xs mt-1">Campagne (source / site) du client ci-dessus</p>
             </div>
           </div>
 

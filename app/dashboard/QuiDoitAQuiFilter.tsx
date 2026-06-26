@@ -12,7 +12,6 @@ export type FilterValue = {
 type Option = { id: string; name: string }
 
 type Props = {
-  brands: Option[]
   clients: Option[]
   apporteurs: Option[]
   onApply: (value: FilterValue) => void
@@ -21,19 +20,17 @@ type Props = {
 const TYPES = [
   { value: '', label: 'Tous' },
   { value: 'client', label: 'Client' },
-  { value: 'brand', label: 'Brand' },
   { value: 'apporteur', label: "Apporteur d'affaires" },
   { value: 'user', label: 'Mr.Lead (interne)' },
 ]
 
 const LABELS: Record<string, string> = {
   client: 'Client',
-  brand: 'Brand',
   apporteur: "Apporteur d'affaires",
   user: 'Mr.Lead',
 }
 
-export default function QuiDoitAQuiFilter({ brands, clients, apporteurs, onApply }: Props) {
+export default function QuiDoitAQuiFilter({ clients, apporteurs, onApply }: Props) {
   const [debtorType, setDebtorType] = useState('')
   const [debtorName, setDebtorName] = useState('')
   const [creditorType, setCreditorType] = useState('')
@@ -41,7 +38,6 @@ export default function QuiDoitAQuiFilter({ brands, clients, apporteurs, onApply
 
   function namesFor(type: string): Option[] {
     if (type === 'client') return clients
-    if (type === 'brand') return brands
     if (type === 'apporteur') return apporteurs
     if (type === 'user') return [{ id: 'mrlead', name: 'Mr.Lead (interne)' }]
     return []

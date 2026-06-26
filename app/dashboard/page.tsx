@@ -17,13 +17,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const showArchives = params.archives === '1'
   const filter = visibilityFilter(me)
 
-  const [unpaidCount, clientsCount, historyCount, brandsCount, apporteursCount, brands, clients, apporteurs, invoicesAll, archivedAll] = await Promise.all([
+  const [unpaidCount, clientsCount, historyCount, apporteursCount, clients, apporteurs, invoicesAll, archivedAll] = await Promise.all([
     prisma.invoice.count({ where: { archived: false, status: { in: ['PENDING', 'LATE'] }, ...filter } }),
     prisma.client.count({ where: { archived: false, ...filter } }),
     prisma.invoice.count({ where: { archived: false, status: 'PAID', ...filter } }),
-    prisma.brand.count({ where: { archived: false, ...filter } }),
     prisma.apporteur.count({ where: { archived: false, ...filter } }),
-    prisma.brand.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
     prisma.client.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
     prisma.apporteur.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
     prisma.invoice.findMany({
@@ -89,16 +87,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
   })
 
-  const brandRows = brands.map(b => {
-    const inv = unpaidInvoices.filter(i => i.brandId === b.id)
-    return {
-      id: b.id, name: b.name, email: b.email,
-      totalOwed: inv.reduce((s, i) => s + i.amount, 0),
-      invoiceCount: inv.length,
-      hasLate: inv.some(i => i.status === 'LATE'),
-    }
-  })
-
   const apporteurRows = await Promise.all(apporteurs.map(async a => ({
     id: a.id, name: a.name, email: a.email,
     commissionType: a.commissionType, commissionValue: a.commissionValue,
@@ -109,11 +97,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     factures: unpaidCount,
     clients: clientsCount,
     historique: historyCount,
-    brands: brandsCount,
     apporteurs: apporteursCount,
   }
 
-  const brandOptions = brands.map(b => ({ id: b.id, name: b.name }))
   const clientOptions = clients.map(c => ({ id: c.id, name: c.name }))
   const apporteurOptions = apporteurs.map(a => ({ id: a.id, name: a.name }))
 
@@ -140,11 +126,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </Link>
             ) : (
               <>
+                <Link href="/clients" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  </svg>
+                  Clients
+                </Link>
                 <Link href="/dossiers" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                   </svg>
-                  Dossiers
+                  Campagnes
                 </Link>
                 <Link href="/themes" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -169,12 +161,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
         <DashboardTabs
           counts={counts}
-          brands={brandOptions}
           clients={clientOptions}
           apporteurs={apporteurOptions}
           invoices={invoices}
           clientRows={clientRows}
-          brandRows={brandRows}
           apporteurRows={apporteurRows}
           paidInvoices={paidInvoices}
           archivedInvoices={archivedInvoices}
