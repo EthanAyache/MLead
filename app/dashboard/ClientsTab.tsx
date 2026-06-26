@@ -47,6 +47,7 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
                 <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Factures impayées</th>
                 <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Solde dû</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">État</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -69,6 +70,17 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
                     ) : (
                       <span className="badge b-pending"><span className="b-dot" />En attente</span>
                     )}
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <Link
+                      href={`/clients/${c.id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#C9DEFB] text-[#2563EB] text-xs font-semibold hover:bg-[#E3EEFD] transition whitespace-nowrap"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                      </svg>
+                      Campagnes
+                    </Link>
                   </td>
                 </tr>
               ))}
