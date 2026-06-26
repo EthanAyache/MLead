@@ -56,10 +56,14 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
 
           <div className="flex items-start justify-between gap-4 mt-2 mb-6">
             <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-2">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                </svg>
+                Client : {dossier.client.name}
+              </div>
               <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
-              <p className="text-gray-500 text-sm mt-1">
-                Client : <Link href="/clients" className="text-blue-600 hover:underline">{dossier.client.name}</Link>
-              </p>
+              <p className="text-gray-400 text-xs mt-1">Dossier (source / site) du client ci-dessus</p>
             </div>
           </div>
 

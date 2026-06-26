@@ -57,12 +57,13 @@ export default function DossierForm({ clients }: { clients: Option[] }) {
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setIsOpen(false); setError('') }}>
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-4 text-gray-900">Nouveau dossier</h2>
+            <h2 className="text-xl font-bold mb-1 text-gray-900">Nouveau dossier</h2>
+            <p className="text-xs text-gray-500 mb-4">À qui appartient ce dossier ? Choisis le client, puis donne un nom à la source (son site) et son prix par lead.</p>
             <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Client *</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Client (à qui appartient ce dossier) *</label>
                 <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={inputBase}>
-                  <option value="">— Choisir —</option>
+                  <option value="">— Choisir le client —</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
