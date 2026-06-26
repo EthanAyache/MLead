@@ -22,7 +22,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prisma.client.count({ where: { archived: false, ...filter } }),
     prisma.invoice.count({ where: { archived: false, status: 'PAID', ...filter } }),
     prisma.apporteur.count({ where: { archived: false, ...filter } }),
-    prisma.inboundLead.count({ where: { assignedToJboost: true, dossier: { campagne: { client: filter } } } }),
+    prisma.inboundLead.count({ where: { assignedToJboost: true, status: { not: 'REJECTED' }, dossier: { campagne: { client: filter } } } }),
     prisma.client.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
     prisma.apporteur.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
     prisma.invoice.findMany({

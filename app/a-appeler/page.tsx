@@ -11,11 +11,12 @@ export default async function AAppelerPage() {
 
   const filter = visibilityFilter(me)
 
-  // Tous les leads que NOUS (JBoost) devons appeler, quel que soit le client/site.
+  // Tous les leads que NOUS (JBoost) devons appeler, quel que soit le client/site. (hors invalidés)
   const leads = await prisma.inboundLead.findMany({
-    where: { assignedToJboost: true, dossier: { campagne: { client: filter } } },
+    where: { assignedToJboost: true, status: { not: 'REJECTED' }, dossier: { campagne: { client: filter } } },
     orderBy: { receivedAt: 'desc' },
     include: {
+      chosenOffers: { select: { id: true } },
       dossier: {
         include: {
           offers: { orderBy: { createdAt: 'asc' } },
@@ -25,21 +26,30 @@ export default async function AAppelerPage() {
     },
   })
 
-  const rows: CallRow[] = leads.map((l) => ({
-    id: l.id,
-    name: l.name,
-    email: l.email,
-    phone: l.phone,
-    message: l.message,
-    source: l.source,
-    receivedAt: l.receivedAt.toISOString(),
-    clientName: l.dossier.campagne.client.name,
-    campagneName: l.dossier.campagne.name,
-    siteName: l.dossier.name,
-    siteId: l.dossier.id,
-    chosenOfferId: l.chosenOfferId,
-    offers: l.dossier.offers.map((o) => ({ id: o.id, name: o.name })),
-  }))
+  // Ce que le CLIENT nous doit pour une offre prise = la commission (% du prix de vente, ou montant fixe).
+  const owedForOffer = (o: { commissionType: string; commissionValue: number; sellPrice: number }) =>
+    o.commissionType === 'FIXED' ? o.commissionValue : (o.sellPrice * o.commissionValue) / 100
+
+  const rows: CallRow[] = leads.map((l) => {
+    const chosenIds = new Set(l.chosenOffers.map((o) => o.id))
+    const owed = l.dossier.offers.filter((o) => chosenIds.has(o.id)).reduce((s, o) => s + owedForOffer(o), 0)
+    return {
+      id: l.id,
+      name: l.name,
+      email: l.email,
+      phone: l.phone,
+      message: l.message,
+      source: l.source,
+      receivedAt: l.receivedAt.toISOString(),
+      clientName: l.dossier.campagne.client.name,
+      campagneName: l.dossier.campagne.name,
+      siteName: l.dossier.name,
+      siteId: l.dossier.id,
+      chosenOfferIds: [...chosenIds],
+      owed,
+      offers: l.dossier.offers.map((o) => ({ id: o.id, name: o.name })),
+    }
+  })
 
   return (
     <>

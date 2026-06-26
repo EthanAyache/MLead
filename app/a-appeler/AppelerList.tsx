@@ -16,8 +16,13 @@ export type CallRow = {
   campagneName: string
   siteName: string
   siteId: string
-  chosenOfferId: string | null
+  chosenOfferIds: string[]
+  owed: number
   offers: { id: string; name: string }[]
+}
+
+function eur(n: number) {
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
 export default function AppelerList({ rows }: { rows: CallRow[] }) {
@@ -26,12 +31,11 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
   const [filter, setFilter] = useState<'todo' | 'pris' | 'all'>('todo')
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const todoCount = rows.filter((r) => !r.chosenOfferId).length
-  const prisCount = rows.filter((r) => r.chosenOfferId).length
+  const isPris = (r: CallRow) => r.chosenOfferIds.length > 0
+  const todoCount = rows.filter((r) => !isPris(r)).length
+  const prisCount = rows.filter(isPris).length
 
-  const byFilter = rows.filter((r) =>
-    filter === 'todo' ? !r.chosenOfferId : filter === 'pris' ? !!r.chosenOfferId : true,
-  )
+  const byFilter = rows.filter((r) => (filter === 'todo' ? !isPris(r) : filter === 'pris' ? isPris(r) : true))
   const q = search.trim().toLowerCase()
   const filtered = q
     ? byFilter.filter((r) =>
@@ -39,6 +43,9 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
           .filter(Boolean).join(' ').toLowerCase().includes(q),
       )
     : byFilter
+
+  // Total dû par les clients sur les leads "pris" visibles
+  const totalOwed = filtered.filter(isPris).reduce((s, r) => s + r.owed, 0)
 
   async function patch(id: string, payload: Record<string, unknown>) {
     setBusyId(id)
@@ -49,6 +56,13 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
     })
     setBusyId(null)
     router.refresh()
+  }
+
+  function toggleOffer(r: CallRow, offerId: string) {
+    const next = r.chosenOfferIds.includes(offerId)
+      ? r.chosenOfferIds.filter((x) => x !== offerId)
+      : [...r.chosenOfferIds, offerId]
+    patch(r.id, { chosenOfferIds: next })
   }
 
   const tabBase = 'px-3.5 h-9 rounded-lg text-sm font-semibold border transition flex items-center gap-2'
@@ -75,6 +89,12 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
         </div>
       </div>
 
+      {(filter === 'pris' || filter === 'all') && totalOwed > 0 && (
+        <div className="px-4 py-2.5 bg-green-50 border-b border-green-100 text-sm text-green-800">
+          Total dû par les clients (leads pris affichés) : <strong>{eur(totalOwed)}</strong>
+        </div>
+      )}
+
       {rows.length === 0 ? (
         <div className="p-12 text-center text-gray-500">
           Aucun lead à appeler. Affecte des leads à JBoost depuis la page d&apos;un site pour les retrouver ici.
@@ -88,13 +108,14 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
               <th className="text-left px-4 py-3 font-semibold text-gray-700">Reçu</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-700">Contact</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-700">Provenance</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-700">Offre choisie</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-700">Offres prises</th>
+              <th className="text-right px-4 py-3 font-semibold text-gray-700">Client doit</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr key={r.id} className={`border-b border-gray-100 hover:bg-gray-50 transition align-top ${r.chosenOfferId ? 'bg-green-50/40' : ''}`}>
+              <tr key={r.id} className={`border-b border-gray-100 hover:bg-gray-50 transition align-top ${isPris(r) ? 'bg-green-50/40' : ''}`}>
                 <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(r.receivedAt).toLocaleDateString('fr-FR')}</td>
                 <td className="px-4 py-3">
                   <div className="font-medium text-gray-900">{r.name || '—'}</div>
@@ -106,22 +127,30 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
                 <td className="px-4 py-3 text-xs text-gray-600">
                   <div className="font-semibold text-gray-800">{r.clientName}</div>
                   <div>{r.campagneName} · <Link href={`/dossiers/${r.siteId}`} className="text-blue-600 hover:underline">{r.siteName}</Link></div>
-                  {r.source && <div className="text-gray-400">via {r.source}</div>}
                 </td>
                 <td className="px-4 py-3">
                   {r.offers.length === 0 ? (
                     <Link href={`/dossiers/${r.siteId}`} className="text-xs text-amber-600 hover:underline">Aucune offre — en créer</Link>
                   ) : (
-                    <select
-                      value={r.chosenOfferId ?? ''}
-                      disabled={busyId === r.id}
-                      onChange={(e) => patch(r.id, { chosenOfferId: e.target.value || null })}
-                      className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                      <option value="">— Pas encore pris —</option>
-                      {r.offers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                    </select>
+                    <div className="flex flex-wrap gap-1.5 max-w-[260px]">
+                      {r.offers.map((o) => {
+                        const on = r.chosenOfferIds.includes(o.id)
+                        return (
+                          <button
+                            key={o.id}
+                            onClick={() => toggleOffer(r, o.id)}
+                            disabled={busyId === r.id}
+                            className={`px-2 py-1 rounded-full text-xs font-medium border transition disabled:opacity-50 ${on ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                          >
+                            {on ? '✓ ' : ''}{o.name}
+                          </button>
+                        )
+                      })}
+                    </div>
                   )}
+                </td>
+                <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
+                  {isPris(r) ? <span className="text-green-700">{eur(r.owed)}</span> : <span className="text-gray-300">—</span>}
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   <button onClick={() => patch(r.id, { assignedToJboost: false })} disabled={busyId === r.id} className="text-xs font-semibold text-gray-600 hover:text-gray-800 disabled:opacity-50">↩ Rendre au client</button>

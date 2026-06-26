@@ -391,7 +391,8 @@ model Offer {
   dossierId String
   dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
 
-  leads InboundLead[]
+  // Un lead peut choisir plusieurs offres (rare mais possible) → relation N-N.
+  chosenByLeads InboundLead[] @relation("LeadChosenOffers")
 
   @@index([dossierId])
 }
@@ -413,9 +414,8 @@ model InboundLead {
   dossierId String
   dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
 
-  // Offre choisie par le lead (quand il a accepté via la liste "À appeler"). Null = pas encore pris.
-  chosenOfferId String?
-  chosenOffer   Offer?  @relation(fields: [chosenOfferId], references: [id], onDelete: SetNull)
+  // Offres choisies par le lead (il peut en prendre plusieurs). Vide = pas encore pris.
+  chosenOffers Offer[] @relation("LeadChosenOffers")
 
   // Facture mensuelle où ce lead a été comptabilisé (évite la double facturation).
   monthlyInvoiceId String?
@@ -425,7 +425,6 @@ model InboundLead {
   @@index([receivedAt])
   @@index([monthlyInvoiceId])
   @@index([assignedToJboost])
-  @@index([chosenOfferId])
 }
 
 // Facture mensuelle agrégée d'un client (pay-per-lead). Une seule par client et par période.
