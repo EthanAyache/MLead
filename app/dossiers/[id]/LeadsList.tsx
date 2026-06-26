@@ -29,9 +29,13 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const assignedCount = rows.filter((r) => r.assignedToJboost).length
+  const clientCount = rows.length - assignedCount
 
-  // Vue "client" = tous les leads ; vue "jboost" = uniquement ceux affectés à JBoost (notre liste d'appels).
-  const byView = view === 'jboost' ? rows.filter((r) => r.assignedToJboost) : rows
+  // Vue "client" = leads NON affectés (ce qu'il reste à appeler au client) ;
+  // vue "jboost" = uniquement ceux affectés à JBoost (notre liste d'appels).
+  const byView = view === 'jboost'
+    ? rows.filter((r) => r.assignedToJboost)
+    : rows.filter((r) => !r.assignedToJboost)
 
   const q = search.trim().toLowerCase()
   const filtered = q
@@ -63,7 +67,7 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
             className={`${tabBase} ${view === 'client' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}
           >
             {clientName}
-            <span className={`text-xs px-1.5 rounded ${view === 'client' ? 'bg-white/25' : 'bg-gray-100 text-gray-600'}`}>{rows.length}</span>
+            <span className={`text-xs px-1.5 rounded ${view === 'client' ? 'bg-white/25' : 'bg-gray-100 text-gray-600'}`}>{clientCount}</span>
           </button>
           <button
             onClick={() => setView('jboost')}
@@ -94,7 +98,11 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
         </div>
       ) : filtered.length === 0 ? (
         <div className="p-10 text-center text-gray-500">
-          {view === 'jboost' ? 'Aucun lead affecté à JBoost.' : `Aucun lead ne correspond à « ${search} ».`}
+          {q
+            ? `Aucun lead ne correspond à « ${search} ».`
+            : view === 'jboost'
+              ? 'Aucun lead affecté à JBoost pour l’instant.'
+              : 'Aucun lead à appeler côté client (tous affectés à JBoost).'}
         </div>
       ) : (
         <table className="w-full text-sm">
