@@ -44,3 +44,6 @@ next-env.d.ts
 
 # agent memory (local only)
 /memory/
+
+# fichiers de test locaux (leads, exports…)
+/leads-test-*.csv
