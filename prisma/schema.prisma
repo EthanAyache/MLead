@@ -158,7 +158,7 @@ model Client {
 
   leads           Lead[]
   invoices        Invoice[]
-  dossiers        Dossier[]
+  campagnes       Campagne[]
   monthlyInvoices MonthlyInvoice[]
 
   @@index([userId])
@@ -340,22 +340,37 @@ model Prospect {
 
 // --- Inbound : dossiers, leads reçus, factures mensuelles ---
 
-// Un dossier = une source/un site d'un client, avec son propre token API et son prix unitaire.
-// Un client peut avoir plusieurs dossiers (tarifs différents).
-model Dossier {
+// Une campagne = un regroupement de sites d'un client (ex: "Voyages").
+// Un client peut avoir plusieurs campagnes ; une campagne contient plusieurs sites.
+model Campagne {
   id        String   @id @default(cuid())
   name      String
-  token     String   @unique // 'ml_' + 32 hex, identifie le dossier dans l'URL de l'API
-  unitPrice Float    @default(0)
-  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
   clientId String
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  leads InboundLead[]
+  sites Dossier[]
 
   @@index([clientId])
+}
+
+// Un "Site" (modèle Dossier) = une source/un site d'une campagne, avec son token API et son prix unitaire.
+// C'est lui qui reçoit les leads via l'API.
+model Dossier {
+  id        String   @id @default(cuid())
+  name      String
+  token     String   @unique // 'ml_' + 32 hex, identifie le site dans l'URL de l'API
+  unitPrice Float    @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  campagneId String
+  campagne   Campagne @relation(fields: [campagneId], references: [id], onDelete: Cascade)
+
+  leads InboundLead[]
+
+  @@index([campagneId])
   @@index([token])
 }
 

@@ -9,11 +9,11 @@ export async function POST(request: Request) {
 
   const body = await request.json()
   const name = (body.name || '').trim()
-  if (!name) return NextResponse.json({ error: 'Nom du dossier obligatoire' }, { status: 400 })
-  if (!body.clientId) return NextResponse.json({ error: 'Client obligatoire' }, { status: 400 })
+  if (!name) return NextResponse.json({ error: 'Nom du site obligatoire' }, { status: 400 })
+  if (!body.campagneId) return NextResponse.json({ error: 'Campagne obligatoire' }, { status: 400 })
 
-  const client = await prisma.client.findUnique({ where: { id: body.clientId } })
-  if (!client) return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
+  const campagne = await prisma.campagne.findUnique({ where: { id: body.campagneId } })
+  if (!campagne) return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
 
   const unitPrice = parseFloat(body.unitPrice)
   if (!(unitPrice >= 0)) return NextResponse.json({ error: 'Prix unitaire invalide' }, { status: 400 })
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
     token = generateDossierToken()
   }
 
-  const dossier = await prisma.dossier.create({
-    data: { name, clientId: body.clientId, unitPrice, token },
+  const site = await prisma.dossier.create({
+    data: { name, campagneId: body.campagneId, unitPrice, token },
   })
-  return NextResponse.json(dossier, { status: 201 })
+  return NextResponse.json(site, { status: 201 })
 }

@@ -20,7 +20,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
   const dossier = await prisma.dossier.findUnique({
     where: { id },
     include: {
-      client: { select: { id: true, name: true } },
+      campagne: { include: { client: { select: { id: true, name: true } } } },
       leads: { orderBy: { receivedAt: 'desc' } },
     },
   })
@@ -52,18 +52,18 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
       <Header />
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-6xl mx-auto">
-          <Link href={`/clients/${dossier.client.id}`} className="text-sm text-blue-600 hover:text-blue-700 font-medium">← Campagnes de {dossier.client.name}</Link>
+          <Link href={`/campagnes/${dossier.campagne.id}`} className="text-sm text-blue-600 hover:text-blue-700 font-medium">← Sites de la campagne {dossier.campagne.name}</Link>
 
           <div className="flex items-start justify-between gap-4 mt-2 mb-6">
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-2">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                 </svg>
-                Client : {dossier.client.name}
+                {dossier.campagne.client.name} · {dossier.campagne.name}
               </div>
               <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
-              <p className="text-gray-400 text-xs mt-1">Campagne (source / site) du client ci-dessus</p>
+              <p className="text-gray-400 text-xs mt-1">Site (source) — reçoit les leads via son lien API</p>
             </div>
           </div>
 

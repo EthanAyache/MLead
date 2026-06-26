@@ -44,7 +44,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const billed = await prisma.inboundLead.count({ where: { dossierId: id, monthlyInvoiceId: { not: null } } })
   if (billed > 0) {
     return NextResponse.json(
-      { error: `Impossible de supprimer : ${billed} lead(s) déjà facturé(s) dans ce dossier.` },
+      { error: `Impossible de supprimer : ${billed} lead(s) déjà facturé(s) dans ce site.` },
       { status: 409 },
     )
   }
