@@ -12,18 +12,30 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { id } = await params
   const body = await request.json()
-  const status = body.status as Status
-  if (!ALLOWED.includes(status)) {
-    return NextResponse.json({ error: 'Statut invalide' }, { status: 400 })
+
+  const data: Record<string, unknown> = {}
+  if ('status' in body) {
+    const status = body.status as Status
+    if (!ALLOWED.includes(status)) {
+      return NextResponse.json({ error: 'Statut invalide' }, { status: 400 })
+    }
+    data.status = status
+  }
+  // Affectation à JBoost (c'est nous qui rappelons ce lead → exclu de la facture)
+  if ('assignedToJboost' in body) {
+    data.assignedToJboost = !!body.assignedToJboost
+  }
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: 'Rien à modifier' }, { status: 400 })
   }
 
   const lead = await prisma.inboundLead.findUnique({ where: { id } })
   if (!lead) return NextResponse.json({ error: 'Lead introuvable' }, { status: 404 })
   // On ne modifie pas un lead déjà facturé (cohérence comptable)
   if (lead.monthlyInvoiceId) {
-    return NextResponse.json({ error: 'Lead déjà facturé, statut verrouillé' }, { status: 409 })
+    return NextResponse.json({ error: 'Lead déjà facturé, modification verrouillée' }, { status: 409 })
   }
 
-  const updated = await prisma.inboundLead.update({ where: { id }, data: { status } })
+  const updated = await prisma.inboundLead.update({ where: { id }, data })
   return NextResponse.json(updated)
 }

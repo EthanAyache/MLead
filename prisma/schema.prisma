@@ -363,6 +363,8 @@ model Dossier {
   token     String   @unique // 'ml_' + 32 hex, identifie le site dans l'URL de l'API
   unitPrice Float    @default(0)
   active    Boolean  @default(true)
+  // Termes du contrat (texte libre, éditable) propres à ce site
+  contractTerms String? @db.Text
   createdAt DateTime @default(now())
 
   campagneId String
@@ -384,6 +386,8 @@ model InboundLead {
   source     String?
   status     LeadStatus @default(VALID)
   ip         String?
+  // Affecté à JBoost = c'est NOUS qui rappelons ce lead → exclu de la facture du client
+  assignedToJboost Boolean @default(false)
   receivedAt DateTime   @default(now())
 
   dossierId String

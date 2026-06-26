@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import DossierSettings from './DossierSettings'
 import LeadsList, { type LeadRow } from './LeadsList'
+import ContractTermsButton from './ContractTermsButton'
 
 export default async function DossierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser()
@@ -28,12 +29,14 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
 
   const isAdmin = me.role === 'ADMIN'
 
-  // Compteur du mois en cours
+  // Compteur du mois en cours. Les leads affectés à JBoost sont exclus de la facturation.
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const validThisMonth = dossier.leads.filter((l) => l.status === 'VALID' && l.receivedAt >= startOfMonth).length
+  const billableThisMonth = dossier.leads.filter(
+    (l) => l.status === 'VALID' && !l.assignedToJboost && l.receivedAt >= startOfMonth,
+  ).length
   const receivedThisMonth = dossier.leads.filter((l) => l.receivedAt >= startOfMonth).length
-  const forecast = validThisMonth * dossier.unitPrice
+  const forecast = billableThisMonth * dossier.unitPrice
 
   const rows: LeadRow[] = dossier.leads.map((l) => ({
     id: l.id,
@@ -43,6 +46,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     message: l.message,
     source: l.source,
     status: l.status,
+    assignedToJboost: l.assignedToJboost,
     receivedAt: l.receivedAt.toISOString(),
     billed: l.monthlyInvoiceId !== null,
   }))
@@ -62,7 +66,10 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
                 </svg>
                 {dossier.campagne.client.name} · {dossier.campagne.name}
               </div>
-              <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
+                <ContractTermsButton dossierId={dossier.id} terms={dossier.contractTerms} />
+              </div>
               <p className="text-gray-400 text-xs mt-1">Site (source) — reçoit les leads via son lien API</p>
             </div>
           </div>
@@ -74,8 +81,9 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
               <div className="text-2xl font-bold text-gray-900 mt-1">{receivedThisMonth}</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-              <div className="text-xs font-semibold text-gray-500 uppercase">Valides ce mois</div>
-              <div className="text-2xl font-bold text-green-700 mt-1">{validThisMonth}</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase">Facturables ce mois</div>
+              <div className="text-2xl font-bold text-green-700 mt-1">{billableThisMonth}</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">Valides, hors affectés à JBoost</div>
             </div>
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
               <div className="text-xs font-semibold text-blue-700 uppercase">Montant prévisionnel</div>
@@ -92,7 +100,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             origin={origin}
           />
 
-          <LeadsList rows={rows} />
+          <LeadsList rows={rows} clientName={dossier.campagne.client.name} />
         </div>
       </main>
     </>
