@@ -56,7 +56,7 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
   }
 
   async function remove(id: string) {
-    if (!confirm('Supprimer définitivement ce doublon ?')) return
+    if (!confirm('Supprimer définitivement ce lead ? Cette action est irréversible.')) return
     setBusyId(id)
     await fetch(`/api/inbound-leads/${id}`, { method: 'DELETE' })
     setBusyId(null)
@@ -153,36 +153,23 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {r.billed ? (
                       <span className="text-xs text-gray-400">verrouillé</span>
-                    ) : r.status === 'DUPLICATE' ? (
-                      <div className="flex items-center justify-end gap-3">
-                        <button
-                          onClick={() => patch(r.id, { status: 'VALID' })}
-                          disabled={busyId === r.id}
-                          className="text-xs font-semibold text-green-600 hover:text-green-700 disabled:opacity-50"
-                        >
-                          Valider
-                        </button>
-                        <button
-                          onClick={() => remove(r.id)}
-                          disabled={busyId === r.id}
-                          title="Supprimer ce doublon"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                        </button>
-                      </div>
                     ) : (
                       <div className="flex items-center justify-end gap-3">
-                        {r.assignedToJboost ? (
+                        {r.status === 'DUPLICATE' ? (
+                          <button onClick={() => patch(r.id, { status: 'VALID' })} disabled={busyId === r.id} className="text-xs font-semibold text-green-600 hover:text-green-700 disabled:opacity-50">Valider</button>
+                        ) : r.assignedToJboost ? (
                           <button onClick={() => patch(r.id, { assignedToJboost: false })} disabled={busyId === r.id} className="text-xs font-semibold text-gray-600 hover:text-gray-800 disabled:opacity-50">↩ Rendre au client</button>
                         ) : (
                           <button onClick={() => patch(r.id, { assignedToJboost: true })} disabled={busyId === r.id} className="text-xs font-semibold text-violet-600 hover:text-violet-700 disabled:opacity-50">→ Affecter à JBoost</button>
                         )}
-                        {r.status === 'REJECTED' ? (
-                          <button onClick={() => patch(r.id, { status: 'VALID' })} disabled={busyId === r.id} className="text-xs font-semibold text-green-600 hover:text-green-700 disabled:opacity-50">Réactiver</button>
-                        ) : (
-                          <button onClick={() => patch(r.id, { status: 'REJECTED' })} disabled={busyId === r.id} className="text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-50">Invalider</button>
-                        )}
+                        <button
+                          onClick={() => remove(r.id)}
+                          disabled={busyId === r.id}
+                          title="Supprimer ce lead"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                        </button>
                       </div>
                     )}
                   </td>
