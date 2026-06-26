@@ -31,13 +31,16 @@ function daysLate(dueDate: string): number {
   return Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
 }
 
+// Le filtre utilise des types en minuscule ; les factures stockent le type en majuscule.
+const TYPE_MAP: Record<string, string> = { client: 'CLIENT', apporteur: 'APPORTEUR', user: 'MRLEAD', brand: 'BRAND' }
+
 export default function InvoicesTab({ invoices, filter }: { invoices: Invoice[]; filter: FilterValue }) {
-  // Filtre par recherche de nom (débiteur ou créditeur)
+  // Filtre : type ET nom, côté débiteur ET côté créditeur (tous les critères renseignés s'appliquent).
   const filtered = invoices.filter(inv => {
-    if (filter.debtorName) {
-      const hay = `${inv.debtorName} ${inv.creditorName}`.toLowerCase()
-      if (!hay.includes(filter.debtorName.toLowerCase())) return false
-    }
+    if (filter.debtorType && inv.debtorType !== TYPE_MAP[filter.debtorType]) return false
+    if (filter.debtorName && !inv.debtorName.toLowerCase().includes(filter.debtorName.toLowerCase())) return false
+    if (filter.creditorType && inv.creditorType !== TYPE_MAP[filter.creditorType]) return false
+    if (filter.creditorName && !inv.creditorName.toLowerCase().includes(filter.creditorName.toLowerCase())) return false
     return true
   })
 
