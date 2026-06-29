@@ -1,0 +1,63 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
+import Header from '@/app/dashboard/Header'
+import LeadsExportTable, { type ExportRow } from './LeadsExportTable'
+
+export default async function LeadsRecusPage() {
+  const me = await getCurrentUser()
+  if (!me) redirect('/login')
+
+  const filter = visibilityFilter(me)
+
+  const leads = await prisma.inboundLead.findMany({
+    where: { dossier: { campagne: { client: filter } } },
+    orderBy: { receivedAt: 'desc' },
+    include: {
+      chosenOffers: { select: { name: true } },
+      dossier: { include: { campagne: { include: { client: { select: { name: true } } } } } },
+    },
+  })
+
+  const rows: ExportRow[] = leads.map((l) => ({
+    id: l.id,
+    receivedAt: l.receivedAt.toISOString(),
+    name: l.name,
+    email: l.email,
+    phone: l.phone,
+    message: l.message,
+    source: l.source,
+    status: l.status,
+    assignedToJboost: l.assignedToJboost,
+    clientName: l.dossier.campagne.client.name,
+    campagneName: l.dossier.campagne.name,
+    siteName: l.dossier.name,
+    offers: l.chosenOffers.map((o) => o.name).join(', '),
+  }))
+
+  return (
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold text-sm mb-4">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Retour au dashboard
+          </Link>
+
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Tous les leads reçus</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              {rows.length} lead{rows.length > 1 ? 's' : ''} reçu{rows.length > 1 ? 's' : ''}, tous clients/campagnes/sites confondus. Exportable en Excel ou CSV.
+            </p>
+          </div>
+
+          <LeadsExportTable rows={rows} />
+        </div>
+      </main>
+    </>
+  )
+}
