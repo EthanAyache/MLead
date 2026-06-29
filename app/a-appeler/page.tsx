@@ -87,7 +87,21 @@ export default async function AAppelerPage() {
             </p>
           </div>
 
-          <AppelerList rows={rows} totalOwedAll={totalOwedAll} totalOwedMonth={totalOwedMonth} />
+          {/* Totaux de nos appels (argent dû par les clients sur les offres prises) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-2xl">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="text-xs font-semibold text-gray-500 uppercase">Nos appels — ce mois</div>
+              <div className="text-2xl font-bold text-green-700 mt-1">{totalOwedMonth.toFixed(2)} €</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">commissions des offres prises ce mois</div>
+            </div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+              <div className="text-xs font-semibold text-blue-700 uppercase">Total (tout confondu)</div>
+              <div className="text-2xl font-bold text-blue-700 mt-1">{totalOwedAll.toFixed(2)} €</div>
+              <div className="text-[11px] text-blue-500/70 mt-0.5">depuis le début</div>
+            </div>
+          </div>
+
+          <AppelerList rows={rows} />
         </div>
       </main>
     </>

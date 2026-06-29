@@ -38,13 +38,7 @@ function commissionLabel(o: Offer) {
   return o.commissionType === 'FIXED' ? `${o.commissionValue} €` : `${o.commissionValue} %`
 }
 
-export default function AppelerList({
-  rows, totalOwedAll, totalOwedMonth,
-}: {
-  rows: CallRow[]
-  totalOwedAll: number
-  totalOwedMonth: number
-}) {
+export default function AppelerList({ rows }: { rows: CallRow[] }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'todo' | 'pris' | 'all'>('todo')
@@ -85,18 +79,6 @@ export default function AppelerList({
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-      {/* Totaux de nos appels (argent dû par les clients sur les offres prises) */}
-      <div className="px-4 py-3 bg-green-50 border-b border-green-100 flex flex-wrap items-center gap-x-8 gap-y-1">
-        <div>
-          <span className="text-xs font-semibold text-green-700 uppercase">Total de nos appels — ce mois</span>
-          <span className="ml-2 font-bold text-green-800">{eur(totalOwedMonth)}</span>
-        </div>
-        <div>
-          <span className="text-xs font-semibold text-green-700 uppercase">Total (tout confondu)</span>
-          <span className="ml-2 font-bold text-green-800">{eur(totalOwedAll)}</span>
-        </div>
-      </div>
-
       <div className="p-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
         <div className="flex gap-2">
           <button onClick={() => setFilter('todo')} className={`${tabBase} ${filter === 'todo' ? 'bg-violet-600 border-violet-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
