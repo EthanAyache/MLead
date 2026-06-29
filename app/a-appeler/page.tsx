@@ -30,6 +30,16 @@ export default async function AAppelerPage() {
   const owedForOffer = (o: { commissionType: string; commissionValue: number; sellPrice: number }) =>
     o.commissionType === 'FIXED' ? o.commissionValue : (o.sellPrice * o.commissionValue) / 100
 
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const owedForLead = (l: (typeof leads)[number]) => {
+    const chosenIds = new Set(l.chosenOffers.map((o) => o.id))
+    return l.dossier.offers.filter((o) => chosenIds.has(o.id)).reduce((s, o) => s + owedForOffer(o), 0)
+  }
+  const totalOwedAll = leads.reduce((s, l) => s + owedForLead(l), 0)
+  const totalOwedMonth = leads.reduce((s, l) => (l.receivedAt >= startOfMonth ? s + owedForLead(l) : s), 0)
+
   const rows: CallRow[] = leads.map((l) => {
     const chosenIds = new Set(l.chosenOffers.map((o) => o.id))
     const owed = l.dossier.offers.filter((o) => chosenIds.has(o.id)).reduce((s, o) => s + owedForOffer(o), 0)
@@ -77,7 +87,7 @@ export default async function AAppelerPage() {
             </p>
           </div>
 
-          <AppelerList rows={rows} />
+          <AppelerList rows={rows} totalOwedAll={totalOwedAll} totalOwedMonth={totalOwedMonth} />
         </div>
       </main>
     </>
