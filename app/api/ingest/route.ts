@@ -126,8 +126,9 @@ export async function POST(request: Request) {
           clientName: dossier.campagne.client.name,
           lead: { name, email, phone, message, source },
         })
-      } catch {
-        // L'échec d'envoi ne doit jamais casser la réception du lead.
+      } catch (e) {
+        // L'échec d'envoi ne doit jamais casser la réception du lead, mais on le trace.
+        console.error('[lead-mail] échec envoi:', (e as Error)?.message || e)
       }
     }
   }
