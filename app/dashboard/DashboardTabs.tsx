@@ -19,7 +19,7 @@ type Invoice = {
   client: { id: string; name: string } | null; brand: { id: string; name: string } | null; apporteur: { id: string; name: string } | null
 }
 
-type ClientRow = { id: string; name: string; email: string | null; phone: string | null; totalOwed: number; invoiceCount: number; hasLate: boolean }
+type ClientRow = { id: string; name: string; email: string | null; phone: string | null; totalOwed: number; invoiceCount: number; hasLate: boolean; suspended: boolean }
 type ApporteurRow = { id: string; name: string; email: string | null; commissionType: string; commissionValue: number; clientCount: number }
 
 type Props = {

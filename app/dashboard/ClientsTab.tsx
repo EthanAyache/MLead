@@ -10,6 +10,7 @@ type Client = {
   totalOwed: number
   invoiceCount: number
   hasLate: boolean
+  suspended: boolean
 }
 
 function fmt(n: number) {
@@ -53,7 +54,12 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
             <tbody>
               {clients.map((c) => (
                 <tr key={c.id} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition">
-                  <td className="px-5 py-3.5 font-semibold text-[#16171D]">{c.name}</td>
+                  <td className="px-5 py-3.5 font-semibold text-[#16171D]">
+                    {c.name}
+                    {c.suspended && (
+                      <span className="badge b-late ml-2 align-middle"><span className="b-dot" />Suspendu</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3.5 text-[#414350] text-xs">
                     {c.email ?? '—'}<br />
                     <span className="text-[#787C8A]">{c.phone ?? ''}</span>

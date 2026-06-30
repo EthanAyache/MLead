@@ -45,6 +45,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }),
   ])
 
+  // Clients suspendus = au moins une facture mensuelle impayée (émise mais pas réglée).
+  const blockedMonthly = await prisma.monthlyInvoice.findMany({
+    where: { status: { in: ['SENT', 'FAILED'] }, client: { ...filter } },
+    select: { clientId: true },
+  })
+  const blockedClientIds = new Set(blockedMonthly.map((m) => m.clientId))
+
   // Nom affiché pour un côté de la facture (Mr.Lead = interne, sans FK).
   type InvoiceParties = {
     client: { name: string } | null
@@ -85,6 +92,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       totalOwed: inv.reduce((s, i) => s + i.amount, 0),
       invoiceCount: inv.length,
       hasLate: inv.some(i => i.status === 'LATE'),
+      suspended: blockedClientIds.has(c.id),
     }
   })
 
@@ -139,6 +147,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <path d="M4 4h16v16H4z" /><path d="M22 6l-10 7L2 6" />
                   </svg>
                   Tous les leads
+                </Link>
+                <Link href="/facturation" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6" />
+                  </svg>
+                  Facturation
                 </Link>
                 <Link href="/themes" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
