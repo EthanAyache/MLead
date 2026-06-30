@@ -45,12 +45,26 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }),
   ])
 
-  // Clients suspendus = au moins une facture mensuelle impayée (émise mais pas réglée).
-  const blockedMonthly = await prisma.monthlyInvoice.findMany({
-    where: { status: { in: ['SENT', 'FAILED'] }, client: { ...filter } },
-    select: { clientId: true },
+  // Factures mensuelles (pay-per-lead) du périmètre visible.
+  const monthlyInvoices = await prisma.monthlyInvoice.findMany({
+    where: { client: { ...filter } },
+    orderBy: [{ period: 'desc' }, { createdAt: 'desc' }],
+    include: { client: { select: { id: true, name: true } } },
   })
-  const blockedClientIds = new Set(blockedMonthly.map((m) => m.clientId))
+  const monthlyRows = monthlyInvoices.map((m) => ({
+    id: m.id,
+    period: m.period,
+    clientName: m.client.name,
+    leadCount: m.leadCount,
+    amount: m.amount,
+    status: m.status,
+    stripeInvoiceId: m.stripeInvoiceId,
+  }))
+  // Clients suspendus = au moins une facture mensuelle impayée (émise mais pas réglée).
+  const blockedClientIds = new Set(
+    monthlyInvoices.filter((m) => m.status === 'SENT' || m.status === 'FAILED').map((m) => m.clientId),
+  )
+  const monthlyUnpaid = monthlyInvoices.filter((m) => m.status === 'SENT' || m.status === 'FAILED').length
 
   // Nom affiché pour un côté de la facture (Mr.Lead = interne, sans FK).
   type InvoiceParties = {
@@ -104,6 +118,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const counts = {
     factures: unpaidCount,
+    facturation: monthlyUnpaid,
     clients: clientsCount,
     historique: historyCount,
     apporteurs: apporteursCount,
@@ -148,13 +163,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </svg>
                   Tous les leads
                 </Link>
-                <Link href="/facturation" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <path d="M14 2v6h6" />
-                  </svg>
-                  Facturation
-                </Link>
                 <Link href="/themes" className="h-[42px] px-4 rounded-[11px] bg-white border border-[#DCDDE6] text-[#16171D] font-semibold text-sm hover:bg-[#FAFAFC] transition flex items-center gap-2">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -185,6 +193,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           apporteurRows={apporteurRows}
           paidInvoices={paidInvoices}
           archivedInvoices={archivedInvoices}
+          monthlyRows={monthlyRows}
+          isAdmin={me.role === 'ADMIN'}
           showArchives={showArchives}
         />
       </main>

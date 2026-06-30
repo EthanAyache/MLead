@@ -8,6 +8,7 @@ import ClientsTab from './ClientsTab'
 import ApporteursTab from './ApporteursTab'
 import HistoryTab from './HistoryTab'
 import ArchivesTab from './ArchivesTab'
+import MonthlyInvoicesTab, { type MonthlyRow } from './MonthlyInvoicesTab'
 
 type Option = { id: string; name: string }
 type Counts = Record<TabKey, number>
@@ -31,10 +32,12 @@ type Props = {
   apporteurRows: ApporteurRow[]
   paidInvoices: Invoice[]
   archivedInvoices: Invoice[]
+  monthlyRows: MonthlyRow[]
+  isAdmin: boolean
   showArchives: boolean
 }
 
-export default function DashboardTabs({ counts, clients, apporteurs, invoices, clientRows, apporteurRows, paidInvoices, archivedInvoices, showArchives }: Props) {
+export default function DashboardTabs({ counts, clients, apporteurs, invoices, clientRows, apporteurRows, paidInvoices, archivedInvoices, monthlyRows, isAdmin, showArchives }: Props) {
   const [active, setActive] = useState<TabKey>('factures')
   const [filter, setFilter] = useState<FilterValue>({ debtorType: '', debtorName: '', creditorType: '', creditorName: '' })
 
@@ -53,6 +56,7 @@ export default function DashboardTabs({ counts, clients, apporteurs, invoices, c
           <InvoicesTab invoices={invoices} filter={filter} />
         </>
       )}
+      {active === 'facturation' && <MonthlyInvoicesTab rows={monthlyRows} isAdmin={isAdmin} />}
       {active === 'clients' && <ClientsTab clients={clientRows} />}
       {active === 'apporteurs' && <ApporteursTab apporteurs={apporteurRows} />}
       {active === 'historique' && <HistoryTab invoices={paidInvoices} />}
