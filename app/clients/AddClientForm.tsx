@@ -9,6 +9,7 @@ export default function AddClientForm() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [notifyEmails, setNotifyEmails] = useState('')
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string }>({})
 
@@ -32,9 +33,9 @@ export default function AddClientForm() {
     await fetch('/api/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone }),
+      body: JSON.stringify({ name, email, phone, notifyEmails }),
     })
-    setName(''); setEmail(''); setPhone(''); setErrors({})
+    setName(''); setEmail(''); setPhone(''); setNotifyEmails(''); setErrors({})
     setIsOpen(false)
     setLoading(false)
     router.refresh()
@@ -66,6 +67,10 @@ export default function AddClientForm() {
               <div>
                 <input value={phone} onChange={(e) => { setPhone(e.target.value); setErrors({ ...errors, phone: undefined }) }} placeholder="Téléphone" className={`${inputBase} ${errors.phone ? inputErr : inputOk}`} />
                 {errors.phone && <p className="text-red-600 text-xs mt-1 ml-1">⚠ {errors.phone}</p>}
+              </div>
+              <div>
+                <textarea value={notifyEmails} onChange={(e) => setNotifyEmails(e.target.value)} rows={2} placeholder="E-mails de réception des leads (ex: client@x.fr, copie@jboost.fr)" className={`${inputBase} ${inputOk}`} />
+                <p className="text-[11px] text-gray-400 mt-1 ml-1">Où transférer les leads de ce client (défaut pour ses sites). Optionnel.</p>
               </div>
               <div className="flex gap-2 justify-end pt-2">
                 <button type="button" onClick={() => { setIsOpen(false); setErrors({}) }} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>

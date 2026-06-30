@@ -9,6 +9,7 @@ type Client = {
   name: string
   email: string | null
   phone: string | null
+  notifyEmails: string | null
   apporteurId: string | null
   apporteur: { id: string; name: string } | null
 }
@@ -98,7 +99,7 @@ export default function SearchAndList({ clients, apporteurs }: { clients: Client
                         Campagnes
                       </Link>
                       <EditClientForm
-                        client={{ id: c.id, name: c.name, email: c.email, phone: c.phone, apporteurId: c.apporteurId }}
+                        client={{ id: c.id, name: c.name, email: c.email, phone: c.phone, notifyEmails: c.notifyEmails, apporteurId: c.apporteurId }}
                         apporteurs={apporteurs}
                       />
                     </div>

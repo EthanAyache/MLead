@@ -144,6 +144,8 @@ model Client {
   name             String
   email            String?
   phone            String?
+  // E-mails (séparés par , ; ou retour ligne) où sont transférés les leads par défaut, pour tous ses sites
+  notifyEmails     String?     @db.Text
   stripeCustomerId String?
   // Mode de facturation pay-per-lead : AUTO (prélèvement carte) ou INVOICE (facture à régler)
   paymentMode      PaymentMode @default(AUTO)

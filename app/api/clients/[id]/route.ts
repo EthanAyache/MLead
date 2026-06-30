@@ -23,6 +23,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (typeof body.name === 'string') data.name = body.name.trim()
   if ('email' in body) data.email = body.email?.trim() || null
   if ('phone' in body) data.phone = body.phone?.trim() || null
+  if ('notifyEmails' in body) data.notifyEmails = body.notifyEmails?.trim() || null
   if ('apporteurId' in body) data.apporteurId = body.apporteurId || null
 
   const client = await prisma.client.update({ where: { id }, data })

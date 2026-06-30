@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   const dossier = await prisma.dossier.findUnique({
     where: { token },
-    include: { campagne: { include: { client: { select: { name: true, email: true } } } } },
+    include: { campagne: { include: { client: { select: { name: true, email: true, notifyEmails: true } } } } },
   })
   if (!dossier || !dossier.active) return json({ error: 'token invalide' }, 401)
 
@@ -111,10 +111,11 @@ export async function POST(request: Request) {
 
   // 7. Transfert e-mail automatique (leads valides uniquement). Destinataires du site, sinon e-mail du client.
   if (status === 'VALID') {
+    // Priorité : e-mails du site → e-mails du client → e-mail de contact du client.
+    const client = dossier.campagne.client
     let recipients = parseRecipients(dossier.notifyEmails)
-    if (recipients.length === 0 && dossier.campagne.client.email) {
-      recipients = parseRecipients(dossier.campagne.client.email)
-    }
+    if (recipients.length === 0) recipients = parseRecipients(client.notifyEmails)
+    if (recipients.length === 0) recipients = parseRecipients(client.email)
     if (recipients.length > 0) {
       try {
         await sendLeadEmail({

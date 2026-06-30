@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       name: body.name.trim(),
       email: body.email?.trim() || null,
       phone: body.phone?.trim() || null,
+      notifyEmails: body.notifyEmails?.trim() || null,
       apporteurId: body.apporteurId || null,
       userId: user.id,
     },

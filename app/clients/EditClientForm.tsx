@@ -8,6 +8,7 @@ type Client = {
   name: string
   email: string | null
   phone: string | null
+  notifyEmails: string | null
   apporteurId: string | null
 }
 
@@ -19,6 +20,7 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
   const [name, setName] = useState(client.name)
   const [email, setEmail] = useState(client.email ?? '')
   const [phone, setPhone] = useState(client.phone ?? '')
+  const [notifyEmails, setNotifyEmails] = useState(client.notifyEmails ?? '')
   const [apporteurId, setApporteurId] = useState(client.apporteurId ?? '')
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -38,7 +40,7 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
     await fetch(`/api/clients/${client.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone, apporteurId: apporteurId || null }),
+      body: JSON.stringify({ name, email, phone, notifyEmails, apporteurId: apporteurId || null }),
     })
     setLoading(false)
     setIsOpen(false)
@@ -95,7 +97,13 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Apporteur d'affaires</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">E-mails de réception des leads</label>
+                <textarea value={notifyEmails} onChange={(e) => setNotifyEmails(e.target.value)} rows={2} placeholder="client@exemple.com, copie@jboost.fr (séparés par virgule)" className={`${inputBase} ${ok}`} />
+                <p className="text-[11px] text-gray-400 mt-1">Adresses où sont transférés les leads de ce client (défaut pour tous ses sites). Ajoute une adresse JBoost pour en recevoir une copie.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Apporteur d&apos;affaires</label>
                 <select value={apporteurId} onChange={(e) => setApporteurId(e.target.value)} className={`${inputBase} ${ok}`}>
                   <option value="">— Aucun —</option>
                   {apporteurs.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
