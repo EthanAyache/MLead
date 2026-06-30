@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     if (blocked) {
       // On ne prévient QUE JBoost : labels « Mail JBoost » du site → du client → fallback JBOOST_EMAIL.
       recipients = site.jboost.length ? site.jboost : cli.jboost.length ? cli.jboost : parseRecipients(process.env.JBOOST_EMAIL)
-      note = '⚠️ Client bloqué (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.'
+      note = `⚠️ ${client.name} suspendu (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.`
     } else {
       // Comportement normal : tous les destinataires (cascade site → client → e-mail du client).
       recipients = all(site).length ? all(site) : all(cli).length ? all(cli) : parseRecipients(client.email)
