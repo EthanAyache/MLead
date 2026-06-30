@@ -11,11 +11,15 @@ export async function GET(request: Request) {
   if (!expected) {
     return NextResponse.json({ ok: false, error: 'CRON_SECRET non configuré sur le serveur' }, { status: 500 })
   }
-  const secret = new URL(request.url).searchParams.get('secret') || ''
-  if (secret !== expected) {
+  const url = new URL(request.url)
+  if ((url.searchParams.get('secret') || '') !== expected) {
     return NextResponse.json({ ok: false, error: 'secret invalide' }, { status: 401 })
   }
 
-  const result = await runMonthlyBilling()
+  // Période optionnelle "AAAA-MM" (défaut = mois courant). Utile pour (re)facturer un mois précis.
+  const periodParam = url.searchParams.get('period')
+  const period = periodParam && /^\d{4}-\d{2}$/.test(periodParam) ? periodParam : undefined
+
+  const result = await runMonthlyBilling({ period })
   return NextResponse.json({ ok: true, ...result })
 }
