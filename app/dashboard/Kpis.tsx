@@ -33,9 +33,10 @@ export default async function Kpis() {
   const valid = monthLeads.filter((l) => l.status === 'VALID').length
   const pris = monthLeads.filter((l) => l.chosenOffers.length > 0).length
 
-  // Argent dû par les clients ce mois : pay-per-lead (leads valides hors JBoost) + commissions (leads JBoost).
+  // Argent dû par les clients ce mois : pay-per-lead (leads valides hors JBoost, PAS encore facturés)
+  // + commissions (leads JBoost). Les leads déjà rattachés à une facture mensuelle sont exclus.
   const duePerLead = monthLeads
-    .filter((l) => l.status === 'VALID' && !l.assignedToJboost)
+    .filter((l) => l.status === 'VALID' && !l.assignedToJboost && !l.monthlyInvoiceId)
     .reduce((s, l) => s + l.dossier.unitPrice, 0)
   const dueCommission = monthLeads
     .filter((l) => l.assignedToJboost)

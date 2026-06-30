@@ -45,8 +45,9 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
   const monthLeads = dossier.leads.filter((l) => l.receivedAt >= startOfMonth)
   const receivedThisMonth = monthLeads.length
 
-  // 1) Par lead (pay-per-lead) : leads valides NON affectés à JBoost × prix unitaire.
-  const billableThisMonth = monthLeads.filter((l) => l.status === 'VALID' && !l.assignedToJboost).length
+  // 1) Par lead (pay-per-lead) : leads valides NON affectés à JBoost, PAS encore facturés × prix unitaire.
+  //    (un lead déjà rattaché à une facture mensuelle ne fait plus partie du « dû ce mois »)
+  const billableThisMonth = monthLeads.filter((l) => l.status === 'VALID' && !l.assignedToJboost && l.monthlyInvoiceId === null).length
   const duePerLead = billableThisMonth * dossier.unitPrice
 
   // 2) Par commission : leads affectés à JBoost ayant pris des offres → commission de chaque offre.
