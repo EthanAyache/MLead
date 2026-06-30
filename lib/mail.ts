@@ -22,13 +22,29 @@ function getTransporter(): Transporter | null {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// "a@x.fr, b@y.fr; c@z.fr" -> ['a@x.fr','b@y.fr','c@z.fr'] (emails valides uniquement)
+// Accepte deux formats :
+//   - JSON : [{ label, email }, ...]  (nouveau format avec libellés)
+//   - texte : "a@x.fr, b@y.fr; c@z.fr"  (ancien format)
+// Retourne la liste des e-mails valides.
 export function parseRecipients(raw: string | null | undefined): string[] {
   if (!raw) return []
-  return raw
+  const s = raw.trim()
+  if (s.startsWith('[')) {
+    try {
+      const arr = JSON.parse(s)
+      if (Array.isArray(arr)) {
+        return arr
+          .map((e) => String((e as { email?: unknown })?.email ?? '').trim())
+          .filter((e) => EMAIL_RE.test(e))
+      }
+    } catch {
+      // pas du JSON valide → on retombe sur le parsing texte
+    }
+  }
+  return s
     .split(/[,;\n]/)
-    .map((s) => s.trim())
-    .filter((s) => EMAIL_RE.test(s))
+    .map((x) => x.trim())
+    .filter((x) => EMAIL_RE.test(x))
 }
 
 type LeadInfo = {

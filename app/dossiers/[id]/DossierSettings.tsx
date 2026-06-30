@@ -3,6 +3,29 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+type Extra = { label: string; email: string }
+
+// Lit le champ notifyEmails (JSON [{label,email}] ou ancien texte) → { client, jboost, extras }
+function parseEmails(raw: string): { client: string; jboost: string; extras: Extra[] } {
+  const s = (raw || '').trim()
+  if (s.startsWith('[')) {
+    try {
+      const arr = JSON.parse(s) as Extra[]
+      if (Array.isArray(arr)) {
+        const find = (l: string) => arr.find((e) => e?.label === l)?.email ?? ''
+        const extras = arr
+          .filter((e) => e?.label !== 'Mail client' && e?.label !== 'Mail JBoost')
+          .map((e) => ({ label: e?.label || '', email: e?.email || '' }))
+        return { client: find('Mail client'), jboost: find('Mail JBoost'), extras }
+      }
+    } catch {
+      // retombe sur le texte
+    }
+  }
+  const list = s.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean)
+  return { client: list[0] || '', jboost: list[1] || '', extras: list.slice(2).map((email) => ({ label: '', email })) }
+}
+
 export default function DossierSettings({
   dossierId, token, unitPrice, active, isAdmin, origin, notifyEmails,
 }: {
@@ -18,7 +41,10 @@ export default function DossierSettings({
   const [tok, setTok] = useState(token)
   const [price, setPrice] = useState(String(unitPrice))
   const [isActive, setIsActive] = useState(active)
-  const [emails, setEmails] = useState(notifyEmails)
+  const initEmails = parseEmails(notifyEmails)
+  const [clientMail, setClientMail] = useState(initEmails.client)
+  const [jboostMail, setJboostMail] = useState(initEmails.jboost)
+  const [extras, setExtras] = useState<Extra[]>(initEmails.extras)
   const [emailsSaved, setEmailsSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -65,8 +91,18 @@ export default function DossierSettings({
   }
 
   async function saveEmails() {
-    const d = await patch({ notifyEmails: emails })
+    const arr: Extra[] = []
+    if (clientMail.trim()) arr.push({ label: 'Mail client', email: clientMail.trim() })
+    if (jboostMail.trim()) arr.push({ label: 'Mail JBoost', email: jboostMail.trim() })
+    for (const x of extras) {
+      if (x.email.trim()) arr.push({ label: x.label.trim() || 'Autre', email: x.email.trim() })
+    }
+    const d = await patch({ notifyEmails: JSON.stringify(arr) })
     if (d) { setEmailsSaved(true); setTimeout(() => setEmailsSaved(false), 1800); router.refresh() }
+  }
+
+  function updateExtra(i: number, field: keyof Extra, value: string) {
+    setExtras(extras.map((x, idx) => (idx === i ? { ...x, [field]: value } : x)))
   }
 
   async function toggleActive() {
@@ -146,20 +182,42 @@ export default function DossierSettings({
 
       {/* Transfert e-mail automatique des leads */}
       <div className="mt-5 pt-4 border-t border-gray-100">
-        <label className="block text-xs font-semibold text-gray-700 mb-1">Transfert e-mail des leads (destinataires)</label>
-        <textarea
-          value={emails}
-          onChange={(e) => setEmails(e.target.value)}
-          rows={2}
-          placeholder="client@exemple.com, copie@jboost.fr  (séparés par virgule, point-virgule ou retour ligne)"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <div className="flex items-center gap-2 mt-1.5">
+        <div className="text-xs font-bold text-gray-700 uppercase mb-2">Transfert e-mail des leads</div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Mail client</label>
+            <input type="email" value={clientMail} onChange={(e) => setClientMail(e.target.value)} placeholder="client@exemple.com" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Mail JBoost</label>
+            <input type="email" value={jboostMail} onChange={(e) => setJboostMail(e.target.value)} placeholder="copie@jboost.fr" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        {extras.map((x, i) => (
+          <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Libellé</label>
+              <input value={x.label} onChange={(e) => updateExtra(i, 'label', e.target.value)} placeholder="Ex: Secrétariat" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Mail de réception</label>
+                <input type="email" value={x.email} onChange={(e) => updateExtra(i, 'email', e.target.value)} placeholder="autre@exemple.com" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <button type="button" onClick={() => setExtras(extras.filter((_, idx) => idx !== i))} className="h-[38px] px-2.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm">✕</button>
+            </div>
+          </div>
+        ))}
+
+        <div className="flex items-center gap-3 mt-3 flex-wrap">
+          <button type="button" onClick={() => setExtras([...extras, { label: '', email: '' }])} className="text-sm font-semibold text-blue-600 hover:text-blue-700">+ Ajouter un mail de réception</button>
           <button onClick={saveEmails} disabled={busy} className="px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-black text-white text-sm font-semibold disabled:opacity-50">
             {emailsSaved ? '✓ Enregistré' : 'Enregistrer les destinataires'}
           </button>
-          <span className="text-xs text-gray-400">Chaque lead valide reçu est transféré à ces adresses. Vide = e-mail du client par défaut.</span>
         </div>
+        <p className="text-[11px] text-gray-400 mt-1.5">Chaque lead valide est transféré à ces adresses. Tout vide = e-mail du client par défaut.</p>
       </div>
 
       {error && <p className="text-red-600 text-sm mt-3">⚠ {error}</p>}
