@@ -365,6 +365,8 @@ model Dossier {
   active    Boolean  @default(true)
   // Termes du contrat (texte libre, éditable) propres à ce site
   contractTerms String? @db.Text
+  // Destinataires e-mail (séparés par , ; ou retour ligne) à qui transférer chaque lead reçu
+  notifyEmails  String? @db.Text
   createdAt DateTime @default(now())
 
   campagneId String

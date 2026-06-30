@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { sendLeadEmail, parseRecipients } from '@/lib/mail'
 
 // Endpoint PUBLIC de réception des leads envoyés par les sites clients.
 // POST /api/ingest?token=ml_xxxxxxxx   body JSON ou form { nom, email, telephone, message, source, website(honeypot) }
@@ -52,7 +53,10 @@ export async function POST(request: Request) {
   const token = new URL(request.url).searchParams.get('token') || ''
   if (!token) return json({ error: 'token invalide' }, 401)
 
-  const dossier = await prisma.dossier.findUnique({ where: { token } })
+  const dossier = await prisma.dossier.findUnique({
+    where: { token },
+    include: { campagne: { include: { client: { select: { name: true, email: true } } } } },
+  })
   if (!dossier || !dossier.active) return json({ error: 'token invalide' }, 401)
 
   const body = await readBody(request)
@@ -104,6 +108,28 @@ export async function POST(request: Request) {
       ip,
     },
   })
+
+  // 7. Transfert e-mail automatique (leads valides uniquement). Destinataires du site, sinon e-mail du client.
+  if (status === 'VALID') {
+    let recipients = parseRecipients(dossier.notifyEmails)
+    if (recipients.length === 0 && dossier.campagne.client.email) {
+      recipients = parseRecipients(dossier.campagne.client.email)
+    }
+    if (recipients.length > 0) {
+      try {
+        await sendLeadEmail({
+          to: recipients,
+          replyTo: email || undefined,
+          siteName: dossier.name,
+          campagneName: dossier.campagne.name,
+          clientName: dossier.campagne.client.name,
+          lead: { name, email, phone, message, source },
+        })
+      } catch {
+        // L'échec d'envoi ne doit jamais casser la réception du lead.
+      }
+    }
+  }
 
   return json({ status: 'ok', statut: status === 'DUPLICATE' ? 'doublon' : 'valide' }, 200)
 }

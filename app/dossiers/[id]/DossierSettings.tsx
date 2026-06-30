@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function DossierSettings({
-  dossierId, token, unitPrice, active, isAdmin, origin,
+  dossierId, token, unitPrice, active, isAdmin, origin, notifyEmails,
 }: {
   dossierId: string
   token: string
@@ -12,11 +12,14 @@ export default function DossierSettings({
   active: boolean
   isAdmin: boolean
   origin: string
+  notifyEmails: string
 }) {
   const router = useRouter()
   const [tok, setTok] = useState(token)
   const [price, setPrice] = useState(String(unitPrice))
   const [isActive, setIsActive] = useState(active)
+  const [emails, setEmails] = useState(notifyEmails)
+  const [emailsSaved, setEmailsSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -59,6 +62,11 @@ export default function DossierSettings({
   async function savePrice() {
     const d = await patch({ unitPrice: price })
     if (d) router.refresh()
+  }
+
+  async function saveEmails() {
+    const d = await patch({ notifyEmails: emails })
+    if (d) { setEmailsSaved(true); setTimeout(() => setEmailsSaved(false), 1800); router.refresh() }
   }
 
   async function toggleActive() {
@@ -134,6 +142,24 @@ export default function DossierSettings({
             Supprimer le site
           </button>
         )}
+      </div>
+
+      {/* Transfert e-mail automatique des leads */}
+      <div className="mt-5 pt-4 border-t border-gray-100">
+        <label className="block text-xs font-semibold text-gray-700 mb-1">Transfert e-mail des leads (destinataires)</label>
+        <textarea
+          value={emails}
+          onChange={(e) => setEmails(e.target.value)}
+          rows={2}
+          placeholder="client@exemple.com, copie@jboost.fr  (séparés par virgule, point-virgule ou retour ligne)"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <div className="flex items-center gap-2 mt-1.5">
+          <button onClick={saveEmails} disabled={busy} className="px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-black text-white text-sm font-semibold disabled:opacity-50">
+            {emailsSaved ? '✓ Enregistré' : 'Enregistrer les destinataires'}
+          </button>
+          <span className="text-xs text-gray-400">Chaque lead valide reçu est transféré à ces adresses. Vide = e-mail du client par défaut.</span>
+        </div>
       </div>
 
       {error && <p className="text-red-600 text-sm mt-3">⚠ {error}</p>}

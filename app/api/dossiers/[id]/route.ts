@@ -14,6 +14,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (typeof body.name === 'string') data.name = body.name.trim()
   if (typeof body.active === 'boolean') data.active = body.active
   if ('contractTerms' in body) data.contractTerms = (body.contractTerms ?? '').trim() || null
+  if ('notifyEmails' in body) data.notifyEmails = (body.notifyEmails ?? '').trim() || null
   if (body.unitPrice !== undefined) {
     const p = parseFloat(body.unitPrice)
     if (!(p >= 0)) return NextResponse.json({ error: 'Prix unitaire invalide' }, { status: 400 })

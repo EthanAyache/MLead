@@ -126,6 +126,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             active={dossier.active}
             isAdmin={isAdmin}
             origin={origin}
+            notifyEmails={dossier.notifyEmails ?? ''}
           />
 
           <LeadsList rows={rows} clientName={dossier.campagne.client.name} />
