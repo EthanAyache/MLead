@@ -44,23 +44,31 @@ export async function POST(request: Request) {
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice
 
-        // On retrouve la facture dans notre base via stripeInvoiceId
-        const updated = await prisma.invoice.updateMany({
-          where: { stripeInvoiceId: invoice.id },
-          data: {
-            status: 'PAID',
-            paidAt: new Date(),
-          },
-        })
-
-        console.log(`✅ Facture ${invoice.id} marquée payée (${updated.count} mise(s) à jour)`)
+        if (invoice.id) {
+          // Facture générique (modèle Invoice)
+          const updated = await prisma.invoice.updateMany({
+            where: { stripeInvoiceId: invoice.id },
+            data: { status: 'PAID', paidAt: new Date() },
+          })
+          // Facture mensuelle pay-per-lead (modèle MonthlyInvoice) → lève le blocage des leads
+          const updatedMonthly = await prisma.monthlyInvoice.updateMany({
+            where: { stripeInvoiceId: invoice.id },
+            data: { status: 'PAID' },
+          })
+          console.log(`✅ Facture ${invoice.id} payée (Invoice: ${updated.count}, MonthlyInvoice: ${updatedMonthly.count})`)
+        }
         break
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
+        if (invoice.id) {
+          await prisma.monthlyInvoice.updateMany({
+            where: { stripeInvoiceId: invoice.id },
+            data: { status: 'FAILED' },
+          })
+        }
         console.log(`❌ Paiement échoué pour ${invoice.id}`)
-        // Ici on pourrait notifier l'utilisateur, pour l'instant on log
         break
       }
 

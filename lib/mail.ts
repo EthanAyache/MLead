@@ -47,6 +47,37 @@ export function parseRecipients(raw: string | null | undefined): string[] {
     .filter((x) => EMAIL_RE.test(x))
 }
 
+// Comme parseRecipients, mais sépare les destinataires selon leur label :
+//   - label contenant "jboost" (ex. "Mail JBoost") → jboost
+//   - tous les autres (Mail client, libellés personnalisés, ancien format texte) → client
+export function parseLabeledRecipients(raw: string | null | undefined): { jboost: string[]; client: string[] } {
+  const jboost: string[] = []
+  const client: string[] = []
+  if (!raw) return { jboost, client }
+  const s = raw.trim()
+  if (s.startsWith('[')) {
+    try {
+      const arr = JSON.parse(s)
+      if (Array.isArray(arr)) {
+        for (const e of arr) {
+          const email = String((e as { email?: unknown })?.email ?? '').trim()
+          if (!EMAIL_RE.test(email)) continue
+          const label = String((e as { label?: unknown })?.label ?? '')
+          if (/jboost/i.test(label)) jboost.push(email)
+          else client.push(email)
+        }
+        return { jboost, client }
+      }
+    } catch {
+      // pas du JSON valide → parsing texte ci-dessous (tout en "client")
+    }
+  }
+  for (const x of s.split(/[,;\n]/).map((v) => v.trim()).filter((v) => EMAIL_RE.test(v))) {
+    client.push(x)
+  }
+  return { jboost, client }
+}
+
 type LeadInfo = {
   name?: string | null
   email?: string | null
@@ -67,6 +98,8 @@ export async function sendLeadEmail(opts: {
   campagneName: string
   clientName: string
   lead: LeadInfo
+  // Bandeau d'avertissement optionnel (ex. « client bloqué, lead non transmis »)
+  note?: string
 }): Promise<boolean> {
   const t = getTransporter()
   if (!t || opts.to.length === 0) return false
@@ -84,11 +117,13 @@ export async function sendLeadEmail(opts: {
   ].filter(([, v]) => v) as [string, string][]
 
   const text =
+    (opts.note ? `${opts.note}\n\n` : '') +
     `Nouveau lead reçu via MonsieurLead\n\nClient : ${opts.clientName}\nCampagne : ${opts.campagneName}\nSite : ${opts.siteName}\n\n` +
     lines.map(([k, v]) => `${k} : ${v}`).join('\n')
 
   const html = `
     <div style="font-family:Arial,sans-serif;color:#16171D">
+      ${opts.note ? `<p style="background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;padding:10px 12px;border-radius:8px;font-size:13px;margin:0 0 12px">${escapeHtml(opts.note)}</p>` : ''}
       <h2 style="margin:0 0 4px">Nouveau lead reçu</h2>
       <p style="color:#787C8A;margin:0 0 16px">${escapeHtml(opts.clientName)} · ${escapeHtml(opts.campagneName)} · ${escapeHtml(opts.siteName)}</p>
       <table cellpadding="6" style="border-collapse:collapse">

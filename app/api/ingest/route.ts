@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { sendLeadEmail, parseRecipients } from '@/lib/mail'
+import { sendLeadEmail, parseRecipients, parseLabeledRecipients } from '@/lib/mail'
 
 // Endpoint PUBLIC de réception des leads envoyés par les sites clients.
 // POST /api/ingest?token=ml_xxxxxxxx   body JSON ou form { nom, email, telephone, message, source, website(honeypot) }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   const dossier = await prisma.dossier.findUnique({
     where: { token },
-    include: { campagne: { include: { client: { select: { name: true, email: true, notifyEmails: true } } } } },
+    include: { campagne: { include: { client: { select: { id: true, name: true, email: true, notifyEmails: true } } } } },
   })
   if (!dossier || !dossier.active) return json({ error: 'token invalide' }, 401)
 
@@ -109,13 +109,34 @@ export async function POST(request: Request) {
     },
   })
 
-  // 7. Transfert e-mail automatique (leads valides uniquement). Destinataires du site, sinon e-mail du client.
+  // 7. Transfert e-mail automatique (leads valides uniquement).
   if (status === 'VALID') {
-    // Priorité : e-mails du site → e-mails du client → e-mail de contact du client.
     const client = dossier.campagne.client
-    let recipients = parseRecipients(dossier.notifyEmails)
-    if (recipients.length === 0) recipients = parseRecipients(client.notifyEmails)
-    if (recipients.length === 0) recipients = parseRecipients(client.email)
+
+    // Client bloqué = facture mensuelle impayée (émise mais pas réglée). Tant qu'il n'a pas payé,
+    // on ne lui envoie plus ses leads — mais le lead reste enregistré et JBoost est prévenu.
+    const unpaid = await prisma.monthlyInvoice.findFirst({
+      where: { clientId: client.id, status: { in: ['SENT', 'FAILED'] } },
+      select: { id: true },
+    })
+    const blocked = unpaid !== null
+
+    const site = parseLabeledRecipients(dossier.notifyEmails)
+    const cli = parseLabeledRecipients(client.notifyEmails)
+    const all = (r: { jboost: string[]; client: string[] }) => [...r.client, ...r.jboost]
+
+    let recipients: string[]
+    let note: string | undefined
+    if (blocked) {
+      // On ne prévient QUE JBoost : labels « Mail JBoost » du site → du client → fallback JBOOST_EMAIL.
+      recipients = site.jboost.length ? site.jboost : cli.jboost.length ? cli.jboost : parseRecipients(process.env.JBOOST_EMAIL)
+      note = '⚠️ Client bloqué (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.'
+    } else {
+      // Comportement normal : tous les destinataires (cascade site → client → e-mail du client).
+      recipients = all(site).length ? all(site) : all(cli).length ? all(cli) : parseRecipients(client.email)
+    }
+    recipients = [...new Set(recipients)]
+
     if (recipients.length > 0) {
       try {
         await sendLeadEmail({
@@ -123,8 +144,9 @@ export async function POST(request: Request) {
           replyTo: email || undefined,
           siteName: dossier.name,
           campagneName: dossier.campagne.name,
-          clientName: dossier.campagne.client.name,
+          clientName: client.name,
           lead: { name, email, phone, message, source },
+          note,
         })
       } catch (e) {
         // L'échec d'envoi ne doit jamais casser la réception du lead, mais on le trace.
