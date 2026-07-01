@@ -9,6 +9,17 @@ type Apporteur = {
   commissionType: string
   commissionValue: number
   clientCount: number
+  activeClients: number
+  leadCA: number
+  commission: number
+}
+
+function fmtEur(n: number) {
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+}
+
+function rateLabel(a: Apporteur) {
+  return a.commissionType === 'PERCENT' ? `${a.commissionValue} %` : `${a.commissionValue} € / lead`
 }
 
 export default function ApporteursTab({ apporteurs }: { apporteurs: Apporteur[] }) {
@@ -20,10 +31,10 @@ export default function ApporteursTab({ apporteurs }: { apporteurs: Apporteur[] 
             <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
             <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
           </svg>
-          Apporteurs d'affaires
+          Apporteurs d&apos;affaires
         </h2>
         <span className="text-[#787C8A] text-[13px] font-medium">
-          {apporteurs.length} apporteur{apporteurs.length > 1 ? 's' : ''}.
+          Commission sur le CA des leads de leurs clients, ce mois-ci.
         </span>
         <Link href="/apporteurs" className="ml-auto h-9 px-3 rounded-lg bg-[#6A4FE6] hover:bg-[#5840CC] text-white text-sm font-semibold flex items-center gap-2 transition shadow-[0_4px_12px_rgba(106,79,230,.25)]">
           <span className="text-base leading-none">+</span> Gérer les apporteurs
@@ -38,20 +49,25 @@ export default function ApporteursTab({ apporteurs }: { apporteurs: Apporteur[] 
             <thead className="bg-[#FAFAFC] border-b border-[#E8E9EF]">
               <tr>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Apporteur</th>
-                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Email</th>
-                <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Clients apportés</th>
-                <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Commission</th>
+                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Taux</th>
+                <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Clients (actifs ce mois)</th>
+                <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">CA leads ce mois</th>
+                <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Commission ce mois</th>
               </tr>
             </thead>
             <tbody>
               {apporteurs.map((a) => (
                 <tr key={a.id} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition">
-                  <td className="px-5 py-3.5 font-semibold text-[#16171D]">{a.name}</td>
-                  <td className="px-5 py-3.5 text-[#414350] text-xs">{a.email ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-right text-[#414350] num">{a.clientCount}</td>
-                  <td className="px-5 py-3.5 text-right font-bold text-[#16171D] num">
-                    {a.commissionType === 'PERCENT' ? `${a.commissionValue} %` : `${a.commissionValue} €`}
+                  <td className="px-5 py-3.5">
+                    <div className="font-semibold text-[#16171D]">{a.name}</div>
+                    <div className="text-[#787C8A] text-xs">{a.email ?? '—'}</div>
                   </td>
+                  <td className="px-5 py-3.5 text-[#414350] num">{rateLabel(a)}</td>
+                  <td className="px-5 py-3.5 text-right text-[#414350] num">
+                    {a.clientCount} <span className="text-[#787C8A]">({a.activeClients} actif{a.activeClients > 1 ? 's' : ''})</span>
+                  </td>
+                  <td className="px-5 py-3.5 text-right text-[#414350] num">{fmtEur(a.leadCA)}</td>
+                  <td className="px-5 py-3.5 text-right font-bold text-[#1F8A53] num">{fmtEur(a.commission)}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,6 +1,6 @@
 'use client'
 
-export type TabKey = 'factures' | 'facturation' | 'clients' | 'historique' | 'apporteurs'
+export type TabKey = 'facturation' | 'clients' | 'apporteurs'
 
 type Props = {
   counts: Record<TabKey, number>
@@ -9,16 +9,6 @@ type Props = {
 }
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-  {
-    key: 'factures',
-    label: 'Factures impayées',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <path d="M14 2v6h6M9 13h6M9 17h6" />
-      </svg>
-    ),
-  },
   {
     key: 'facturation',
     label: 'Facturation',
@@ -48,17 +38,6 @@ const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
         <circle cx="6" cy="12" r="3" />
         <circle cx="18" cy="19" r="3" />
         <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-      </svg>
-    ),
-  },
-  {
-    key: 'historique',
-    label: 'Historique',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <path d="M3 3v5h5" />
-        <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
-        <path d="M12 7v5l4 2" />
       </svg>
     ),
   },
