@@ -7,6 +7,7 @@ type Client = {
   name: string
   email: string | null
   phone: string | null
+  apporteurName: string | null
   totalOwed: number
   invoiceCount: number
   hasLate: boolean
@@ -45,6 +46,7 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
               <tr>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Client</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Contact</th>
+                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Apporteur</th>
                 <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Factures impayées</th>
                 <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Solde dû</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">État</th>
@@ -63,6 +65,16 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
                   <td className="px-5 py-3.5 text-[#414350] text-xs">
                     {c.email ?? '—'}<br />
                     <span className="text-[#787C8A]">{c.phone ?? ''}</span>
+                  </td>
+                  <td className="px-5 py-3.5 text-xs">
+                    {c.apporteurName ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#EFEBFD] text-[#6A4FE6] font-semibold">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" /></svg>
+                        {c.apporteurName}
+                      </span>
+                    ) : (
+                      <span className="text-[#B8BAC6]">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5 text-right text-[#414350] num">{c.invoiceCount}</td>
                   <td className={`px-5 py-3.5 text-right font-bold num ${c.totalOwed > 0 ? 'text-[#D23B3B]' : 'text-[#1F8A53]'}`}>

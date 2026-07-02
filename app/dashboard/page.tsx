@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const [clients, apporteurs, aAppelerCount, monthlyInvoices, monthBillableLeads] = await Promise.all([
-    prisma.client.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
+    prisma.client.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' }, include: { apporteur: { select: { name: true } } } }),
     prisma.apporteur.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
     prisma.inboundLead.count({ where: { assignedToJboost: true, status: { not: 'REJECTED' }, dossier: { campagne: { client: filter } } } }),
     prisma.monthlyInvoice.findMany({
@@ -60,6 +60,7 @@ export default async function DashboardPage() {
     const unpaid = monthlyInvoices.filter((m) => m.clientId === c.id && isUnpaid(m.status))
     return {
       id: c.id, name: c.name, email: c.email, phone: c.phone,
+      apporteurName: c.apporteur?.name ?? null,
       totalOwed: unpaid.reduce((s, m) => s + m.amount, 0),
       invoiceCount: unpaid.length,
       hasLate: unpaid.some((m) => m.status === 'FAILED'),

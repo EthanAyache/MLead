@@ -8,7 +8,7 @@ import MonthlyInvoicesTab, { type MonthlyRow } from './MonthlyInvoicesTab'
 
 type Counts = Record<TabKey, number>
 
-type ClientRow = { id: string; name: string; email: string | null; phone: string | null; totalOwed: number; invoiceCount: number; hasLate: boolean; suspended: boolean }
+type ClientRow = { id: string; name: string; email: string | null; phone: string | null; apporteurName: string | null; totalOwed: number; invoiceCount: number; hasLate: boolean; suspended: boolean }
 type ApporteurRow = { id: string; name: string; email: string | null; commissionType: string; commissionValue: number; clientCount: number; activeClients: number; leadCA: number; commission: number }
 
 type Props = {
