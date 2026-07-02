@@ -18,29 +18,33 @@ export default async function Kpis() {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  const [monthLeads, aAppeler] = await Promise.all([
+  const [monthLeads, aAppeler, unbilled, jboostLeads] = await Promise.all([
+    // Leads du mois en cours (pour les compteurs reçus / valides / pris)
     prisma.inboundLead.findMany({
       where: { receivedAt: { gte: startOfMonth }, ...leadFilter },
-      include: {
-        dossier: { select: { unitPrice: true } },
-        chosenOffers: { select: { commissionType: true, commissionValue: true, sellPrice: true } },
-      },
+      include: { chosenOffers: { select: { id: true } } },
     }),
     prisma.inboundLead.count({ where: { assignedToJboost: true, status: { not: 'REJECTED' }, ...leadFilter } }),
+    // Pay-per-lead PAS encore facturé (tout, pas juste ce mois) : exactement ce que « Lancer la facturation » facturera.
+    prisma.inboundLead.findMany({
+      where: { status: 'VALID', assignedToJboost: false, monthlyInvoiceId: null, ...leadFilter },
+      include: { dossier: { select: { unitPrice: true } } },
+    }),
+    // Commissions dues (leads JBoost avec offres prises), tout confondu
+    prisma.inboundLead.findMany({
+      where: { assignedToJboost: true, ...leadFilter },
+      include: { chosenOffers: { select: { commissionType: true, commissionValue: true, sellPrice: true } } },
+    }),
   ])
 
   const received = monthLeads.length
   const valid = monthLeads.filter((l) => l.status === 'VALID').length
   const pris = monthLeads.filter((l) => l.chosenOffers.length > 0).length
 
-  // Argent dû par les clients ce mois : pay-per-lead (leads valides hors JBoost, PAS encore facturés)
-  // + commissions (leads JBoost). Les leads déjà rattachés à une facture mensuelle sont exclus.
-  const duePerLead = monthLeads
-    .filter((l) => l.status === 'VALID' && !l.assignedToJboost && !l.monthlyInvoiceId)
-    .reduce((s, l) => s + l.dossier.unitPrice, 0)
-  const dueCommission = monthLeads
-    .filter((l) => l.assignedToJboost)
-    .reduce((s, l) => s + l.chosenOffers.reduce((a, o) => a + owedForOffer(o), 0), 0)
+  // Argent dû par les clients = pay-per-lead PAS encore facturé (tout, pas juste ce mois, mêmes
+  // critères que « Lancer la facturation ») + commissions des offres prises (leads JBoost).
+  const duePerLead = unbilled.reduce((s, l) => s + l.dossier.unitPrice, 0)
+  const dueCommission = jboostLeads.reduce((s, l) => s + l.chosenOffers.reduce((a, o) => a + owedForOffer(o), 0), 0)
   const totalDue = duePerLead + dueCommission
 
   const kpis: {
