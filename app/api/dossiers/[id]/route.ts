@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import { generateDossierToken } from '@/lib/token'
 import { DEPARTMENT_KEYS } from '@/lib/departments'
+
+// Récupère un site en vérifiant qu'il appartient au périmètre de l'utilisateur (USER = ses clients, ADMIN = tous).
+async function findOwnedDossier(id: string, user: { id: string; role: string }) {
+  return prisma.dossier.findFirst({ where: { id, campagne: { client: visibilityFilter(user) } } })
+}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   const { id } = await params
+  const existing = await findOwnedDossier(id, user)
+  if (!existing) return NextResponse.json({ error: 'Site introuvable' }, { status: 404 })
+
   const body = await request.json()
 
   const data: Record<string, unknown> = {}
@@ -46,6 +54,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params
+  const existing = await findOwnedDossier(id, user)
+  if (!existing) return NextResponse.json({ error: 'Site introuvable' }, { status: 404 })
+
   // Garde-fou : on ne supprime pas un dossier dont des leads ont déjà été facturés
   const billed = await prisma.inboundLead.count({ where: { dossierId: id, monthlyInvoiceId: { not: null } } })
   if (billed > 0) {

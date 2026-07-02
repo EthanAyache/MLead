@@ -37,6 +37,7 @@ export default function NewInvoiceForm({ clients, apporteurs }: Props) {
 
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Le type "Mr.Lead" ne propose que Mr.Lead (entité interne).
   function optionsFor(type: EntityType): Option[] {
@@ -73,12 +74,25 @@ export default function NewInvoiceForm({ clients, apporteurs }: Props) {
     ev.preventDefault()
     if (!validate()) return
     setLoading(true)
+    setSubmitError(null)
 
-    await fetch('/api/invoices', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ number, amount, currency, dueDate, label, debtorType, debtorId, creditorType, creditorId }),
-    })
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number, amount, currency, dueDate, label, debtorType, debtorId, creditorType, creditorId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSubmitError(data.error || "L'enregistrement de la facture a échoué. Réessayez.")
+        setLoading(false)
+        return
+      }
+    } catch {
+      setSubmitError('Erreur réseau. Vérifiez votre connexion et réessayez.')
+      setLoading(false)
+      return
+    }
 
     setLoading(false)
     router.push('/dashboard')
@@ -204,6 +218,12 @@ export default function NewInvoiceForm({ clients, apporteurs }: Props) {
           </div>
         </div>
       </section>
+
+      {submitError && (
+        <div className="bg-[#FCEAEA] border border-[#F5C5C5] rounded-[10px] px-4 py-3 text-[13px] text-[#D23B3B] font-semibold">
+          ⚠ {submitError}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 flex-wrap justify-between bg-white border border-[#E8E9EF] rounded-[14px] px-5 py-4 shadow-[0_1px_2px_rgba(20,22,30,.04)]">
         <p className="text-[13px] text-[#787C8A] flex-1 min-w-0">

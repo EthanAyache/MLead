@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 
 type RawProspect = { name?: unknown; email?: unknown; phone?: unknown; details?: unknown; source?: unknown; data?: unknown }
 
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const themeId = body.themeId
   if (!themeId) return NextResponse.json({ error: 'Thème obligatoire' }, { status: 400 })
 
-  const theme = await prisma.theme.findUnique({ where: { id: themeId } })
+  const theme = await prisma.theme.findFirst({ where: { id: themeId, ...visibilityFilter(user) } })
   if (!theme) return NextResponse.json({ error: 'Thème introuvable' }, { status: 404 })
 
   const list: RawProspect[] = Array.isArray(body.prospects) ? body.prospects : []
@@ -119,7 +119,7 @@ export async function DELETE(request: Request) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id manquant' }, { status: 400 })
 
-  const prospect = await prisma.prospect.findUnique({ where: { id } })
+  const prospect = await prisma.prospect.findFirst({ where: { id, ...visibilityFilter(user) } })
   if (!prospect) return NextResponse.json({ error: 'Prospect introuvable' }, { status: 404 })
   if (prospect.status === 'SOLD') {
     return NextResponse.json({ error: 'Impossible de supprimer un prospect déjà vendu' }, { status: 409 })

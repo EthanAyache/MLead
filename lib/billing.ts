@@ -45,14 +45,24 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
       //    Déjà SENT/PAID → on saute. DRAFT/FAILED (run précédent incomplet) → on rejoue.
       const existing = await prisma.monthlyInvoice.findUnique({
         where: { clientId_period: { clientId: client.id, period } },
-        select: { id: true, status: true },
+        select: { id: true, status: true, stripeInvoiceId: true },
       })
       if (existing) {
         if (existing.status === 'SENT' || existing.status === 'PAID') {
           results.push({ clientId: client.id, name: client.name, leadCount: 0, amount: 0, status: 'ALREADY' })
           continue
         }
-        // Reste incomplet (aucun lead n'a été lié en cas d'échec) → on supprime pour rejouer proprement.
+        // Run précédent incomplet (DRAFT/FAILED). Si une facture Stripe avait déjà été émise pour cette
+        // période, on l'annule AVANT de rejouer : sinon une facture Stripe finalisée resterait due en plus
+        // de la nouvelle → double facturation du client.
+        if (existing.stripeInvoiceId) {
+          try {
+            await stripe.invoices.voidInvoice(existing.stripeInvoiceId)
+          } catch {
+            // Pas finalisée (encore un brouillon) ou déjà annulée : on tente une suppression, sinon on ignore.
+            try { await stripe.invoices.del(existing.stripeInvoiceId) } catch { /* rien à faire */ }
+          }
+        }
         await prisma.monthlyInvoice.delete({ where: { id: existing.id } })
       }
 
@@ -117,6 +127,13 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
           metadata: { mrlead_monthly_period: period, mrlead_client_id: client.id },
         })
         if (!stripeInvoice.id) throw new Error("Stripe : pas d'ID de facture")
+
+        // On mémorise l'ID Stripe immédiatement : si une étape suivante échoue, le prochain run saura
+        // quelle facture Stripe annuler avant d'en réémettre une (garde-fou anti double facturation).
+        await prisma.monthlyInvoice.update({
+          where: { id: monthly.id },
+          data: { stripeInvoiceId: stripeInvoice.id },
+        })
 
         for (const e of perSite.values()) {
           await stripe.invoiceItems.create({

@@ -18,8 +18,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
+        // Normalisation cohérente avec l'inscription/création (e-mails stockés en minuscules).
+        const email = String(credentials.email).trim().toLowerCase()
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email },
         })
         if (!user || !user.password) return null
 

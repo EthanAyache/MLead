@@ -424,6 +424,9 @@ model InboundLead {
   ip         String?
   // Affecté à JBoost = c'est NOUS qui rappelons ce lead → exclu de la facture du client
   assignedToJboost Boolean @default(false)
+  // Le lead a-t-il bien été transmis au client par e-mail ? false = retenu (client suspendu au moment
+  // de la réception) → sera renvoyé automatiquement dès que le client régularise sa facture.
+  forwardedToClient Boolean @default(false)
   receivedAt DateTime   @default(now())
 
   dossierId String
@@ -440,6 +443,7 @@ model InboundLead {
   @@index([receivedAt])
   @@index([monthlyInvoiceId])
   @@index([assignedToJboost])
+  @@index([forwardedToClient])
 }
 
 // Facture mensuelle agrégée d'un client (pay-per-lead). Une seule par client et par période.

@@ -18,6 +18,7 @@ export default function EditBrandForm({ brand }: { brand: Brand }) {
   const [phone, setPhone] = useState(brand.phone ?? '')
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   function validate() {
     const e: Record<string, string> = {}
@@ -31,11 +32,24 @@ export default function EditBrandForm({ brand }: { brand: Brand }) {
     ev.preventDefault()
     if (!validate()) return
     setLoading(true)
-    await fetch(`/api/brands/${brand.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone }),
-    })
+    setSubmitError(null)
+    try {
+      const res = await fetch(`/api/brands/${brand.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSubmitError(data.error || 'La modification a échoué. Réessayez.')
+        setLoading(false)
+        return
+      }
+    } catch {
+      setSubmitError('Erreur réseau. Vérifiez votre connexion et réessayez.')
+      setLoading(false)
+      return
+    }
     setLoading(false)
     setIsOpen(false)
     router.refresh()
@@ -44,7 +58,20 @@ export default function EditBrandForm({ brand }: { brand: Brand }) {
   async function handleArchive() {
     if (!confirm(`Archiver la brand « ${brand.name} » ?`)) return
     setLoading(true)
-    await fetch(`/api/brands/${brand.id}`, { method: 'DELETE' })
+    setSubmitError(null)
+    try {
+      const res = await fetch(`/api/brands/${brand.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSubmitError(data.error || "L'archivage a échoué. Réessayez.")
+        setLoading(false)
+        return
+      }
+    } catch {
+      setSubmitError('Erreur réseau. Vérifiez votre connexion et réessayez.')
+      setLoading(false)
+      return
+    }
     setLoading(false)
     setIsOpen(false)
     router.refresh()
@@ -65,7 +92,7 @@ export default function EditBrandForm({ brand }: { brand: Brand }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setIsOpen(false); setErrors({}) }}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setIsOpen(false); setErrors({}); setSubmitError(null) }}>
           <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold mb-4 text-gray-900">Modifier la brand</h2>
             <form onSubmit={handleSubmit} className="space-y-3" noValidate>
@@ -86,12 +113,14 @@ export default function EditBrandForm({ brand }: { brand: Brand }) {
                 <input value={phone} onChange={(e) => setPhone(e.target.value)} className={`${inputBase} ${ok}`} />
               </div>
 
+              {submitError && <p className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">⚠ {submitError}</p>}
+
               <div className="flex gap-2 justify-between pt-3 border-t border-gray-200">
                 <button type="button" onClick={handleArchive} disabled={loading} className="px-4 py-2 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 font-semibold text-sm disabled:opacity-50">
                   Archiver
                 </button>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => { setIsOpen(false); setErrors({}) }} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
+                  <button type="button" onClick={() => { setIsOpen(false); setErrors({}); setSubmitError(null) }} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
                   <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-50">
                     {loading ? 'Enregistrement...' : 'Enregistrer'}
                   </button>

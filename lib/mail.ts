@@ -1,7 +1,7 @@
 import nodemailer, { type Transporter } from 'nodemailer'
 
-// Transporteur SMTP (o2switch). Configuré via les variables d'environnement :
-//   SMTP_HOST, SMTP_PORT (465 SSL / 587 TLS), SMTP_USER, SMTP_PASS, MAIL_FROM
+// Transporteur SMTP (Gmail : smtp.gmail.com, mot de passe d'application). Configuré via les variables
+// d'environnement : SMTP_HOST, SMTP_PORT (465 SSL / 587 TLS), SMTP_USER, SMTP_PASS, MAIL_FROM
 let cached: Transporter | null = null
 
 function getTransporter(): Transporter | null {
@@ -76,6 +76,20 @@ export function parseLabeledRecipients(raw: string | null | undefined): { jboost
     client.push(x)
   }
   return { jboost, client }
+}
+
+// Destinataires « normaux » d'un lead (client + copies), cascade : e-mails du site → du client →
+// e-mail principal du client. Utilisé à la réception (ingest) et lors du renvoi après régularisation.
+export function resolveLeadRecipients(opts: {
+  siteNotifyEmails?: string | null
+  clientNotifyEmails?: string | null
+  clientEmail?: string | null
+}): string[] {
+  const site = parseLabeledRecipients(opts.siteNotifyEmails)
+  const cli = parseLabeledRecipients(opts.clientNotifyEmails)
+  const all = (r: { jboost: string[]; client: string[] }) => [...r.client, ...r.jboost]
+  const recipients = all(site).length ? all(site) : all(cli).length ? all(cli) : parseRecipients(opts.clientEmail)
+  return [...new Set(recipients)]
 }
 
 type LeadInfo = {

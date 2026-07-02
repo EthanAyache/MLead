@@ -31,6 +31,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Prix de vente invalide' }, { status: 400 })
   }
 
+  // La brand et le client doivent appartenir au périmètre de l'utilisateur (USER = les siens, ADMIN = tous).
+  const brand = await prisma.brand.findFirst({ where: { id: body.brandId, ...visibilityFilter(user) } })
+  if (!brand) return NextResponse.json({ error: 'Brand introuvable' }, { status: 404 })
+  const client = await prisma.client.findFirst({ where: { id: body.clientId, ...visibilityFilter(user) } })
+  if (!client) return NextResponse.json({ error: 'Client introuvable' }, { status: 404 })
+
   const lead = await prisma.lead.create({
     data: {
       brandId: body.brandId,

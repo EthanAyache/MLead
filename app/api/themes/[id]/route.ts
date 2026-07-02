@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import { normalizeFields } from '@/lib/themeFields'
+
+// Récupère un thème en vérifiant qu'il appartient au périmètre de l'utilisateur (USER = les siens, ADMIN = tous).
+async function findOwnedTheme(id: string, user: { id: string; role: string }) {
+  return prisma.theme.findFirst({ where: { id, ...visibilityFilter(user) } })
+}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   const { id } = await params
+  const existing = await findOwnedTheme(id, user)
+  if (!existing) return NextResponse.json({ error: 'Thème introuvable' }, { status: 404 })
+
   const body = await request.json()
 
   const data: Record<string, unknown> = {}
@@ -51,7 +59,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params
 
-  const theme = await prisma.theme.findUnique({ where: { id } })
+  const theme = await findOwnedTheme(id, user)
   if (!theme) return NextResponse.json({ error: 'Thème introuvable' }, { status: 404 })
 
   // Garde-fou : on n'efface jamais un thème dont des leads ont été vendus

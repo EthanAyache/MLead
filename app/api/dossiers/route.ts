@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import { generateDossierToken } from '@/lib/token'
 
 export async function POST(request: Request) {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   if (!name) return NextResponse.json({ error: 'Nom du site obligatoire' }, { status: 400 })
   if (!body.campagneId) return NextResponse.json({ error: 'Campagne obligatoire' }, { status: 400 })
 
-  const campagne = await prisma.campagne.findUnique({ where: { id: body.campagneId } })
+  const campagne = await prisma.campagne.findFirst({ where: { id: body.campagneId, client: visibilityFilter(user) } })
   if (!campagne) return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
 
   const unitPrice = parseFloat(body.unitPrice)

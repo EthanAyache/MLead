@@ -11,6 +11,7 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
+    omit: { password: true }, // ne jamais exposer le hash du mot de passe
   })
   return NextResponse.json(users)
 }
@@ -22,8 +23,9 @@ export async function POST(request: Request) {
   if (me.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
   const body = await request.json()
+  const email = String(body.email ?? '').trim().toLowerCase()
 
-  if (!body.email || !/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(body.email)) {
+  if (!email || !/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(email)) {
     return NextResponse.json({ error: 'Email invalide' }, { status: 400 })
   }
   if (!body.password || body.password.length < 6) {
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   // Email déjà pris ?
-  const existing = await prisma.user.findUnique({ where: { email: body.email } })
+  const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     return NextResponse.json({ error: 'Cet email est déjà utilisé.' }, { status: 409 })
   }
@@ -43,11 +45,12 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.create({
     data: {
-      email: body.email,
+      email,
       name: body.name || null,
       password: hashed,
       role: body.role,
     },
+    omit: { password: true }, // ne jamais renvoyer le hash du mot de passe
   })
 
   return NextResponse.json(user, { status: 201 })
