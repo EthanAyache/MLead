@@ -59,7 +59,7 @@ export default function ApporteursTab({ apporteurs }: { apporteurs: Apporteur[] 
               {apporteurs.map((a) => (
                 <tr key={a.id} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition">
                   <td className="px-5 py-3.5">
-                    <div className="font-semibold text-[#16171D]">{a.name}</div>
+                    <Link href={`/apporteurs/${a.id}`} className="font-semibold text-[#6A4FE6] hover:underline">{a.name}</Link>
                     <div className="text-[#787C8A] text-xs">{a.email ?? '—'}</div>
                   </td>
                   <td className="px-5 py-3.5 text-[#414350] num">{rateLabel(a)}</td>

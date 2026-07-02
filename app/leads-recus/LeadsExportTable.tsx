@@ -42,7 +42,17 @@ function localYMD(iso: string) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export default function LeadsExportTable({ rows, isAdmin }: { rows: ExportRow[]; isAdmin: boolean }) {
+export default function LeadsExportTable({
+  rows,
+  isAdmin,
+  exportTitle = 'Tous les leads reçus',
+  exportFileBase = 'tous-les-leads',
+}: {
+  rows: ExportRow[]
+  isAdmin: boolean
+  exportTitle?: string
+  exportFileBase?: string
+}) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -99,7 +109,7 @@ export default function LeadsExportTable({ rows, isAdmin }: { rows: ExportRow[];
           {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(''); setDateTo('') }} className="h-7 w-7 rounded-md hover:bg-gray-100 text-gray-400" title="Effacer les dates">✕</button>}
         </div>
         <div className="ml-auto">
-          <LeadsExportButtons rows={filtered} title="Tous les leads reçus" fileBase="tous-les-leads" />
+          <LeadsExportButtons rows={filtered} title={exportTitle} fileBase={exportFileBase} />
         </div>
       </div>
 

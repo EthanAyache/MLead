@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/auth'
 import UserMenu from './UserMenu'
 import LogoLink from './LogoLink'
+import SearchBar from './SearchBar'
 
 export default async function Header() {
   const user = await getCurrentUser()
@@ -11,18 +12,8 @@ export default async function Header() {
         {/* Logo + nom (clic → dashboard + refresh) */}
         <LogoLink />
 
-        {/* Recherche */}
-        <div className="ml-[14px] flex-1 max-w-[380px] relative">
-          <svg className="absolute left-[13px] top-[11px] w-[18px] h-[18px] text-white/75" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M21 21l-4.3-4.3" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Rechercher un client, une facture…"
-            className="w-full h-[42px] bg-white/[0.12] border border-white/[0.22] rounded-[11px] pl-10 pr-3.5 text-sm text-white placeholder:text-white/65 focus:outline-none focus:ring-2 focus:ring-white/40 focus:bg-white/20 hover:bg-white/[0.18] transition"
-          />
-        </div>
+        {/* Recherche globale (clients + leads) */}
+        <SearchBar />
 
         {/* Notifications + menu utilisateur */}
         <div className="ml-auto flex items-center gap-2.5">
