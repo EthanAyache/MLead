@@ -64,14 +64,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 // Suppression définitive d'un lead (utilisé surtout pour effacer un doublon).
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+// Un lead déjà facturé est protégé, SAUF si un ADMIN force (?force=1) : la facture
+// déjà émise n'est pas modifiée (elle reste l'historique de ce qui a été facturé).
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   const { id } = await params
   const lead = await findOwnedLead(id, user)
   if (!lead) return NextResponse.json({ error: 'Lead introuvable' }, { status: 404 })
-  if (lead.monthlyInvoiceId) {
+
+  const force = new URL(request.url).searchParams.get('force') === '1'
+  if (lead.monthlyInvoiceId && !(force && user.role === 'ADMIN')) {
     return NextResponse.json({ error: 'Lead déjà facturé, suppression impossible' }, { status: 409 })
   }
 

@@ -56,7 +56,7 @@ export default async function LeadsRecusPage() {
             </p>
           </div>
 
-          <LeadsExportTable rows={rows} />
+          <LeadsExportTable rows={rows} isAdmin={me.role === 'ADMIN'} />
         </div>
       </main>
     </>

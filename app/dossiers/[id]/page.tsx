@@ -7,6 +7,7 @@ import Header from '@/app/dashboard/Header'
 import DossierSettings from './DossierSettings'
 import LeadsList, { type LeadRow } from './LeadsList'
 import ContractTermsButton, { type OfferRow } from './ContractTermsButton'
+import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
 
 export default async function DossierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser()
@@ -73,6 +74,17 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     billed: l.monthlyInvoiceId !== null,
   }))
 
+  const exportRows: LeadExportRow[] = dossier.leads.map((l) => ({
+    receivedAt: l.receivedAt.toISOString(),
+    name: l.name, email: l.email, phone: l.phone, message: l.message, source: l.source,
+    status: l.status,
+    assignedToJboost: l.assignedToJboost,
+    clientName: dossier.campagne.client.name,
+    campagneName: dossier.campagne.name,
+    siteName: dossier.name,
+    offers: l.chosenOffers.map((o) => o.name).join(', '),
+  }))
+
   return (
     <>
       <Header />
@@ -94,6 +106,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
               </div>
               <p className="text-gray-400 text-xs mt-1">Site (source) — reçoit les leads via son lien API</p>
             </div>
+            <LeadsExportButtons rows={exportRows} title={`Leads — ${dossier.name}`} fileBase={`leads-${dossier.name}`} />
           </div>
 
           {/* Ce que le client nous doit ce mois-ci */}

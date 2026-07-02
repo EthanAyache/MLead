@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import AppelerList, { type CallRow } from './AppelerList'
+import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
 
 export default async function AAppelerPage() {
   const me = await getCurrentUser()
@@ -68,6 +69,20 @@ export default async function AAppelerPage() {
     }
   })
 
+  const exportRows: LeadExportRow[] = leads.map((l) => {
+    const chosenIds = new Set(l.chosenOffers.map((o) => o.id))
+    return {
+      receivedAt: l.receivedAt.toISOString(),
+      name: l.name, email: l.email, phone: l.phone, message: l.message, source: l.source,
+      status: l.status,
+      assignedToJboost: l.assignedToJboost,
+      clientName: l.dossier.campagne.client.name,
+      campagneName: l.dossier.campagne.name,
+      siteName: l.dossier.name,
+      offers: l.dossier.offers.filter((o) => chosenIds.has(o.id)).map((o) => o.name).join(', '),
+    }
+  })
+
   return (
     <>
       <Header />
@@ -80,11 +95,14 @@ export default async function AAppelerPage() {
             Retour au dashboard
           </Link>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">À appeler</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Leads affectés à JBoost : c&apos;est <strong>nous</strong> qui les rappelons. Quand un lead accepte, choisis l&apos;offre qu&apos;il a prise.
-            </p>
+          <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">À appeler</h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Leads affectés à JBoost : c&apos;est <strong>nous</strong> qui les rappelons. Quand un lead accepte, choisis l&apos;offre qu&apos;il a prise.
+              </p>
+            </div>
+            <LeadsExportButtons rows={exportRows} title="Leads à appeler (JBoost)" fileBase="leads-a-appeler" />
           </div>
 
           {/* Totaux de nos appels (argent dû par les clients sur les offres prises) */}

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import CampagneForm from './CampagneForm'
+import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
 
 export default async function ClientCampagnesPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser()
@@ -22,6 +23,26 @@ export default async function ClientCampagnesPage({ params }: { params: Promise<
     },
   })
   if (!client) notFound()
+
+  // Tous les leads du client (tous sites confondus), pour l'export.
+  const leads = await prisma.inboundLead.findMany({
+    where: { dossier: { campagne: { clientId: id } } },
+    orderBy: { receivedAt: 'desc' },
+    include: {
+      chosenOffers: { select: { name: true } },
+      dossier: { include: { campagne: { select: { name: true } } } },
+    },
+  })
+  const exportRows: LeadExportRow[] = leads.map((l) => ({
+    receivedAt: l.receivedAt.toISOString(),
+    name: l.name, email: l.email, phone: l.phone, message: l.message, source: l.source,
+    status: l.status,
+    assignedToJboost: l.assignedToJboost,
+    clientName: client.name,
+    campagneName: l.dossier.campagne.name,
+    siteName: l.dossier.name,
+    offers: l.chosenOffers.map((o) => o.name).join(', '),
+  }))
 
   return (
     <>
@@ -48,7 +69,10 @@ export default async function ClientCampagnesPage({ params }: { params: Promise<
                 </p>
               </div>
             </div>
-            <CampagneForm client={{ id: client.id, name: client.name }} />
+            <div className="flex items-center gap-2 flex-wrap">
+              <LeadsExportButtons rows={exportRows} title={`Leads — ${client.name}`} fileBase={`leads-${client.name}`} />
+              <CampagneForm client={{ id: client.id, name: client.name }} />
+            </div>
           </div>
 
           <p className="text-xs text-gray-400 mb-6">

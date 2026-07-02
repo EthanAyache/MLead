@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import * as XLSX from 'xlsx'
+import LeadsExportButtons from '@/app/components/LeadsExportButtons'
 
 export type ExportRow = {
   id: string
@@ -36,19 +36,22 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleString('fr-FR')
 }
 
-export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
+export default function LeadsExportTable({ rows, isAdmin }: { rows: ExportRow[]; isAdmin: boolean }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  // Suppression définitive d'un lead, avec confirmation. Un lead déjà facturé est refusé par l'API (409).
-  async function remove(r: ExportRow) {
-    if (!confirm(`Supprimer définitivement ce lead${r.name ? ` « ${r.name} »` : ''} ?\n\nCette action est irréversible.`)) return
+  // Suppression d'un lead, avec confirmation. `force` = admin qui supprime un lead déjà facturé.
+  async function remove(r: ExportRow, force = false) {
+    const msg = force
+      ? `⚠️ Ce lead est DÉJÀ FACTURÉ.\n\nForcer sa suppression ? La facture déjà émise ne sera pas modifiée. Action irréversible.`
+      : `Supprimer définitivement ce lead${r.name ? ` « ${r.name} »` : ''} ?\n\nCette action est irréversible.`
+    if (!confirm(msg)) return
     setBusyId(r.id)
     setError('')
     try {
-      const res = await fetch(`/api/inbound-leads/${r.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/inbound-leads/${r.id}${force ? '?force=1' : ''}`, { method: 'DELETE' })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
         setError(d.error || 'Suppression impossible.')
@@ -70,49 +73,6 @@ export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
       )
     : rows
 
-  // Lignes "à plat" avec en-têtes lisibles pour l'export.
-  function exportData() {
-    return filtered.map((r) => ({
-      'Date': fmtDate(r.receivedAt),
-      'Nom': r.name ?? '',
-      'Email': r.email ?? '',
-      'Téléphone': r.phone ?? '',
-      'Client': r.clientName,
-      'Campagne': r.campagneName,
-      'Site': r.siteName,
-      'Statut': STATUS_LABEL[r.status],
-      'Affecté JBoost': r.assignedToJboost ? 'Oui' : 'Non',
-      'Offres prises': r.offers,
-      'Source': r.source ?? '',
-      'Message': r.message ?? '',
-    }))
-  }
-
-  function exportExcel() {
-    const ws = XLSX.utils.json_to_sheet(exportData())
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Leads')
-    XLSX.writeFile(wb, 'leads-recus.xlsx')
-  }
-
-  function exportCsv() {
-    const data = exportData()
-    if (data.length === 0) return
-    const headers = Object.keys(data[0])
-    const esc = (v: unknown) => {
-      const s = String(v ?? '')
-      return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
-    }
-    const csv = '﻿' + [headers.join(','), ...data.map((row) => headers.map((h) => esc((row as Record<string, unknown>)[h])).join(','))].join('\r\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'leads-recus.csv'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
       <div className="p-3 border-b border-gray-100 flex items-center gap-3 flex-wrap">
@@ -122,14 +82,8 @@ export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
           </svg>
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher (nom, email, client, site…)" className="w-full h-9 pl-9 pr-3 text-sm border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-        <div className="flex gap-2 ml-auto">
-          <button onClick={exportExcel} disabled={filtered.length === 0} className="h-9 px-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-1.5">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-            Exporter Excel
-          </button>
-          <button onClick={exportCsv} disabled={filtered.length === 0} className="h-9 px-3 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">
-            Exporter CSV
-          </button>
+        <div className="ml-auto">
+          <LeadsExportButtons rows={filtered} title="Tous les leads reçus" fileBase="tous-les-leads" />
         </div>
       </div>
 
@@ -174,16 +128,21 @@ export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={r.offers}>{r.offers || '—'}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
-                    {r.billed ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-400" title="Lead déjà facturé — suppression impossible">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                        verrouillé
-                      </span>
-                    ) : (
+                    {!r.billed ? (
                       <button onClick={() => remove(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 disabled:opacity-50">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         {busyId === r.id ? '…' : 'Supprimer'}
                       </button>
+                    ) : isAdmin ? (
+                      <button onClick={() => remove(r, true)} disabled={busyId === r.id} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-amber-300 text-amber-700 text-xs font-semibold hover:bg-amber-50 disabled:opacity-50" title="Lead déjà facturé — forcer la suppression (admin)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>
+                        {busyId === r.id ? '…' : 'Forcer'}
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-400" title="Lead déjà facturé — suppression impossible">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                        verrouillé
+                      </span>
                     )}
                   </td>
                 </tr>
