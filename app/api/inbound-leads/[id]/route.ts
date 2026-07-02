@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
-import { sendLeadEmail, resolveLeadRecipients } from '@/lib/mail'
+import { sendLeadEmail, resolveLeadRecipients, parseLabeledRecipients, parseRecipients } from '@/lib/mail'
 
 const ALLOWED = ['VALID', 'DUPLICATE', 'REJECTED'] as const
 type Status = (typeof ALLOWED)[number]
 
-// Transmet le lead au client par e-mail s'il est devenu facturable (VALID, rendu au client) et pas
-// encore transmis. Évite qu'un client paie un lead jamais reçu (ex. doublon validé à la main).
-// Si le client est suspendu (facture SENT impayée), on ne transmet pas maintenant : le lead sera
-// renvoyé automatiquement à la régularisation (webhook invoice.paid).
+// Notifie par e-mail au moment où un lead devient facturable (validation d'un doublon, retour au client).
+// Comportement identique à la réception (ingest) :
+//   - client non suspendu → envoi au client + marquage forwardedToClient=true.
+//   - client suspendu      → on prévient SEULEMENT JBoost (bandeau), sans marquer transmis : le lead
+//                            sera renvoyé au client à la régularisation (webhook invoice.paid).
+// Évite qu'un client paie un lead qu'il n'a jamais reçu.
 async function forwardLeadToClientIfNeeded(leadId: string) {
   const lead = await prisma.inboundLead.findUnique({
     where: { id: leadId },
@@ -28,14 +30,39 @@ async function forwardLeadToClientIfNeeded(leadId: string) {
   if (!lead) return
   if (lead.status !== 'VALID' || lead.assignedToJboost || lead.forwardedToClient) return
 
-  const blocked = await prisma.monthlyInvoice.findFirst({
-    where: { clientId: lead.dossier.campagne.clientId, status: 'SENT' },
-    select: { id: true },
-  })
-  if (blocked) return
-
   const d = lead.dossier
   const client = d.campagne.client
+  const leadInfo = { name: lead.name, email: lead.email, phone: lead.phone, message: lead.message, source: lead.source }
+
+  const blocked = await prisma.monthlyInvoice.findFirst({
+    where: { clientId: d.campagne.clientId, status: 'SENT' },
+    select: { id: true },
+  })
+
+  if (blocked) {
+    // On prévient uniquement JBoost (labels « Mail JBoost » du site → du client → fallback JBOOST_EMAIL).
+    const site = parseLabeledRecipients(d.notifyEmails)
+    const cli = parseLabeledRecipients(client.notifyEmails)
+    const recipients = [...new Set(site.jboost.length ? site.jboost : cli.jboost.length ? cli.jboost : parseRecipients(process.env.JBOOST_EMAIL))]
+    if (recipients.length > 0) {
+      try {
+        await sendLeadEmail({
+          to: recipients,
+          replyTo: lead.email || undefined,
+          siteName: d.name,
+          campagneName: d.campagne.name,
+          clientName: client.name,
+          lead: leadInfo,
+          note: `⚠️ ${client.name} suspendu (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.`,
+        })
+      } catch (e) {
+        console.error('[lead-validate-mail] échec envoi (bloqué):', (e as Error)?.message || e)
+      }
+    }
+    return // pas de forwardedToClient=true : le lead reste à renvoyer au paiement
+  }
+
+  // Client non suspendu : envoi au client (cascade site → client → e-mail du client).
   const recipients = resolveLeadRecipients({
     siteNotifyEmails: d.notifyEmails,
     clientNotifyEmails: client.notifyEmails,
@@ -49,7 +76,7 @@ async function forwardLeadToClientIfNeeded(leadId: string) {
         siteName: d.name,
         campagneName: d.campagne.name,
         clientName: client.name,
-        lead: { name: lead.name, email: lead.email, phone: lead.phone, message: lead.message, source: lead.source },
+        lead: leadInfo,
       })
     } catch (e) {
       // Échec d'envoi : on ne marque pas transmis → il sera retenté (validation ou paiement ultérieur).
@@ -116,8 +143,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const updated = await prisma.inboundLead.update({ where: { id }, data })
 
-  // Transmission au client si le lead vient de devenir facturable (validation d'un doublon, retour au client…).
-  await forwardLeadToClientIfNeeded(id)
+  // Notifier uniquement quand le lead DEVIENT facturable maintenant : validation (→ VALID depuis un
+  // autre statut) ou retour au client. Évite un renvoi/spam à chaque autre modif d'un lead déjà valide.
+  const becameValid = data.status === 'VALID' && lead.status !== 'VALID'
+  if (becameValid || returnedToClient) {
+    await forwardLeadToClientIfNeeded(id)
+  }
 
   return NextResponse.json(updated)
 }
