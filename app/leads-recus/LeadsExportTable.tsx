@@ -36,11 +36,19 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleString('fr-FR')
 }
 
+// Date locale "AAAA-MM-JJ" pour comparer avec les <input type="date">
+function localYMD(iso: string) {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function LeadsExportTable({ rows, isAdmin }: { rows: ExportRow[]; isAdmin: boolean }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   // Suppression d'un lead, avec confirmation. `force` = admin qui supprime un lead déjà facturé.
   async function remove(r: ExportRow, force = false) {
@@ -66,12 +74,13 @@ export default function LeadsExportTable({ rows, isAdmin }: { rows: ExportRow[];
   }
 
   const q = search.trim().toLowerCase()
-  const filtered = q
-    ? rows.filter((r) =>
-        [r.name, r.email, r.phone, r.message, r.source, r.clientName, r.campagneName, r.siteName, r.offers]
-          .filter(Boolean).join(' ').toLowerCase().includes(q),
-      )
-    : rows
+  const filtered = rows.filter((r) => {
+    const ymd = localYMD(r.receivedAt)
+    if (dateFrom && ymd < dateFrom) return false
+    if (dateTo && ymd > dateTo) return false
+    if (q && ![r.name, r.email, r.phone, r.message, r.source, r.clientName, r.campagneName, r.siteName, r.offers].filter(Boolean).join(' ').toLowerCase().includes(q)) return false
+    return true
+  })
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -81,6 +90,13 @@ export default function LeadsExportTable({ rows, isAdmin }: { rows: ExportRow[];
             <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
           </svg>
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher (nom, email, client, site…)" className="w-full h-9 pl-9 pr-3 text-sm border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-wrap">
+          <span>Du</span>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 px-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <span>au</span>
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 px-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(''); setDateTo('') }} className="h-7 w-7 rounded-md hover:bg-gray-100 text-gray-400" title="Effacer les dates">✕</button>}
         </div>
         <div className="ml-auto">
           <LeadsExportButtons rows={filtered} title="Tous les leads reçus" fileBase="tous-les-leads" />

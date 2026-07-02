@@ -38,11 +38,19 @@ function commissionLabel(o: Offer) {
   return o.commissionType === 'FIXED' ? `${o.commissionValue} €` : `${o.commissionValue} %`
 }
 
+// Date locale "AAAA-MM-JJ" pour comparer avec les <input type="date">
+function localYMD(iso: string) {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function AppelerList({ rows }: { rows: CallRow[] }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'todo' | 'pris' | 'all'>('todo')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const isPris = (r: CallRow) => r.chosenOfferIds.length > 0
   const todoCount = rows.filter((r) => !isPris(r)).length
@@ -50,12 +58,13 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
 
   const byFilter = rows.filter((r) => (filter === 'todo' ? !isPris(r) : filter === 'pris' ? isPris(r) : true))
   const q = search.trim().toLowerCase()
-  const filtered = q
-    ? byFilter.filter((r) =>
-        [r.name, r.email, r.phone, r.message, r.source, r.clientName, r.campagneName, r.siteName]
-          .filter(Boolean).join(' ').toLowerCase().includes(q),
-      )
-    : byFilter
+  const filtered = byFilter.filter((r) => {
+    const ymd = localYMD(r.receivedAt)
+    if (dateFrom && ymd < dateFrom) return false
+    if (dateTo && ymd > dateTo) return false
+    if (q && ![r.name, r.email, r.phone, r.message, r.source, r.clientName, r.campagneName, r.siteName].filter(Boolean).join(' ').toLowerCase().includes(q)) return false
+    return true
+  })
 
   async function patch(id: string, payload: Record<string, unknown>) {
     setBusyId(id)
@@ -90,6 +99,13 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
           <button onClick={() => setFilter('all')} className={`${tabBase} ${filter === 'all' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
             Tous <span className={`text-xs px-1.5 rounded ${filter === 'all' ? 'bg-white/25' : 'bg-gray-100 text-gray-600'}`}>{rows.length}</span>
           </button>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-wrap">
+          <span>Du</span>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 px-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <span>au</span>
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 px-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(''); setDateTo('') }} className="h-7 w-7 rounded-md hover:bg-gray-100 text-gray-400" title="Effacer les dates">✕</button>}
         </div>
         <div className="relative ml-auto w-full sm:w-auto sm:min-w-[280px]">
           <svg className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round">

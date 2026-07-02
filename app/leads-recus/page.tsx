@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import LeadsExportTable, { type ExportRow } from './LeadsExportTable'
+import AddLeadModal from '@/app/components/AddLeadModal'
 
 export default async function LeadsRecusPage() {
   const me = await getCurrentUser()
@@ -37,6 +38,14 @@ export default async function LeadsRecusPage() {
     offers: l.chosenOffers.map((o) => o.name).join(', '),
   }))
 
+  // Sites disponibles pour l'ajout manuel d'un lead
+  const sitesRaw = await prisma.dossier.findMany({
+    where: { campagne: { client: filter } },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, campagne: { select: { name: true, client: { select: { name: true } } } } },
+  })
+  const sites = sitesRaw.map((s) => ({ id: s.id, label: `${s.campagne.client.name} · ${s.campagne.name} · ${s.name}` }))
+
   return (
     <>
       <Header />
@@ -49,11 +58,14 @@ export default async function LeadsRecusPage() {
             Retour au dashboard
           </Link>
 
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Tous les leads reçus</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {rows.length} lead{rows.length > 1 ? 's' : ''} reçu{rows.length > 1 ? 's' : ''}, tous clients/campagnes/sites confondus. Exportable en Excel ou CSV.
-            </p>
+          <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Tous les leads reçus</h1>
+              <p className="text-gray-500 text-sm mt-1">
+                {rows.length} lead{rows.length > 1 ? 's' : ''} reçu{rows.length > 1 ? 's' : ''}, tous clients/campagnes/sites confondus. Exportable en Excel, CSV ou PDF.
+              </p>
+            </div>
+            <AddLeadModal sites={sites} />
           </div>
 
           <LeadsExportTable rows={rows} isAdmin={me.role === 'ADMIN'} />

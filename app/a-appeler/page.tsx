@@ -5,6 +5,7 @@ import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import AppelerList, { type CallRow } from './AppelerList'
 import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
+import AddLeadModal from '@/app/components/AddLeadModal'
 
 export default async function AAppelerPage() {
   const me = await getCurrentUser()
@@ -83,6 +84,14 @@ export default async function AAppelerPage() {
     }
   })
 
+  // Sites disponibles pour l'ajout manuel d'un lead (ici, affecté à JBoost)
+  const sitesRaw = await prisma.dossier.findMany({
+    where: { campagne: { client: filter } },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, campagne: { select: { name: true, client: { select: { name: true } } } } },
+  })
+  const sites = sitesRaw.map((s) => ({ id: s.id, label: `${s.campagne.client.name} · ${s.campagne.name} · ${s.name}` }))
+
   return (
     <>
       <Header />
@@ -102,7 +111,10 @@ export default async function AAppelerPage() {
                 Leads affectés à JBoost : c&apos;est <strong>nous</strong> qui les rappelons. Quand un lead accepte, choisis l&apos;offre qu&apos;il a prise.
               </p>
             </div>
-            <LeadsExportButtons rows={exportRows} title="Leads à appeler (JBoost)" fileBase="leads-a-appeler" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <AddLeadModal sites={sites} assignJboost />
+              <LeadsExportButtons rows={exportRows} title="Leads à appeler (JBoost)" fileBase="leads-a-appeler" />
+            </div>
           </div>
 
           {/* Totaux de nos appels (argent dû par les clients sur les offres prises) */}
