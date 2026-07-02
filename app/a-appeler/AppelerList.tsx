@@ -94,7 +94,7 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
             À traiter <span className={`text-xs px-1.5 rounded ${filter === 'todo' ? 'bg-white/25' : 'bg-gray-100 text-gray-600'}`}>{todoCount}</span>
           </button>
           <button onClick={() => setFilter('pris')} className={`${tabBase} ${filter === 'pris' ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
-            Pris <span className={`text-xs px-1.5 rounded ${filter === 'pris' ? 'bg-white/25' : 'bg-gray-100 text-gray-600'}`}>{prisCount}</span>
+            Acceptés <span className={`text-xs px-1.5 rounded ${filter === 'pris' ? 'bg-white/25' : 'bg-gray-100 text-gray-600'}`}>{prisCount}</span>
           </button>
           <button onClick={() => setFilter('all')} className={`${tabBase} ${filter === 'all' ? 'bg-gray-800 border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
             Tous <span className={`text-xs px-1.5 rounded ${filter === 'all' ? 'bg-white/25' : 'bg-gray-100 text-gray-600'}`}>{rows.length}</span>
@@ -186,7 +186,7 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {isPris(r) ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">✓ Pris</span>
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">✓ Accepté</span>
                     ) : (
                       <button onClick={() => patch(r.id, { assignedToJboost: false })} disabled={busyId === r.id} className="text-xs font-semibold text-gray-600 hover:text-gray-800 disabled:opacity-50">↩ Rendre au client</button>
                     )}

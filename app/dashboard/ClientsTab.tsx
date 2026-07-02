@@ -26,7 +26,7 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
           </svg>
-          Clients
+          Clients JBOOST
         </h2>
         <span className="text-[#787C8A] text-[13px] font-medium">
           {clients.length} client{clients.length > 1 ? 's' : ''} actif{clients.length > 1 ? 's' : ''}.
