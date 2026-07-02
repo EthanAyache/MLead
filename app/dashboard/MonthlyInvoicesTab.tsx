@@ -28,8 +28,25 @@ export default function MonthlyInvoicesTab({ rows, isAdmin }: { rows: MonthlyRow
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
+  const [busyDel, setBusyDel] = useState<string | null>(null)
 
   const unpaid = rows.filter((r) => r.status === 'SENT' || r.status === 'FAILED').length
+
+  async function cancelInvoice(r: MonthlyRow) {
+    if (!confirm(`Annuler la facture « ${r.clientName} · ${r.period} » (${fmtEur(r.amount)}) ?\n\nSes ${r.leadCount} lead(s) redeviendront facturables et la facture Stripe sera annulée si elle n'est pas payée. Irréversible.`)) return
+    setBusyDel(r.id)
+    setMsg('')
+    try {
+      const res = await fetch(`/api/monthly-invoices/${r.id}`, { method: 'DELETE' })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) setMsg('⚠ ' + (d.error || 'Erreur'))
+      else router.refresh()
+    } catch {
+      setMsg('⚠ Erreur réseau')
+    } finally {
+      setBusyDel(null)
+    }
+  }
 
   async function runBilling() {
     if (!confirm("Lancer la facturation du mois ?\n\nChaque client ayant des leads non facturés recevra une facture Stripe, et sera suspendu (ne reçoit plus ses leads) tant qu'il n'a pas payé.")) return
@@ -114,18 +131,25 @@ export default function MonthlyInvoicesTab({ rows, isAdmin }: { rows: MonthlyRow
                     <td className="px-5 py-3.5">
                       <span className={`badge ${st.cls}`}><span className="b-dot" />{st.label}</span>
                     </td>
-                    <td className="px-5 py-3.5 text-right">
-                      {r.stripeInvoiceId ? (
-                        <a href={`https://dashboard.stripe.com/test/invoices/${r.stripeInvoiceId}`} target="_blank" rel="noopener noreferrer" title="Ouvrir sur Stripe" className="inline-flex w-7 h-7 rounded-md bg-[#635BFF]/10 hover:bg-[#635BFF]/20 text-[#635BFF] items-center justify-center transition">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                            <polyline points="15 3 21 3 21 9" />
-                            <line x1="10" y1="14" x2="21" y2="3" />
-                          </svg>
-                        </a>
-                      ) : (
-                        <span className="text-[#C7C9D3]">—</span>
-                      )}
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        {r.stripeInvoiceId ? (
+                          <a href={`https://dashboard.stripe.com/test/invoices/${r.stripeInvoiceId}`} target="_blank" rel="noopener noreferrer" title="Ouvrir sur Stripe" className="inline-flex w-7 h-7 rounded-md bg-[#635BFF]/10 hover:bg-[#635BFF]/20 text-[#635BFF] items-center justify-center transition">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                              <polyline points="15 3 21 3 21 9" />
+                              <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                          </a>
+                        ) : (
+                          <span className="text-[#C7C9D3]">—</span>
+                        )}
+                        {isAdmin && (
+                          <button onClick={() => cancelInvoice(r)} disabled={busyDel === r.id} title="Annuler / supprimer cette facture" className="inline-flex w-7 h-7 rounded-md border border-red-200 text-red-600 hover:bg-red-50 items-center justify-center transition disabled:opacity-50">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
