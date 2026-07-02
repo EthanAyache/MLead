@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 
 export type ExportRow = {
@@ -13,6 +14,7 @@ export type ExportRow = {
   source: string | null
   status: 'VALID' | 'DUPLICATE' | 'REJECTED'
   assignedToJboost: boolean
+  billed: boolean
   clientName: string
   campagneName: string
   siteName: string
@@ -35,7 +37,30 @@ function fmtDate(iso: string) {
 }
 
 export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState('')
+
+  // Suppression définitive d'un lead, avec confirmation. Un lead déjà facturé est refusé par l'API (409).
+  async function remove(r: ExportRow) {
+    if (!confirm(`Supprimer définitivement ce lead${r.name ? ` « ${r.name} »` : ''} ?\n\nCette action est irréversible.`)) return
+    setBusyId(r.id)
+    setError('')
+    try {
+      const res = await fetch(`/api/inbound-leads/${r.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setError(d.error || 'Suppression impossible.')
+      } else {
+        router.refresh()
+      }
+    } catch {
+      setError('Erreur réseau lors de la suppression.')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   const q = search.trim().toLowerCase()
   const filtered = q
@@ -108,6 +133,8 @@ export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
         </div>
       </div>
 
+      {error && <div className="px-4 py-2 bg-red-50 border-b border-red-100 text-red-700 text-sm">⚠ {error}</div>}
+
       {rows.length === 0 ? (
         <div className="p-12 text-center text-gray-500">Aucun lead reçu pour l&apos;instant.</div>
       ) : filtered.length === 0 ? (
@@ -125,6 +152,7 @@ export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Campagne / Site</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Statut</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Offres</th>
+                <th className="text-right px-4 py-3 font-semibold text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -145,6 +173,19 @@ export default function LeadsExportTable({ rows }: { rows: ExportRow[] }) {
                     {r.assignedToJboost && <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700">JBOOST</span>}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate" title={r.offers}>{r.offers || '—'}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    {r.billed ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-400" title="Lead déjà facturé — suppression impossible">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                        verrouillé
+                      </span>
+                    ) : (
+                      <button onClick={() => remove(r)} disabled={busyId === r.id} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 disabled:opacity-50">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        {busyId === r.id ? '…' : 'Supprimer'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

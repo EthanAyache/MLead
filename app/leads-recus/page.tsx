@@ -30,6 +30,7 @@ export default async function LeadsRecusPage() {
     source: l.source,
     status: l.status,
     assignedToJboost: l.assignedToJboost,
+    billed: l.monthlyInvoiceId !== null,
     clientName: l.dossier.campagne.client.name,
     campagneName: l.dossier.campagne.name,
     siteName: l.dossier.name,
