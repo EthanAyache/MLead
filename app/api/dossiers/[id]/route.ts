@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { generateDossierToken } from '@/lib/token'
+import { DEPARTMENT_KEYS } from '@/lib/departments'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
@@ -15,6 +16,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (typeof body.active === 'boolean') data.active = body.active
   if ('contractTerms' in body) data.contractTerms = (body.contractTerms ?? '').trim() || null
   if ('notifyEmails' in body) data.notifyEmails = (body.notifyEmails ?? '').trim() || null
+  if (typeof body.department === 'string' && (DEPARTMENT_KEYS as string[]).includes(body.department)) {
+    data.department = body.department
+  }
   if (body.unitPrice !== undefined) {
     const p = parseFloat(body.unitPrice)
     if (!(p >= 0)) return NextResponse.json({ error: 'Prix unitaire invalide' }, { status: 400 })

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { DEPARTMENTS } from '@/lib/departments'
 
 type Extra = { label: string; email: string }
 
@@ -27,7 +28,7 @@ function parseEmails(raw: string): { client: string; jboost: string; extras: Ext
 }
 
 export default function DossierSettings({
-  dossierId, token, unitPrice, active, isAdmin, origin, notifyEmails,
+  dossierId, token, unitPrice, active, isAdmin, origin, notifyEmails, department,
 }: {
   dossierId: string
   token: string
@@ -36,11 +37,13 @@ export default function DossierSettings({
   isAdmin: boolean
   origin: string
   notifyEmails: string
+  department: string
 }) {
   const router = useRouter()
   const [tok, setTok] = useState(token)
   const [price, setPrice] = useState(String(unitPrice))
   const [isActive, setIsActive] = useState(active)
+  const [dept, setDept] = useState(department)
   const initEmails = parseEmails(notifyEmails)
   const [clientMail, setClientMail] = useState(initEmails.client)
   const [jboostMail, setJboostMail] = useState(initEmails.jboost)
@@ -87,6 +90,12 @@ export default function DossierSettings({
 
   async function savePrice() {
     const d = await patch({ unitPrice: price })
+    if (d) router.refresh()
+  }
+
+  async function changeDept(value: string) {
+    setDept(value)
+    const d = await patch({ department: value })
     if (d) router.refresh()
   }
 
@@ -166,6 +175,13 @@ export default function DossierSettings({
             <span className="text-gray-500 text-sm">€</span>
             <button onClick={savePrice} disabled={busy} className="px-3 py-2 rounded-lg bg-gray-900 hover:bg-black text-white text-sm font-semibold disabled:opacity-50">Enregistrer</button>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Département</label>
+          <select value={dept} onChange={(e) => changeDept(e.target.value)} disabled={busy} className="border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+            {DEPARTMENTS.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+          </select>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">

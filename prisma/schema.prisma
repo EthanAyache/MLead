@@ -60,6 +60,15 @@ enum MonthlyInvoiceStatus {
   FAILED
 }
 
+// Département métier d'un site (regroupement thématique pour s'y retrouver).
+enum Department {
+  VOYAGES
+  EVENTS
+  BTP
+  BOUTIQUE
+  AUTRE
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -365,6 +374,8 @@ model Dossier {
   token     String   @unique // 'ml_' + 32 hex, identifie le site dans l'URL de l'API
   unitPrice Float    @default(0)
   active    Boolean  @default(true)
+  // Département métier du site (regroupement pour s'y retrouver)
+  department Department @default(AUTRE)
   // Termes du contrat (texte libre, éditable) propres à ce site
   contractTerms String? @db.Text
   // Destinataires e-mail (séparés par , ; ou retour ligne) à qui transférer chaque lead reçu
