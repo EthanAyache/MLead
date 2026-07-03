@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from 'nodemailer'
+import { prettyFieldLabel } from '@/lib/leadExtra'
 
 // Transporteur SMTP (Gmail : smtp.gmail.com, mot de passe d'application). Configuré via les variables
 // d'environnement : SMTP_HOST, SMTP_PORT (465 SSL / 587 TLS), SMTP_USER, SMTP_PASS, MAIL_FROM
@@ -112,6 +113,8 @@ export async function sendLeadEmail(opts: {
   campagneName: string
   clientName: string
   lead: LeadInfo
+  // Champs supplémentaires du formulaire (destination, dates, compagnie…) : { [clé]: valeur }
+  extra?: Record<string, string> | null
   // Bandeau d'avertissement optionnel (ex. « client bloqué, lead non transmis »)
   note?: string
 }): Promise<boolean> {
@@ -133,6 +136,15 @@ export async function sendLeadEmail(opts: {
     lead.message ? { label: 'Message', text: String(lead.message), html: escapeHtml(String(lead.message)).replace(/\n/g, '<br>') } : null,
     lead.source ? { label: 'Source', text: String(lead.source), html: escapeHtml(String(lead.source)) } : null,
   ].filter((f): f is Field => f !== null)
+
+  // Champs supplémentaires du formulaire, ajoutés après les champs standard.
+  if (opts.extra) {
+    for (const [k, v] of Object.entries(opts.extra)) {
+      const val = String(v ?? '').trim()
+      if (!val) continue
+      fields.push({ label: prettyFieldLabel(k), text: val, html: escapeHtml(val).replace(/\n/g, '<br>') })
+    }
+  }
 
   const text =
     (opts.note ? `${opts.note}\n\n` : '') +

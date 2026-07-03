@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import { sendLeadEmail, resolveLeadRecipients, parseLabeledRecipients, parseRecipients } from '@/lib/mail'
+import { coerceExtra } from '@/lib/leadExtra'
 
 const ALLOWED = ['VALID', 'DUPLICATE', 'REJECTED'] as const
 type Status = (typeof ALLOWED)[number]
@@ -33,6 +34,7 @@ async function forwardLeadToClientIfNeeded(leadId: string) {
   const d = lead.dossier
   const client = d.campagne.client
   const leadInfo = { name: lead.name, email: lead.email, phone: lead.phone, message: lead.message, source: lead.source }
+  const extra = coerceExtra(lead.extra)
 
   const blocked = await prisma.monthlyInvoice.findFirst({
     where: { clientId: d.campagne.clientId, status: 'SENT' },
@@ -53,6 +55,7 @@ async function forwardLeadToClientIfNeeded(leadId: string) {
           campagneName: d.campagne.name,
           clientName: client.name,
           lead: leadInfo,
+          extra,
           note: `⚠️ ${client.name} suspendu (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.`,
         })
       } catch (e) {

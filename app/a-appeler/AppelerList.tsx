@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { prettyFieldLabel } from '@/lib/leadExtra'
 
 export type CallRow = {
   id: string
@@ -11,6 +12,7 @@ export type CallRow = {
   phone: string | null
   message: string | null
   source: string | null
+  extra: Record<string, string> | null
   receivedAt: string
   clientName: string
   campagneName: string
@@ -49,6 +51,7 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'todo' | 'pris' | 'all'>('todo')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
@@ -62,7 +65,7 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
     const ymd = localYMD(r.receivedAt)
     if (dateFrom && ymd < dateFrom) return false
     if (dateTo && ymd > dateTo) return false
-    if (q && ![r.name, r.email, r.phone, r.message, r.source, r.clientName, r.campagneName, r.siteName].filter(Boolean).join(' ').toLowerCase().includes(q)) return false
+    if (q && ![r.name, r.email, r.phone, r.message, r.source, r.clientName, r.campagneName, r.siteName, ...(r.extra ? Object.values(r.extra) : [])].filter(Boolean).join(' ').toLowerCase().includes(q)) return false
     return true
   })
 
@@ -136,8 +139,11 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
           <tbody>
             {filtered.map((r) => {
               const chosen = r.offers.filter((o) => r.chosenOfferIds.includes(o.id))
+              const hasDetails = !!(r.message || (r.extra && Object.keys(r.extra).length))
+              const open = openId === r.id
               return (
-                <tr key={r.id} className={`border-b border-gray-100 hover:bg-gray-50 transition align-top ${isPris(r) ? 'bg-green-50/40' : ''}`}>
+                <Fragment key={r.id}>
+                <tr className={`border-b ${open ? 'border-gray-50' : 'border-gray-100'} hover:bg-gray-50 transition align-top ${isPris(r) ? 'bg-green-50/40' : ''}`}>
                   <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(r.receivedAt).toLocaleDateString('fr-FR')}</td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{r.name || '—'}</div>
@@ -145,6 +151,11 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
                       {r.phone && <a href={`tel:${r.phone.replace(/[^\d+]/g, '')}`} className="text-blue-600 hover:underline whitespace-nowrap">{r.phone}</a>}
                       {r.email && <a href={`mailto:${r.email}`} className="text-blue-600 hover:underline">{r.email}</a>}
                     </div>
+                    {hasDetails && (
+                      <button onClick={() => setOpenId(open ? null : r.id)} className="mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                        {open ? '▾ Masquer' : '▸ Détails'}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     <div className="font-semibold text-gray-800">{r.clientName}</div>
@@ -192,6 +203,31 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
                     )}
                   </td>
                 </tr>
+                {open && hasDetails && (
+                  <tr className="bg-gray-50/70 border-b border-gray-100">
+                    <td colSpan={6} className="px-4 pb-4 pt-0">
+                      <div className="rounded-lg border border-gray-200 bg-white p-3.5">
+                        {r.message && (
+                          <div className="mb-3">
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">Message</div>
+                            <div className="text-sm text-gray-800 whitespace-pre-wrap">{r.message}</div>
+                          </div>
+                        )}
+                        {r.extra && Object.keys(r.extra).length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                            {Object.entries(r.extra).map(([k, v]) => (
+                              <div key={k}>
+                                <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400">{prettyFieldLabel(k)}</div>
+                                <div className="text-sm text-gray-800 break-words">{v}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               )
             })}
           </tbody>

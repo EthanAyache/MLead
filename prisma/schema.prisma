@@ -428,6 +428,8 @@ model InboundLead {
   phone      String?
   message    String?    @db.Text
   source     String?
+  // Champs supplémentaires envoyés par le formulaire (destination, dates, compagnie…) : { [clé]: valeur }
+  extra      Json?
   status     LeadStatus @default(VALID)
   ip         String?
   // Affecté à JBoost = c'est NOUS qui rappelons ce lead → exclu de la facture du client

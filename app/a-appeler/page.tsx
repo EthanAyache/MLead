@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import AutoRefresh from '@/app/components/AutoRefresh'
+import { coerceExtra } from '@/lib/leadExtra'
 import AppelerList, { type CallRow } from './AppelerList'
 import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
 import AddLeadModal from '@/app/components/AddLeadModal'
@@ -53,6 +54,7 @@ export default async function AAppelerPage() {
       phone: l.phone,
       message: l.message,
       source: l.source,
+      extra: coerceExtra(l.extra),
       receivedAt: l.receivedAt.toISOString(),
       clientName: l.dossier.campagne.client.name,
       campagneName: l.dossier.campagne.name,

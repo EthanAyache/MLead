@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { prettyFieldLabel } from '@/lib/leadExtra'
 
 export type LeadRow = {
   id: string
@@ -10,6 +11,7 @@ export type LeadRow = {
   phone: string | null
   message: string | null
   source: string | null
+  extra: Record<string, string> | null
   status: 'VALID' | 'DUPLICATE' | 'REJECTED'
   assignedToJboost: boolean
   receivedAt: string
@@ -27,6 +29,7 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
   const [search, setSearch] = useState('')
   const [view, setView] = useState<'client' | 'jboost'>('client')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
 
   const assignedCount = rows.filter((r) => r.assignedToJboost).length
   const clientCount = rows.length - assignedCount
@@ -40,7 +43,7 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
   const q = search.trim().toLowerCase()
   const filtered = q
     ? byView.filter((r) =>
-        [r.name, r.email, r.phone, r.message, r.source].filter(Boolean).join(' ').toLowerCase().includes(q),
+        [r.name, r.email, r.phone, r.message, r.source, ...(r.extra ? Object.values(r.extra) : [])].filter(Boolean).join(' ').toLowerCase().includes(q),
       )
     : byView
 
@@ -127,13 +130,21 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
           <tbody>
             {filtered.map((r) => {
               const badge = STATUS_BADGE[r.status]
+              const hasDetails = !!(r.message || (r.extra && Object.keys(r.extra).length))
+              const open = openId === r.id
               return (
-                <tr key={r.id} className={`border-b border-gray-100 hover:bg-gray-50 transition align-top ${r.assignedToJboost ? 'bg-violet-50/40' : ''}`}>
+                <Fragment key={r.id}>
+                <tr className={`border-b ${open ? 'border-gray-50' : 'border-gray-100'} hover:bg-gray-50 transition align-top ${r.assignedToJboost ? 'bg-violet-50/40' : ''}`}>
                   <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(r.receivedAt).toLocaleString('fr-FR')}</td>
                   <td className="px-4 py-3 text-gray-900 font-medium">
                     {r.name || '—'}
                     {r.assignedToJboost && (
                       <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700">JBOOST</span>
+                    )}
+                    {hasDetails && (
+                      <button onClick={() => setOpenId(open ? null : r.id)} className="block mt-0.5 text-xs font-semibold text-blue-600 hover:underline">
+                        {open ? '▾ Masquer' : '▸ Détails'}
+                      </button>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -174,6 +185,31 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
                     )}
                   </td>
                 </tr>
+                {open && hasDetails && (
+                  <tr className="bg-gray-50/70 border-b border-gray-100">
+                    <td colSpan={6} className="px-4 pb-4 pt-0">
+                      <div className="rounded-lg border border-gray-200 bg-white p-3.5">
+                        {r.message && (
+                          <div className="mb-3">
+                            <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">Message</div>
+                            <div className="text-sm text-gray-800 whitespace-pre-wrap">{r.message}</div>
+                          </div>
+                        )}
+                        {r.extra && Object.keys(r.extra).length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                            {Object.entries(r.extra).map(([k, v]) => (
+                              <div key={k}>
+                                <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400">{prettyFieldLabel(k)}</div>
+                                <div className="text-sm text-gray-800 break-words">{v}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               )
             })}
           </tbody>

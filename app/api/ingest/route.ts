@@ -74,6 +74,19 @@ export async function POST(request: Request) {
   const message = (String(body.message ?? '').trim().slice(0, 5000)) || null
   const source = clamp(body.source) || null
 
+  // Champs supplémentaires : tout ce que le formulaire envoie en plus des champs standard
+  // (ex. destination, dates, compagnie…). On les garde pour les afficher dans MonsieurLead et le mail.
+  const RESERVED = new Set(['token', 'website', '_hp', 'nom', 'name', 'email', 'telephone', 'phone', 'message', 'source'])
+  const extraEntries: [string, string][] = []
+  for (const [k, v] of Object.entries(body)) {
+    if (RESERVED.has(k.toLowerCase().trim())) continue
+    const val = String(v ?? '').trim().slice(0, 500)
+    if (!val) continue
+    extraEntries.push([k.slice(0, 60), val])
+    if (extraEntries.length >= 30) break
+  }
+  const extra = extraEntries.length ? Object.fromEntries(extraEntries) : null
+
   // Au moins un moyen de contact, sinon le lead est vide
   if (!name && !email && !phone) {
     return json({ error: 'lead vide (nom, email ou téléphone requis)' }, 400)
@@ -126,6 +139,7 @@ export async function POST(request: Request) {
       phone: phone || null,
       message,
       source,
+      extra: extra ?? undefined,
       status,
       ip,
       assignedToJboost,
@@ -169,6 +183,7 @@ export async function POST(request: Request) {
           campagneName: dossier.campagne.name,
           clientName: client.name,
           lead: { name, email, phone, message, source },
+          extra,
           note,
         })
       } catch (e) {

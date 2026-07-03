@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { ttcFromHt, formatEuros } from '@/lib/tva'
 import Header from '@/app/dashboard/Header'
 import AutoRefresh from '@/app/components/AutoRefresh'
+import { coerceExtra } from '@/lib/leadExtra'
 import DossierSettings from './DossierSettings'
 import LeadsList, { type LeadRow } from './LeadsList'
 import ContractTermsButton from './ContractTermsButton'
@@ -73,6 +74,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     phone: l.phone,
     message: l.message,
     source: l.source,
+    extra: coerceExtra(l.extra),
     status: l.status,
     assignedToJboost: l.assignedToJboost,
     receivedAt: l.receivedAt.toISOString(),
