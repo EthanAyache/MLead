@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { ttcFromHt, formatEuros } from '@/lib/tva'
 import Header from '@/app/dashboard/Header'
+import AutoRefresh from '@/app/components/AutoRefresh'
 import DossierSettings from './DossierSettings'
 import LeadsList, { type LeadRow } from './LeadsList'
 import ContractTermsButton from './ContractTermsButton'
@@ -92,6 +93,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
   return (
     <>
       <Header />
+      <AutoRefresh />
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-6xl mx-auto">
           <Link href={`/campagnes/${dossier.campagne.id}`} className="text-sm text-blue-600 hover:text-blue-700 font-medium">← Sites de la campagne {dossier.campagne.name}</Link>

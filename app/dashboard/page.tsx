@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from './Header'
+import AutoRefresh from '@/app/components/AutoRefresh'
 import Kpis from './Kpis'
 import DashboardTabs from './DashboardTabs'
 
@@ -92,6 +93,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F2F3F6]">
       <Header />
+      <AutoRefresh />
 
       <main className="max-w-[1320px] mx-auto px-[22px] py-[22px]">
         <div className="flex items-start gap-4 flex-wrap mb-[18px] mt-2">

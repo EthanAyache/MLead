@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
+import AutoRefresh from '@/app/components/AutoRefresh'
 import AppelerList, { type CallRow } from './AppelerList'
 import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
 import AddLeadModal from '@/app/components/AddLeadModal'
@@ -95,6 +96,7 @@ export default async function AAppelerPage() {
   return (
     <>
       <Header />
+      <AutoRefresh />
       <main className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-6xl mx-auto">
           <Link href="/dashboard" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold text-sm mb-4">
