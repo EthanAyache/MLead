@@ -87,7 +87,7 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
       }
 
       // 2. Leads facturables non encore facturés, sur tous les sites du client.
-      const leads = await prisma.inboundLead.findMany({
+      const allLeads = await prisma.inboundLead.findMany({
         where: {
           status: 'VALID',
           assignedToJboost: false,
@@ -97,8 +97,13 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
         select: { id: true, dossier: { select: { id: true, name: true, unitPrice: true } } },
       })
 
+      // Les sites à 0 € sortent de la facturation : leurs leads ne sont jamais facturés
+      // (ils restent transmis au client par e-mail, mais n'apparaissent pas sur la facture).
+      const leads = allLeads.filter((l) => l.dossier.unitPrice > 0)
+
       if (leads.length === 0) {
-        results.push({ clientId: client.id, name: client.name, leadCount: 0, amount: 0, status: 'SKIPPED', reason: 'aucun lead facturable' })
+        const reason = allLeads.length === 0 ? 'aucun lead facturable' : 'aucun lead facturable (sites à 0 €)'
+        results.push({ clientId: client.id, name: client.name, leadCount: 0, amount: 0, status: 'SKIPPED', reason })
         continue
       }
 
