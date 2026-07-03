@@ -151,6 +151,9 @@ model Brand {
 model Client {
   id               String      @id @default(cuid())
   name             String
+  // Raison sociale et numéro SIRET (facturation / identification de l'entreprise cliente)
+  companyName      String?
+  siret            String?
   email            String?
   phone            String?
   // E-mails (séparés par , ; ou retour ligne) où sont transférés les leads par défaut, pour tous ses sites
@@ -374,6 +377,9 @@ model Dossier {
   token     String   @unique // 'ml_' + 32 hex, identifie le site dans l'URL de l'API
   unitPrice Float    @default(0)
   active    Boolean  @default(true)
+  // Mode "attribué à JBoost" : quand activé, chaque NOUVEAU lead reçu est automatiquement
+  // affecté à JBoost (rappelé par JBoost, exclu de la facture du client). N'affecte pas les leads déjà reçus.
+  autoAssignJboost Boolean @default(false)
   // Département métier du site (regroupement pour s'y retrouver)
   department Department @default(AUTRE)
   // Termes du contrat (texte libre, éditable) propres à ce site

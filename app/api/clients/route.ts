@@ -27,6 +27,8 @@ export async function POST(request: Request) {
   const client = await prisma.client.create({
     data: {
       name: body.name.trim(),
+      companyName: body.companyName?.trim() || null,
+      siret: body.siret?.replace(/\s/g, '') || null,
       email: body.email?.trim() || null,
       phone: body.phone?.trim() || null,
       notifyEmails: body.notifyEmails?.trim() || null,

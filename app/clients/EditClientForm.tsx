@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 type Client = {
   id: string
   name: string
+  companyName: string | null
+  siret: string | null
   email: string | null
   phone: string | null
   notifyEmails: string | null
@@ -18,6 +20,8 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState(client.name)
+  const [companyName, setCompanyName] = useState(client.companyName ?? '')
+  const [siret, setSiret] = useState(client.siret ?? '')
   const [email, setEmail] = useState(client.email ?? '')
   const [phone, setPhone] = useState(client.phone ?? '')
   const [notifyEmails, setNotifyEmails] = useState(client.notifyEmails ?? '')
@@ -30,6 +34,7 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
     const e: Record<string, string> = {}
     if (!name.trim()) e.name = 'Nom obligatoire'
     if (email && !/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(email)) e.email = 'Email invalide'
+    if (siret && siret.replace(/\s/g, '').length !== 14) e.siret = 'Le SIRET doit comporter 14 chiffres'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -43,7 +48,7 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
       const res = await fetch(`/api/clients/${client.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, notifyEmails, apporteurId: apporteurId || null }),
+        body: JSON.stringify({ name, companyName, siret, email, phone, notifyEmails, apporteurId: apporteurId || null }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -110,6 +115,17 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Nom *</label>
                 <input value={name} onChange={(e) => { setName(e.target.value); setErrors({ ...errors, name: '' }) }} className={`${inputBase} ${errors.name ? err : ok}`} />
                 {errors.name && <p className="text-red-600 text-xs mt-1">⚠ {errors.name}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Nom de l&apos;entreprise</label>
+                <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={`${inputBase} ${ok}`} />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Numéro SIRET</label>
+                <input value={siret} onChange={(e) => { setSiret(e.target.value); setErrors({ ...errors, siret: '' }) }} placeholder="14 chiffres" className={`${inputBase} ${errors.siret ? err : ok}`} />
+                {errors.siret && <p className="text-red-600 text-xs mt-1">⚠ {errors.siret}</p>}
               </div>
 
               <div>

@@ -7,6 +7,8 @@ import EditClientForm from './EditClientForm'
 type Client = {
   id: string
   name: string
+  companyName: string | null
+  siret: string | null
   email: string | null
   phone: string | null
   notifyEmails: string | null
@@ -24,6 +26,8 @@ export default function SearchAndList({ clients, apporteurs }: { clients: Client
     const q = search.toLowerCase()
     return (
       c.name.toLowerCase().includes(q) ||
+      c.companyName?.toLowerCase().includes(q) ||
+      c.siret?.replace(/\s/g, '').includes(q.replace(/\s/g, '')) ||
       c.email?.toLowerCase().includes(q) ||
       c.phone?.toLowerCase().includes(q) ||
       c.apporteur?.name.toLowerCase().includes(q)
@@ -99,7 +103,7 @@ export default function SearchAndList({ clients, apporteurs }: { clients: Client
                         Campagnes
                       </Link>
                       <EditClientForm
-                        client={{ id: c.id, name: c.name, email: c.email, phone: c.phone, notifyEmails: c.notifyEmails, apporteurId: c.apporteurId }}
+                        client={{ id: c.id, name: c.name, companyName: c.companyName, siret: c.siret, email: c.email, phone: c.phone, notifyEmails: c.notifyEmails, apporteurId: c.apporteurId }}
                         apporteurs={apporteurs}
                       />
                     </div>

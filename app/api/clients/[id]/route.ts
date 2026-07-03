@@ -36,6 +36,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const data: Record<string, unknown> = {}
   if (typeof body.name === 'string') data.name = body.name.trim()
+  if ('companyName' in body) data.companyName = body.companyName?.trim() || null
+  if ('siret' in body) data.siret = body.siret?.replace(/\s/g, '') || null
   if ('email' in body) data.email = body.email?.trim() || null
   if ('phone' in body) data.phone = body.phone?.trim() || null
   if ('notifyEmails' in body) data.notifyEmails = body.notifyEmails?.trim() || null

@@ -7,11 +7,13 @@ export default function AddClientForm() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [siret, setSiret] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [notifyEmails, setNotifyEmails] = useState('')
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; siret?: string }>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   function validate() {
@@ -22,6 +24,9 @@ export default function AddClientForm() {
     }
     if (phone && !/^[0-9+\-.\s()]+$/.test(phone)) {
       newErrors.phone = 'Le numéro doit contenir uniquement des chiffres et + - . ( ) espaces'
+    }
+    if (siret && siret.replace(/\s/g, '').length !== 14) {
+      newErrors.siret = 'Le SIRET doit comporter 14 chiffres'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -36,7 +41,7 @@ export default function AddClientForm() {
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, notifyEmails }),
+        body: JSON.stringify({ name, companyName, siret, email, phone, notifyEmails }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -49,7 +54,7 @@ export default function AddClientForm() {
       setLoading(false)
       return
     }
-    setName(''); setEmail(''); setPhone(''); setNotifyEmails(''); setErrors({})
+    setName(''); setCompanyName(''); setSiret(''); setEmail(''); setPhone(''); setNotifyEmails(''); setErrors({})
     setIsOpen(false)
     setLoading(false)
     router.refresh()
@@ -73,6 +78,13 @@ export default function AddClientForm() {
               <div>
                 <input value={name} onChange={(e) => { setName(e.target.value); setErrors({ ...errors, name: undefined }) }} placeholder="Nom *" className={`${inputBase} ${errors.name ? inputErr : inputOk}`} />
                 {errors.name && <p className="text-red-600 text-xs mt-1 ml-1">⚠ {errors.name}</p>}
+              </div>
+              <div>
+                <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Nom de l'entreprise" className={`${inputBase} ${inputOk}`} />
+              </div>
+              <div>
+                <input value={siret} onChange={(e) => { setSiret(e.target.value); setErrors({ ...errors, siret: undefined }) }} placeholder="Numéro SIRET (14 chiffres)" className={`${inputBase} ${errors.siret ? inputErr : inputOk}`} />
+                {errors.siret && <p className="text-red-600 text-xs mt-1 ml-1">⚠ {errors.siret}</p>}
               </div>
               <div>
                 <input value={email} onChange={(e) => { setEmail(e.target.value); setErrors({ ...errors, email: undefined }) }} placeholder="Email" className={`${inputBase} ${errors.email ? inputErr : inputOk}`} />

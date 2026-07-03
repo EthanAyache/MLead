@@ -141,6 +141,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             token={dossier.token}
             unitPrice={dossier.unitPrice}
             active={dossier.active}
+            autoAssignJboost={dossier.autoAssignJboost}
             isAdmin={isAdmin}
             origin={origin}
             notifyEmails={dossier.notifyEmails ?? ''}

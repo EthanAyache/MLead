@@ -29,12 +29,13 @@ function parseEmails(raw: string): { client: string; jboost: string; extras: Ext
 }
 
 export default function DossierSettings({
-  dossierId, token, unitPrice, active, isAdmin, origin, notifyEmails, department,
+  dossierId, token, unitPrice, active, autoAssignJboost, isAdmin, origin, notifyEmails, department,
 }: {
   dossierId: string
   token: string
   unitPrice: number
   active: boolean
+  autoAssignJboost: boolean
   isAdmin: boolean
   origin: string
   notifyEmails: string
@@ -44,6 +45,7 @@ export default function DossierSettings({
   const [tok, setTok] = useState(token)
   const [price, setPrice] = useState(String(unitPrice))
   const [isActive, setIsActive] = useState(active)
+  const [autoJboost, setAutoJboost] = useState(autoAssignJboost)
   const [dept, setDept] = useState(department)
   const initEmails = parseEmails(notifyEmails)
   const [clientMail, setClientMail] = useState(initEmails.client)
@@ -119,6 +121,12 @@ export default function DossierSettings({
     const next = !isActive
     const d = await patch({ active: next })
     if (d) { setIsActive(next); router.refresh() }
+  }
+
+  async function toggleAutoJboost() {
+    const next = !autoJboost
+    const d = await patch({ autoAssignJboost: next })
+    if (d) { setAutoJboost(next); router.refresh() }
   }
 
   async function remove() {
@@ -200,6 +208,31 @@ export default function DossierSettings({
             Supprimer le site
           </button>
         )}
+      </div>
+
+      {/* Attribution automatique des nouveaux leads à JBoost */}
+      <div className="mt-5 pt-4 border-t border-gray-100">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-gray-700 uppercase">Attribuer les nouveaux leads à JBoost</div>
+            <p className="text-[11px] text-gray-400 mt-1 max-w-xl">
+              {autoJboost
+                ? 'Activé : chaque nouveau lead reçu est affecté à JBoost (rappelé par JBoost, exclu de la facture du client). Les leads déjà reçus ne changent pas.'
+                : 'Désactivé : les nouveaux leads vont au client normalement. Activez pour que JBoost rappelle les prochains leads (les anciens ne bougent pas).'}
+            </p>
+          </div>
+          <button
+            onClick={toggleAutoJboost}
+            disabled={busy}
+            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50 ${
+              autoJboost
+                ? 'bg-violet-600 text-white hover:bg-violet-700'
+                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {autoJboost ? '✓ Attribué à JBoost — Désactiver' : 'Attribuer à JBoost'}
+          </button>
+        </div>
       </div>
 
       {/* Transfert e-mail automatique des leads */}

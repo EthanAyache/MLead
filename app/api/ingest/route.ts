@@ -97,12 +97,17 @@ export async function POST(request: Request) {
 
   const client = dossier.campagne.client
 
+  // Mode "attribué à JBoost" du site : le lead est rappelé par JBoost, exclu de la facture du client
+  // et NON transmis au client. Ne concerne que les leads reçus pendant que le mode est actif.
+  const assignedToJboost = dossier.autoAssignJboost
+
   // Client bloqué = facture mensuelle réellement envoyée mais pas encore réglée (SENT).
   // On ne bloque PAS sur FAILED : un échec côté Stripe est notre problème, pas un impayé du client
   // (la facture FAILED sera rejouée au prochain run). Tant que le client n'a pas payé un SENT,
   // on ne lui envoie plus ses leads — mais le lead reste enregistré et JBoost est prévenu.
+  // (Sans objet si le lead est attribué à JBoost : il ne va de toute façon pas au client.)
   let blocked = false
-  if (status === 'VALID') {
+  if (status === 'VALID' && !assignedToJboost) {
     const unpaid = await prisma.monthlyInvoice.findFirst({
       where: { clientId: client.id, status: 'SENT' },
       select: { id: true },
@@ -111,8 +116,8 @@ export async function POST(request: Request) {
   }
 
   // 6. Enregistrement (requête préparée via Prisma).
-  //    forwardedToClient = true seulement si le lead est valide ET va être transmis au client
-  //    (client non suspendu). Sinon false → il sera renvoyé automatiquement à la régularisation.
+  //    forwardedToClient = true seulement si le lead est valide ET transmis au client
+  //    (ni suspendu, ni attribué à JBoost). Sinon false.
   await prisma.inboundLead.create({
     data: {
       dossierId: dossier.id,
@@ -123,19 +128,28 @@ export async function POST(request: Request) {
       source,
       status,
       ip,
-      forwardedToClient: status === 'VALID' && !blocked,
+      assignedToJboost,
+      forwardedToClient: status === 'VALID' && !blocked && !assignedToJboost,
     },
   })
+
+  // Destinataires JBoost uniquement : labels « Mail JBoost » du site → du client → fallback JBOOST_EMAIL.
+  const jboostRecipients = () => {
+    const site = parseLabeledRecipients(dossier.notifyEmails)
+    const cli = parseLabeledRecipients(client.notifyEmails)
+    return [...new Set(site.jboost.length ? site.jboost : cli.jboost.length ? cli.jboost : parseRecipients(process.env.JBOOST_EMAIL))]
+  }
 
   // 7. Transfert e-mail automatique (leads valides uniquement).
   if (status === 'VALID') {
     let recipients: string[]
     let note: string | undefined
-    if (blocked) {
-      // On ne prévient QUE JBoost : labels « Mail JBoost » du site → du client → fallback JBOOST_EMAIL.
-      const site = parseLabeledRecipients(dossier.notifyEmails)
-      const cli = parseLabeledRecipients(client.notifyEmails)
-      recipients = [...new Set(site.jboost.length ? site.jboost : cli.jboost.length ? cli.jboost : parseRecipients(process.env.JBOOST_EMAIL))]
+    if (assignedToJboost) {
+      // Lead attribué à JBoost : c'est JBoost qui rappelle, on ne prévient que JBoost.
+      recipients = jboostRecipients()
+      note = `Lead attribué à JBoost — rappelé par JBoost, non transmis / non facturé au client.`
+    } else if (blocked) {
+      recipients = jboostRecipients()
       note = `⚠️ ${client.name} suspendu (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.`
     } else {
       // Comportement normal : tous les destinataires (cascade site → client → e-mail du client).

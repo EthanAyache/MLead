@@ -22,6 +22,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const data: Record<string, unknown> = {}
   if (typeof body.name === 'string') data.name = body.name.trim()
   if (typeof body.active === 'boolean') data.active = body.active
+  if (typeof body.autoAssignJboost === 'boolean') data.autoAssignJboost = body.autoAssignJboost
   if ('contractTerms' in body) data.contractTerms = (body.contractTerms ?? '').trim() || null
   if ('notifyEmails' in body) data.notifyEmails = (body.notifyEmails ?? '').trim() || null
   if (typeof body.department === 'string' && (DEPARTMENT_KEYS as string[]).includes(body.department)) {
