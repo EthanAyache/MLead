@@ -122,29 +122,62 @@ export async function sendLeadEmail(opts: {
   const { lead } = opts
   const subject = `Nouveau lead — ${opts.campagneName} (${opts.siteName})`
 
-  const lines = [
-    ['Nom', lead.name],
-    ['Email', lead.email],
-    ['Téléphone', lead.phone],
-    ['Message', lead.message],
-    ['Source', lead.source],
-  ].filter(([, v]) => v) as [string, string][]
+  // Champs présents uniquement, avec valeur texte + valeur HTML (e-mail et téléphone cliquables)
+  const A = '#6A4FE6'
+  const telHref = lead.phone ? String(lead.phone).replace(/[^\d+]/g, '') : ''
+  type Field = { label: string; text: string; html: string }
+  const fields: Field[] = [
+    lead.name ? { label: 'Nom', text: String(lead.name), html: escapeHtml(String(lead.name)) } : null,
+    lead.email ? { label: 'Email', text: String(lead.email), html: `<a href="mailto:${escapeHtml(String(lead.email))}" style="color:${A};text-decoration:none;font-weight:600">${escapeHtml(String(lead.email))}</a>` } : null,
+    lead.phone ? { label: 'Téléphone', text: String(lead.phone), html: `<a href="tel:${telHref}" style="color:${A};text-decoration:none;font-weight:600">${escapeHtml(String(lead.phone))}</a>` } : null,
+    lead.message ? { label: 'Message', text: String(lead.message), html: escapeHtml(String(lead.message)).replace(/\n/g, '<br>') } : null,
+    lead.source ? { label: 'Source', text: String(lead.source), html: escapeHtml(String(lead.source)) } : null,
+  ].filter((f): f is Field => f !== null)
 
   const text =
     (opts.note ? `${opts.note}\n\n` : '') +
     `Nouveau lead reçu via MonsieurLead\n\nClient : ${opts.clientName}\nCampagne : ${opts.campagneName}\nSite : ${opts.siteName}\n\n` +
-    lines.map(([k, v]) => `${k} : ${v}`).join('\n')
+    fields.map((f) => `${f.label} : ${f.text}`).join('\n')
+
+  const badge = (txt: string, bg: string, color: string) =>
+    `<span style="display:inline-block;background:${bg};color:${color};font-weight:600;font-size:12px;padding:3px 10px;border-radius:999px;margin:0 5px 5px 0">${escapeHtml(txt)}</span>`
+
+  const rowsHtml = fields
+    .map((f, i) => {
+      const bg = i % 2 ? '#FAFAFC' : '#FFFFFF'
+      return `<tr>
+          <td style="padding:13px 22px;background:${bg};border-bottom:1px solid #EEF0F5;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#9296A5;width:120px;vertical-align:top">${f.label}</td>
+          <td style="padding:13px 22px;background:${bg};border-bottom:1px solid #EEF0F5;font-size:15px;color:#16171D;vertical-align:top;line-height:1.5">${f.html}</td>
+        </tr>`
+    })
+    .join('')
 
   const html = `
-    <div style="font-family:Arial,sans-serif;color:#16171D">
-      ${opts.note ? `<p style="background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;padding:10px 12px;border-radius:8px;font-size:13px;margin:0 0 12px">${escapeHtml(opts.note)}</p>` : ''}
-      <h2 style="margin:0 0 4px">Nouveau lead reçu</h2>
-      <p style="color:#787C8A;margin:0 0 16px">${escapeHtml(opts.clientName)} · ${escapeHtml(opts.campagneName)} · ${escapeHtml(opts.siteName)}</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        ${lines.map(([k, v]) => `<tr><td style="font-weight:bold;color:#414350">${escapeHtml(k)}</td><td>${escapeHtml(String(v))}</td></tr>`).join('')}
+  <div style="background:#F4F5F8;padding:24px 12px;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+    <div style="max-width:600px;margin:0 auto">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+        <tr><td style="background:#6A4FE6;border-radius:14px 14px 0 0;padding:22px 24px">
+          <div style="color:#FFFFFF;font-size:18px;font-weight:800;letter-spacing:-.01em">MonsieurLead</div>
+          <div style="color:#DAD3FB;font-size:13px;margin-top:2px">Nouveau lead reçu 🎉</div>
+        </td></tr>
       </table>
-      <p style="color:#9aa;margin-top:16px;font-size:12px">Transféré automatiquement par MonsieurLead.</p>
-    </div>`
+      <div style="background:#FFFFFF;border:1px solid #E8E9EF;border-top:0;border-radius:0 0 14px 14px;overflow:hidden">
+        <div style="padding:18px 22px 4px">
+          ${opts.note ? `<div style="background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;padding:11px 14px;border-radius:10px;font-size:13px;line-height:1.5;margin-bottom:14px">${escapeHtml(opts.note)}</div>` : ''}
+          <div>
+            ${badge(opts.clientName, '#EFEBFD', '#6A4FE6')}${badge(opts.campagneName, '#F1F2F6', '#4B4F5C')}${badge(opts.siteName, '#F1F2F6', '#4B4F5C')}
+          </div>
+        </div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border-top:1px solid #EEF0F5;margin-top:8px">
+          ${rowsHtml}
+        </table>
+        ${lead.email ? `<div style="padding:18px 22px">
+          <a href="mailto:${escapeHtml(String(lead.email))}" style="display:inline-block;background:#6A4FE6;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:14px;padding:11px 22px;border-radius:10px">Répondre au lead</a>
+        </div>` : ''}
+      </div>
+      <p style="color:#9AA0AE;text-align:center;font-size:11.5px;margin:16px 0 0">Transféré automatiquement par MonsieurLead.</p>
+    </div>
+  </div>`
 
   await t.sendMail({
     from,
