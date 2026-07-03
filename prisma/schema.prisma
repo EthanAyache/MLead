@@ -384,6 +384,8 @@ model Dossier {
   department Department @default(AUTRE)
   // Termes du contrat (texte libre, éditable) propres à ce site
   contractTerms String? @db.Text
+  // Lien du site (URL publique), cliquable depuis la page du site
+  websiteUrl    String?
   // Destinataires e-mail (séparés par , ; ou retour ligne) à qui transférer chaque lead reçu
   notifyEmails  String? @db.Text
   createdAt DateTime @default(now())

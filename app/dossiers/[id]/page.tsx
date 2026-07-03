@@ -7,7 +7,8 @@ import { ttcFromHt, formatEuros } from '@/lib/tva'
 import Header from '@/app/dashboard/Header'
 import DossierSettings from './DossierSettings'
 import LeadsList, { type LeadRow } from './LeadsList'
-import ContractTermsButton, { type OfferRow } from './ContractTermsButton'
+import ContractTermsButton from './ContractTermsButton'
+import OffersButton, { type OfferRow } from './OffersButton'
 import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
 
 export default async function DossierDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -104,8 +105,16 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
                 {dossier.campagne.client.name} · {dossier.campagne.name}
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
-                <ContractTermsButton dossierId={dossier.id} offers={offerRows} />
+                {dossier.websiteUrl ? (
+                  <a href={dossier.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-3xl font-bold text-gray-900 hover:text-blue-700 hover:underline inline-flex items-center gap-2">
+                    {dossier.name}
+                    <span className="text-blue-600 text-xl">↗</span>
+                  </a>
+                ) : (
+                  <h1 className="text-3xl font-bold text-gray-900">{dossier.name}</h1>
+                )}
+                <ContractTermsButton dossierId={dossier.id} contractTerms={dossier.contractTerms ?? ''} />
+                <OffersButton dossierId={dossier.id} offers={offerRows} />
               </div>
               <p className="text-gray-400 text-xs mt-1">Site (source) — reçoit les leads via son lien API</p>
             </div>
@@ -142,6 +151,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             unitPrice={dossier.unitPrice}
             active={dossier.active}
             autoAssignJboost={dossier.autoAssignJboost}
+            websiteUrl={dossier.websiteUrl ?? ''}
             isAdmin={isAdmin}
             origin={origin}
             notifyEmails={dossier.notifyEmails ?? ''}

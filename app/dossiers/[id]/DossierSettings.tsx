@@ -29,13 +29,14 @@ function parseEmails(raw: string): { client: string; jboost: string; extras: Ext
 }
 
 export default function DossierSettings({
-  dossierId, token, unitPrice, active, autoAssignJboost, isAdmin, origin, notifyEmails, department,
+  dossierId, token, unitPrice, active, autoAssignJboost, websiteUrl, isAdmin, origin, notifyEmails, department,
 }: {
   dossierId: string
   token: string
   unitPrice: number
   active: boolean
   autoAssignJboost: boolean
+  websiteUrl: string
   isAdmin: boolean
   origin: string
   notifyEmails: string
@@ -46,6 +47,8 @@ export default function DossierSettings({
   const [price, setPrice] = useState(String(unitPrice))
   const [isActive, setIsActive] = useState(active)
   const [autoJboost, setAutoJboost] = useState(autoAssignJboost)
+  const [web, setWeb] = useState(websiteUrl)
+  const [webSaved, setWebSaved] = useState(false)
   const [dept, setDept] = useState(department)
   const initEmails = parseEmails(notifyEmails)
   const [clientMail, setClientMail] = useState(initEmails.client)
@@ -94,6 +97,11 @@ export default function DossierSettings({
   async function savePrice() {
     const d = await patch({ unitPrice: price })
     if (d) router.refresh()
+  }
+
+  async function saveWeb() {
+    const d = await patch({ websiteUrl: web })
+    if (d) { setWebSaved(true); setTimeout(() => setWebSaved(false), 1800); router.refresh() }
   }
 
   async function changeDept(value: string) {
@@ -208,6 +216,23 @@ export default function DossierSettings({
             Supprimer le site
           </button>
         )}
+      </div>
+
+      {/* Lien du site */}
+      <div className="mt-5 pt-4 border-t border-gray-100">
+        <label className="block text-xs font-semibold text-gray-700 mb-1">Lien du site</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <input type="url" value={web} onChange={(e) => setWeb(e.target.value)} placeholder="https://mon-site.fr" className="flex-1 min-w-[220px] border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <button onClick={saveWeb} disabled={busy} className="px-3 py-2 rounded-lg bg-gray-900 hover:bg-black text-white text-sm font-semibold disabled:opacity-50">
+            {webSaved ? '✓ Enregistré' : 'Enregistrer'}
+          </button>
+          {web.trim() && (
+            <a href={web} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg border border-blue-200 text-blue-700 text-sm font-semibold hover:bg-blue-50 inline-flex items-center gap-1.5">
+              Ouvrir ↗
+            </a>
+          )}
+        </div>
+        <p className="text-[11px] text-gray-400 mt-1.5">Le lien devient cliquable depuis le titre du site.</p>
       </div>
 
       {/* Attribution automatique des nouveaux leads à JBoost */}

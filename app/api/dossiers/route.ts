@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import { generateDossierToken } from '@/lib/token'
+import { normalizeUrl } from '@/lib/url'
 
 export async function POST(request: Request) {
   const user = await getCurrentUser()
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const site = await prisma.dossier.create({
-    data: { name, campagneId: body.campagneId, unitPrice, token },
+    data: { name, campagneId: body.campagneId, unitPrice, token, websiteUrl: normalizeUrl(body.websiteUrl) },
   })
   return NextResponse.json(site, { status: 201 })
 }

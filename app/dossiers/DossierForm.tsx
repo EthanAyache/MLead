@@ -10,11 +10,12 @@ export default function DossierForm({ campagne }: { campagne: { id: string; name
   const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState('')
   const [unitPrice, setUnitPrice] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   function reset() {
-    setName(''); setUnitPrice(''); setError('')
+    setName(''); setUnitPrice(''); setWebsiteUrl(''); setError('')
   }
 
   async function handleSubmit(ev: React.FormEvent) {
@@ -25,7 +26,7 @@ export default function DossierForm({ campagne }: { campagne: { id: string; name
     const res = await fetch('/api/dossiers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ campagneId: campagne.id, name, unitPrice }),
+      body: JSON.stringify({ campagneId: campagne.id, name, unitPrice, websiteUrl }),
     })
     setLoading(false)
     if (!res.ok) {
@@ -71,6 +72,11 @@ export default function DossierForm({ campagne }: { campagne: { id: string; name
                     = <strong className="text-gray-700">{formatEuros(ttcFromHt(parseFloat(unitPrice)))} TTC</strong> / lead (TVA {TVA_PERCENT} %)
                   </p>
                 )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Lien du site</label>
+                <input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://mon-site.fr" className={inputBase} />
+                <p className="text-[11px] text-gray-400 mt-1">Optionnel — permet d&apos;ouvrir le site en un clic depuis sa page.</p>
               </div>
               {error && <p className="text-red-600 text-sm">⚠ {error}</p>}
               <div className="flex gap-2 justify-end pt-2">

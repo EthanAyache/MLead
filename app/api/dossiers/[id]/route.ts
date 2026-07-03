@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import { generateDossierToken } from '@/lib/token'
+import { normalizeUrl } from '@/lib/url'
 import { DEPARTMENT_KEYS } from '@/lib/departments'
 
 // Récupère un site en vérifiant qu'il appartient au périmètre de l'utilisateur (USER = ses clients, ADMIN = tous).
@@ -24,6 +25,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (typeof body.active === 'boolean') data.active = body.active
   if (typeof body.autoAssignJboost === 'boolean') data.autoAssignJboost = body.autoAssignJboost
   if ('contractTerms' in body) data.contractTerms = (body.contractTerms ?? '').trim() || null
+  if ('websiteUrl' in body) data.websiteUrl = normalizeUrl(body.websiteUrl)
   if ('notifyEmails' in body) data.notifyEmails = (body.notifyEmails ?? '').trim() || null
   if (typeof body.department === 'string' && (DEPARTMENT_KEYS as string[]).includes(body.department)) {
     data.department = body.department
