@@ -61,6 +61,8 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
 
   // 3) Total dû
   const totalDue = duePerLead + dueCommission
+  // TTC : la TVA 20 % ne porte que sur la part « leads » (facturée au client). La commission JBoost n'est pas concernée.
+  const totalDueTtc = ttcFromHt(duePerLead) + dueCommission
 
   const rows: LeadRow[] = dossier.leads.map((l) => ({
     id: l.id,
@@ -128,9 +130,9 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
               <div className="text-[11px] text-gray-400 mt-0.5">offres prises (leads appelés par JBoost)</div>
             </div>
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-              <div className="text-xs font-semibold text-blue-700 uppercase">Total dû ce mois</div>
-              <div className="text-2xl font-bold text-blue-700 mt-1">{totalDue.toFixed(2)} €</div>
-              <div className="text-[11px] text-blue-500/70 mt-0.5">par lead + commission</div>
+              <div className="text-xs font-semibold text-blue-700 uppercase">Total dû ce mois (HT)</div>
+              <div className="text-2xl font-bold text-blue-700 mt-1">{totalDue.toFixed(2)} € <span className="text-sm font-semibold text-blue-500/70">HT</span></div>
+              <div className="text-[11px] text-blue-500/70 mt-0.5">par lead + commission · {formatEuros(totalDueTtc)} TTC</div>
             </div>
           </div>
 
