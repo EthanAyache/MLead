@@ -1,5 +1,25 @@
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
+import { TVA_PERCENT } from '@/lib/tva'
+
+// Taux de TVA Stripe (20 %, « exclusif » = ajouté au montant HT des lignes).
+// On réutilise le taux existant s'il y en a un, sinon on le crée une fois. La facture
+// Stripe affiche alors : lignes HT + TVA 20 % + total TTC (comme une vraie facture).
+let cachedVatRateId: string | null = null
+async function getVatRateId(): Promise<string> {
+  if (cachedVatRateId) return cachedVatRateId
+  const rates = await stripe.taxRates.list({ active: true, limit: 100 })
+  const found = rates.data.find((r) => r.percentage === TVA_PERCENT && !r.inclusive && r.display_name === 'TVA')
+  const id = found?.id ?? (await stripe.taxRates.create({
+    display_name: 'TVA',
+    description: `TVA ${TVA_PERCENT}%`,
+    percentage: TVA_PERCENT,
+    inclusive: false,
+    country: 'FR',
+  })).id
+  cachedVatRateId = id
+  return id
+}
 
 // Facturation mensuelle pay-per-lead.
 // Pour chaque client : nb de leads facturables (VALID, non affectés à JBoost, pas déjà facturés)
@@ -135,6 +155,8 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
           data: { stripeInvoiceId: stripeInvoice.id },
         })
 
+        // Les prix par lead sont HT → on ajoute la TVA 20 % en ligne (HT + TVA + TTC sur la facture).
+        const vatRateId = await getVatRateId()
         for (const e of perSite.values()) {
           await stripe.invoiceItems.create({
             customer: stripeCustomerId,
@@ -142,6 +164,7 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
             amount: Math.round(e.count * e.unitPrice * 100),
             currency: 'eur',
             description: `${e.count} lead${e.count > 1 ? 's' : ''} — ${e.name} (${period})`,
+            tax_rates: [vatRateId],
           })
         }
 

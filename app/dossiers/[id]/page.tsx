@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { ttcFromHt, formatEuros } from '@/lib/tva'
 import Header from '@/app/dashboard/Header'
 import DossierSettings from './DossierSettings'
 import LeadsList, { type LeadRow } from './LeadsList'
@@ -117,9 +118,9 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
               <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} facturable{billableThisMonth > 1 ? 's' : ''}</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-              <div className="text-xs font-semibold text-gray-500 uppercase">Dû par lead</div>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{duePerLead.toFixed(2)} €</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} × {dossier.unitPrice.toFixed(2)} €</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase">Dû par lead (HT)</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{duePerLead.toFixed(2)} € <span className="text-sm font-semibold text-gray-400">HT</span></div>
+              <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} × {dossier.unitPrice.toFixed(2)} € · {formatEuros(ttcFromHt(duePerLead))} TTC</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
               <div className="text-xs font-semibold text-gray-500 uppercase">Dû par commission</div>

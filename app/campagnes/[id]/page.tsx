@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
+import { ttcFromHt, formatEuros } from '@/lib/tva'
 import Header from '@/app/dashboard/Header'
 import DossierForm from '@/app/dossiers/DossierForm'
 
@@ -60,7 +61,7 @@ export default async function CampagneDetailPage({ params }: { params: Promise<{
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">Site</th>
-                    <th className="text-right px-4 py-3 font-semibold text-gray-700">Prix / lead</th>
+                    <th className="text-right px-4 py-3 font-semibold text-gray-700">Prix / lead (HT)</th>
                     <th className="text-right px-4 py-3 font-semibold text-gray-700">Leads reçus</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-700">État</th>
                     <th className="px-4 py-3" />
@@ -70,7 +71,10 @@ export default async function CampagneDetailPage({ params }: { params: Promise<{
                   {campagne.sites.map((s) => (
                     <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
                       <td className="px-4 py-3 text-gray-900 font-medium">{s.name}</td>
-                      <td className="px-4 py-3 text-right text-gray-900">{s.unitPrice.toFixed(2)} €</td>
+                      <td className="px-4 py-3 text-right text-gray-900">
+                        {s.unitPrice.toFixed(2)} € <span className="text-gray-400">HT</span>
+                        <div className="text-[11px] text-gray-400">{formatEuros(ttcFromHt(s.unitPrice))} TTC</div>
+                      </td>
                       <td className="px-4 py-3 text-right text-gray-900 font-semibold">{s._count.leads}</td>
                       <td className="px-4 py-3">
                         {s.active ? (

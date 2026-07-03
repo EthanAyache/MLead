@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DEPARTMENTS } from '@/lib/departments'
+import { ttcFromHt, formatEuros, TVA_PERCENT } from '@/lib/tva'
 
 type Extra = { label: string; email: string }
 
@@ -169,12 +170,17 @@ export default function DossierSettings({
 
       <div className="flex flex-wrap items-end gap-5 mt-5 pt-4 border-t border-gray-100">
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Prix par lead</label>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Prix par lead (HT)</label>
           <div className="flex items-center gap-2">
             <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <span className="text-gray-500 text-sm">€</span>
+            <span className="text-gray-500 text-sm">€ HT</span>
             <button onClick={savePrice} disabled={busy} className="px-3 py-2 rounded-lg bg-gray-900 hover:bg-black text-white text-sm font-semibold disabled:opacity-50">Enregistrer</button>
           </div>
+          {parseFloat(price) > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              = <strong className="text-gray-700">{formatEuros(ttcFromHt(parseFloat(price)))} TTC</strong> (TVA {TVA_PERCENT} %)
+            </p>
+          )}
         </div>
 
         <div>

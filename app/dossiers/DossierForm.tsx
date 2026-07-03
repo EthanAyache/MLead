@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ttcFromHt, formatEuros, TVA_PERCENT } from '@/lib/tva'
 
 // Formulaire de création d'un SITE (rattaché à une campagne).
 export default function DossierForm({ campagne }: { campagne: { id: string; name: string } }) {
@@ -60,11 +61,16 @@ export default function DossierForm({ campagne }: { campagne: { id: string; name
                 <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: site-voyage.fr, Landing été…" className={inputBase} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Prix par lead *</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Prix par lead (HT) *</label>
                 <div className="flex items-center gap-2">
                   <input type="number" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} placeholder="8.00" className={`flex-1 ${inputBase}`} />
-                  <span className="text-gray-500">€ / lead</span>
+                  <span className="text-gray-500">€ HT / lead</span>
                 </div>
+                {parseFloat(unitPrice) > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    = <strong className="text-gray-700">{formatEuros(ttcFromHt(parseFloat(unitPrice)))} TTC</strong> / lead (TVA {TVA_PERCENT} %)
+                  </p>
+                )}
               </div>
               {error && <p className="text-red-600 text-sm">⚠ {error}</p>}
               <div className="flex gap-2 justify-end pt-2">
