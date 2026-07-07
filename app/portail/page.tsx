@@ -16,7 +16,7 @@ export default async function PortalDashboard() {
 
   const isPrepaid = client.billingMode === 'PREPAID'
 
-  const [priceAgg, recent, sites, leadCounts, unpaidMonthly] = await Promise.all([
+  const [priceAgg, recent, sites, leadCounts, unpaidMonthly, topupCount] = await Promise.all([
     prisma.dossier.aggregate({ _avg: { unitPrice: true }, where: { campagne: { clientId: client.id }, unitPrice: { gt: 0 } } }),
     prisma.inboundLead.findMany({
       where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },
@@ -40,12 +40,18 @@ export default async function PortalDashboard() {
       where: { clientId: client.id, status: { in: ['SENT', 'FAILED'] } },
       select: { id: true },
     }),
+    // A-t-il déjà rechargé au moins une fois ? (paiement Stripe ou crédit manuel admin)
+    isPrepaid ? prisma.prepaidTopup.count({ where: { clientId: client.id, status: { in: ['PAID', 'MANUAL'] } } }) : Promise.resolve(0),
   ])
 
   const avgPrice = priceAgg._avg.unitPrice ?? 0
   const leadsLeft = isPrepaid && avgPrice > 0 ? Math.floor(client.prepaidBalance / avgPrice) : null
   const depleted = isPrepaid && (client.prepaidBalance <= 0 || (avgPrice > 0 && client.prepaidBalance < avgPrice))
   const needsRegularisation = !isPrepaid && unpaidMonthly !== null
+  const hasTopup = topupCount > 0
+  // État du bandeau : régularisation (mensuel impayé) / solde épuisé (a déjà acheté) / bienvenue (jamais acheté).
+  const banner: 'regularise' | 'depleted' | 'welcome' | null =
+    needsRegularisation ? 'regularise' : depleted ? (hasTopup ? 'depleted' : 'welcome') : null
   const countByDossier = new Map(leadCounts.map((c) => [c.dossierId, c._count._all]))
   const currentLeadEmail = parseRecipients(client.notifyEmails)[0] ?? client.email ?? ''
 
@@ -53,19 +59,28 @@ export default async function PortalDashboard() {
     <>
       <PortalHeader clientName={client.name} />
 
-      {/* Bandeau d'alerte en haut */}
-      {(needsRegularisation || depleted) && (
+      {/* Bandeau d'état en haut */}
+      {banner === 'welcome' ? (
+        <div className="border-b border-[#E4DEFB] bg-[#F4F1FE]">
+          <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6A4FE6" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+            <p className="text-sm font-semibold text-[#5B3FD6]">
+              Bienvenue&nbsp;! Vous n&apos;avez pas encore de leads : achetez votre premier pack pour commencer à en recevoir.
+            </p>
+          </div>
+        </div>
+      ) : banner ? (
         <div className="border-b border-[#FECACA] bg-[#FEF2F2]">
           <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
             <p className="text-sm font-semibold text-[#B91C1C]">
-              {needsRegularisation
+              {banner === 'regularise'
                 ? 'Compte à régulariser — une facture est en attente de paiement. Réglez-la pour continuer à recevoir vos leads.'
                 : 'Solde épuisé — vous ne recevez plus de leads. Rechargez votre solde pour reprendre.'}
             </p>
           </div>
         </div>
-      )}
+      ) : null}
 
       <main className="mx-auto max-w-2xl px-4 py-8">
         <h1 className="font-bricolage text-2xl font-bold tracking-tight">Bonjour {client.name}</h1>
