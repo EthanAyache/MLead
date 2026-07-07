@@ -26,8 +26,12 @@ export default async function Kpis() {
     }),
     prisma.inboundLead.count({ where: { assignedToJboost: true, status: { not: 'REJECTED' }, ...leadFilter } }),
     // Pay-per-lead PAS encore facturé (tout, pas juste ce mois) : exactement ce que « Lancer la facturation » facturera.
+    // On exclut les clients en prépayé (déjà payés d'avance, jamais facturés au mois).
     prisma.inboundLead.findMany({
-      where: { status: 'VALID', assignedToJboost: false, monthlyInvoiceId: null, ...leadFilter },
+      where: {
+        status: 'VALID', assignedToJboost: false, monthlyInvoiceId: null,
+        dossier: { campagne: { client: { ...filter, billingMode: 'MONTHLY' } } },
+      },
       include: { dossier: { select: { unitPrice: true } } },
     }),
     // Commissions dues (leads JBoost avec offres prises), tout confondu
