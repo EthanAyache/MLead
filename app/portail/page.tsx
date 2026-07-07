@@ -19,7 +19,7 @@ export default async function PortalDashboard() {
       where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },
       orderBy: { receivedAt: 'desc' },
       take: 8,
-      select: { id: true, name: true, receivedAt: true, dossier: { select: { name: true } } },
+      select: { id: true, name: true, email: true, phone: true, receivedAt: true, dossier: { select: { name: true } } },
     }),
     prisma.dossier.findMany({
       where: { campagne: { clientId: client.id } },
@@ -133,10 +133,14 @@ export default async function PortalDashboard() {
             ) : (
               <ul className="divide-y divide-[#EEF0F5]">
                 {recent.map((l) => (
-                  <li key={l.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                  <li key={l.id} className="flex items-start justify-between gap-3 px-5 py-3.5">
                     <div className="min-w-0">
                       <div className="truncate font-semibold text-[#16171D]">{l.name || 'Lead sans nom'}</div>
-                      <div className="truncate text-xs text-[#787C8A]">{l.dossier.name}</div>
+                      <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-sm">
+                        {l.email && <a href={`mailto:${l.email}`} className="text-[#6A4FE6] hover:underline">{l.email}</a>}
+                        {l.phone && <a href={`tel:${l.phone.replace(/[^\d+]/g, '')}`} className="text-[#6A4FE6] hover:underline">{l.phone}</a>}
+                      </div>
+                      <div className="mt-0.5 truncate text-xs text-[#787C8A]">{l.dossier.name}</div>
                     </div>
                     <time className="shrink-0 text-xs text-[#9AA0AE]" dateTime={l.receivedAt.toISOString()}>
                       {l.receivedAt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}

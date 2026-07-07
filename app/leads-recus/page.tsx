@@ -39,6 +39,7 @@ export default async function LeadsRecusPage() {
     siteName: l.dossier.name,
     offers: l.chosenOffers.map((o) => o.name).join(', '),
     extra: coerceExtra(l.extra),
+    note: l.note,
   }))
 
   // Sites disponibles pour l'ajout manuel d'un lead

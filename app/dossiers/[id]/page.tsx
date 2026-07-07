@@ -80,6 +80,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     message: l.message,
     source: l.source,
     extra: coerceExtra(l.extra),
+    note: l.note,
     status: l.status,
     assignedToJboost: l.assignedToJboost,
     receivedAt: l.receivedAt.toISOString(),

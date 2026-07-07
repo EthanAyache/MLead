@@ -107,6 +107,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const lead = await findOwnedLead(id, user)
   if (!lead) return NextResponse.json({ error: 'Lead introuvable' }, { status: 404 })
+
+  // La note est modifiable à tout moment (même sur un lead facturé/verrouillé).
+  if ('note' in body) {
+    await prisma.inboundLead.update({ where: { id }, data: { note: String(body.note ?? '').trim().slice(0, 2000) || null } })
+    if (Object.keys(body).length === 1) return NextResponse.json({ ok: true })
+  }
+
   if (lead.monthlyInvoiceId) {
     return NextResponse.json({ error: 'Lead déjà facturé, modification verrouillée' }, { status: 409 })
   }

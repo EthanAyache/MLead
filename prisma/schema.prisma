@@ -493,6 +493,8 @@ model InboundLead {
   source     String?
   // Champs supplémentaires envoyés par le formulaire (destination, dates, compagnie…) : { [clé]: valeur }
   extra      Json?
+  // Note libre partagée (admin ↔ client) sur ce lead. Affichée partout où le lead apparaît.
+  note       String?    @db.Text
   status     LeadStatus @default(VALID)
   ip         String?
   // Affecté à JBoost = c'est NOUS qui rappelons ce lead → exclu de la facture du client

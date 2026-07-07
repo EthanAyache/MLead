@@ -55,6 +55,7 @@ export default async function AAppelerPage() {
       message: l.message,
       source: l.source,
       extra: coerceExtra(l.extra),
+      note: l.note,
       receivedAt: l.receivedAt.toISOString(),
       clientName: l.dossier.campagne.client.name,
       campagneName: l.dossier.campagne.name,

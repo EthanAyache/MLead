@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import LeadsExportButtons from '@/app/components/LeadsExportButtons'
+import LeadNote from '@/app/components/LeadNote'
 
 export type ExportRow = {
   id: string
@@ -20,6 +21,7 @@ export type ExportRow = {
   siteName: string
   offers: string
   extra?: Record<string, string> | null
+  note?: string | null
 }
 
 const STATUS_LABEL: Record<ExportRow['status'], string> = {
@@ -140,7 +142,10 @@ export default function LeadsExportTable({
               {filtered.map((r) => (
                 <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50 transition align-top">
                   <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(r.receivedAt)}</td>
-                  <td className="px-4 py-3 text-gray-900 font-medium">{r.name || '—'}</td>
+                  <td className="px-4 py-3 text-gray-900 font-medium">
+                    {r.name || '—'}
+                    <div className="max-w-[220px] font-normal"><LeadNote leadId={r.id} initialNote={r.note ?? null} variant="admin" /></div>
+                  </td>
                   <td className="px-4 py-3">
                     {r.email ? <a href={`mailto:${r.email}`} className="text-blue-600 hover:underline">{r.email}</a> : <span className="text-gray-400">—</span>}
                   </td>

@@ -23,7 +23,7 @@ export default async function PortalSiteLeadsPage({ params }: { params: Promise<
   const leads = await prisma.inboundLead.findMany({
     where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossierId: site.id },
     orderBy: { receivedAt: 'desc' },
-    select: { id: true, name: true, email: true, phone: true, message: true, source: true, extra: true, receivedAt: true, dossier: { select: { name: true } } },
+    select: { id: true, name: true, email: true, phone: true, message: true, source: true, extra: true, note: true, receivedAt: true, dossier: { select: { name: true } } },
   })
 
   const rows: PortalLeadRow[] = leads.map((l) => ({
@@ -34,6 +34,7 @@ export default async function PortalSiteLeadsPage({ params }: { params: Promise<
     message: l.message,
     source: l.source,
     extra: coerceExtra(l.extra),
+    note: l.note,
     receivedAt: l.receivedAt.toISOString(),
     siteName: l.dossier.name,
   }))

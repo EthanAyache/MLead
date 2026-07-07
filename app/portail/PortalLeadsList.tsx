@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from 'react'
 import { prettyFieldLabel } from '@/lib/leadExtra'
+import LeadNote from '@/app/components/LeadNote'
 
 export type PortalLeadRow = {
   id: string
@@ -11,6 +12,7 @@ export type PortalLeadRow = {
   message: string | null
   source: string | null
   extra: Record<string, string> | null
+  note: string | null
   receivedAt: string
   siteName: string
 }
@@ -18,19 +20,23 @@ export type PortalLeadRow = {
 export default function PortalLeadsList({ rows, showSite = true }: { rows: PortalLeadRow[]; showSite?: boolean }) {
   const [search, setSearch] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc')
 
   const q = search.trim().toLowerCase()
-  const filtered = q
+  const searched = q
     ? rows.filter((r) =>
         [r.name, r.email, r.phone, r.message, r.source, r.siteName, ...(r.extra ? Object.values(r.extra) : [])]
           .filter(Boolean).join(' ').toLowerCase().includes(q),
       )
     : rows
+  const filtered = [...searched].sort((a, b) =>
+    sortDir === 'desc' ? b.receivedAt.localeCompare(a.receivedAt) : a.receivedAt.localeCompare(b.receivedAt),
+  )
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#E8E9EF] bg-white">
-      <div className="border-b border-[#EEF0F5] p-3">
-        <div className="relative">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#EEF0F5] p-3">
+        <div className="relative min-w-[180px] flex-1">
           <svg className="absolute left-3 top-2.5 h-4 w-4 text-[#9AA0AE]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
           <input
             type="text"
@@ -41,6 +47,13 @@ export default function PortalLeadsList({ rows, showSite = true }: { rows: Porta
             className="h-10 w-full rounded-xl border border-[#DCDDE6] bg-white pl-9 pr-3 text-sm outline-none transition focus:border-transparent focus:ring-2 focus:ring-[#6A4FE6]"
           />
         </div>
+        <button
+          onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[#DCDDE6] bg-white px-3 text-sm font-semibold text-[#414350] transition hover:bg-[#FAFAFC]"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M6 12h12M9 18h6" /></svg>
+          {sortDir === 'desc' ? 'Plus récents' : 'Plus anciens'}
+        </button>
       </div>
 
       {rows.length === 0 ? (
@@ -73,6 +86,8 @@ export default function PortalLeadsList({ rows, showSite = true }: { rows: Porta
                       {new Date(r.receivedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })}
                     </time>
                   </div>
+
+                  <LeadNote leadId={r.id} initialNote={r.note} variant="portal" />
 
                   {open && hasDetails && (
                     <div className="mt-3 rounded-xl border border-[#EEF0F5] bg-[#FAFAFC] p-3.5">

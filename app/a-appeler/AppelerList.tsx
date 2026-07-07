@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { prettyFieldLabel } from '@/lib/leadExtra'
+import LeadNote from '@/app/components/LeadNote'
 
 export type CallRow = {
   id: string
@@ -13,6 +14,7 @@ export type CallRow = {
   message: string | null
   source: string | null
   extra: Record<string, string> | null
+  note: string | null
   receivedAt: string
   clientName: string
   campagneName: string
@@ -156,6 +158,7 @@ export default function AppelerList({ rows }: { rows: CallRow[] }) {
                         {open ? '▾ Masquer' : '▸ Détails'}
                       </button>
                     )}
+                    <div className="max-w-[240px]"><LeadNote leadId={r.id} initialNote={r.note} variant="admin" /></div>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600">
                     <div className="font-semibold text-gray-800">{r.clientName}</div>

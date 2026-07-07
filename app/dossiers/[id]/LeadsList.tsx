@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { prettyFieldLabel } from '@/lib/leadExtra'
+import LeadNote from '@/app/components/LeadNote'
 
 export type LeadRow = {
   id: string
@@ -12,6 +13,7 @@ export type LeadRow = {
   message: string | null
   source: string | null
   extra: Record<string, string> | null
+  note: string | null
   status: 'VALID' | 'DUPLICATE' | 'REJECTED'
   assignedToJboost: boolean
   receivedAt: string
@@ -146,6 +148,7 @@ export default function LeadsList({ rows, clientName }: { rows: LeadRow[]; clien
                         {open ? '▾ Masquer' : '▸ Détails'}
                       </button>
                     )}
+                    <div className="max-w-[240px] font-normal"><LeadNote leadId={r.id} initialNote={r.note} variant="admin" /></div>
                   </td>
                   <td className="px-4 py-3">
                     {r.email
