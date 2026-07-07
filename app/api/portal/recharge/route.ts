@@ -18,11 +18,8 @@ export async function POST(request: Request) {
   if (amount > 100000) return NextResponse.json({ error: 'Montant trop élevé' }, { status: 400 })
 
   try {
-    // Acheter un pack = passer en formule prépayée.
-    if (client.billingMode !== 'PREPAID') {
-      await prisma.client.update({ where: { id: client.id }, data: { billingMode: 'PREPAID' } })
-    }
-
+    // On ne bascule PAS en prépayé ici : ce sera fait au paiement réel (webhook), pour ne pas
+    // coincer le client en prépayé à 0 € s'il abandonne le paiement.
     let stripeCustomerId = client.stripeCustomerId
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({ name: client.name, email: client.email, phone: client.phone ?? undefined })

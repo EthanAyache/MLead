@@ -137,6 +137,8 @@ export async function POST(request: Request) {
           })
           if (topup) {
             await prisma.prepaidTopup.update({ where: { id: topup.id }, data: { status: 'PAID', paidAt: new Date() } })
+            // L'achat d'un pack fait (enfin) basculer le client en formule prépayée, une fois payé.
+            await prisma.client.update({ where: { id: topup.clientId }, data: { billingMode: 'PREPAID' } })
             await creditPrepaidBalance(topup.clientId, topup.amount)
             console.log(`✅ Pack prépayé crédité : ${topup.amount} € (client ${topup.clientId})`)
           }
