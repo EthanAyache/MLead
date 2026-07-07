@@ -31,7 +31,9 @@ export default async function PortalDashboard() {
     }),
     prisma.inboundLead.groupBy({
       by: ['dossierId'],
-      where: { status: 'VALID', dossier: { campagne: { clientId: client.id } } },
+      // « Leads reçus » = uniquement ceux réellement transmis au client (pas les leads retenus tant
+      // qu'il n'a pas payé, ni ceux rappelés par JBoost).
+      where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },
       _count: { _all: true },
     }),
     isPrepaid ? Promise.resolve(null) : prisma.monthlyInvoice.findFirst({
@@ -95,36 +97,29 @@ export default async function PortalDashboard() {
           </section>
         )}
 
-        {/* Mes sites */}
+        {/* Mes sites (cliquables → leads du site) */}
         <section className="mt-6">
           <h2 className="font-bricolage text-lg font-bold">Vos sites</h2>
           <div className="mt-3 overflow-hidden rounded-2xl border border-[#E8E9EF] bg-white">
             {sites.length === 0 ? (
               <div className="px-5 py-8 text-center text-sm text-[#787C8A]">Aucun site configuré pour le moment.</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-[#EEF0F5] bg-[#FAFAFC]">
-                    <tr>
-                      <th className="px-5 py-3 text-left font-semibold text-[#787C8A]">Site</th>
-                      <th className="px-5 py-3 text-right font-semibold text-[#787C8A]">Prix / lead</th>
-                      <th className="px-5 py-3 text-right font-semibold text-[#787C8A]">Leads reçus</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sites.map((s) => (
-                      <tr key={s.id} className="border-b border-[#EEF0F5] last:border-0">
-                        <td className="px-5 py-3">
-                          <div className="font-semibold text-[#16171D]">{s.name}</div>
-                          <div className="text-xs text-[#9AA0AE]">{s.campagne.name}</div>
-                        </td>
-                        <td className="px-5 py-3 text-right text-[#414350]">{s.unitPrice.toFixed(2)} € HT</td>
-                        <td className="px-5 py-3 text-right font-semibold text-[#16171D]">{countByDossier.get(s.id) ?? 0}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="divide-y divide-[#EEF0F5]">
+                {sites.map((s) => (
+                  <li key={s.id}>
+                    <Link href={`/portail/site/${s.id}`} className="flex items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-[#FAFAFC] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#6A4FE6]">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#16171D]">{s.name}</div>
+                        <div className="text-xs text-[#9AA0AE]">{s.campagne.name} · {s.unitPrice.toFixed(2)} € HT / lead</div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3 text-sm">
+                        <span><span className="font-bold text-[#16171D]">{countByDossier.get(s.id) ?? 0}</span> <span className="text-[#9AA0AE]">leads</span></span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0AE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </section>
@@ -138,7 +133,10 @@ export default async function PortalDashboard() {
 
         {/* Derniers leads reçus */}
         <section className="mt-6">
-          <h2 className="font-bricolage text-lg font-bold">Derniers leads reçus</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-bricolage text-lg font-bold">Derniers leads reçus</h2>
+            <Link href="/portail/leads" className="shrink-0 text-sm font-semibold text-[#6A4FE6] hover:underline">Tous les leads reçus →</Link>
+          </div>
           <div className="mt-3 overflow-hidden rounded-2xl border border-[#E8E9EF] bg-white">
             {recent.length === 0 ? (
               <div className="px-5 py-10 text-center text-sm text-[#787C8A]">Aucun lead reçu pour l&apos;instant. Vos prochains leads apparaîtront ici.</div>
