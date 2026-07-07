@@ -131,8 +131,10 @@ export async function POST(request: Request) {
           }
 
           // Pack prépayé (modèle PrepaidTopup) → créditer le solde du client + renvoyer ses leads retenus.
+          // On inclut FAILED : un paiement peut échouer puis réussir (l'événement payment_failed passe
+          // la recharge en FAILED avant que invoice.paid n'arrive) — il faut quand même la créditer.
           const topup = await prisma.prepaidTopup.findFirst({
-            where: { stripeInvoiceId: invoice.id, status: 'PENDING' },
+            where: { stripeInvoiceId: invoice.id, status: { in: ['PENDING', 'FAILED'] } },
             select: { id: true, clientId: true, amount: true },
           })
           if (topup) {
