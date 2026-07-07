@@ -1,28 +1,40 @@
 'use client'
 
 import { useState } from 'react'
+import PortalPasswordInput from '../PortalPasswordInput'
 
 export default function PortalLoginForm({ initialError }: { initialError?: string }) {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
-  const [error, setError] = useState(initialError ? 'Ce lien est invalide ou expiré. Redemandez-en un.' : '')
+  const [error, setError] = useState(initialError === 'mdp' ? 'Ce lien est invalide ou expiré. Redemandez-en un ci-dessous.' : '')
 
-  async function submit(e: React.FormEvent) {
+  // Sous-formulaire « première connexion / mot de passe oublié »
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
+
+  async function login(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Adresse e-mail invalide.')
-      return
-    }
     setLoading(true)
     try {
-      await fetch('/api/portal/login', {
+      const res = await fetch('/api/portal/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), password }),
       })
-      setSent(true)
+      if (res.ok) {
+        window.location.href = '/portail'
+        return
+      }
+      const data = await res.json().catch(() => ({}))
+      if (data.code === 'NO_PASSWORD') {
+        setForgotOpen(true)
+        setForgotEmail(email.trim())
+      }
+      setError(data.error || 'Connexion impossible.')
     } catch {
       setError('Erreur réseau. Réessayez.')
     } finally {
@@ -30,52 +42,72 @@ export default function PortalLoginForm({ initialError }: { initialError?: strin
     }
   }
 
-  if (sent) {
-    return (
-      <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600" aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z" /><path d="M22 6l-10 7L2 6" /></svg>
-        </div>
-        <h1 className="font-bricolage text-xl font-bold">Vérifiez vos e-mails</h1>
-        <p className="mt-2 text-sm text-[#787C8A] leading-relaxed">
-          Si un compte existe pour <strong className="text-[#16171D]">{email.trim()}</strong>, un lien de connexion vient de vous être envoyé. Il est valable 30 minutes.
-        </p>
-        <button onClick={() => { setSent(false); setEmail('') }} className="mt-5 text-sm font-semibold text-[#6A4FE6] hover:underline">
-          Utiliser une autre adresse
-        </button>
-      </div>
-    )
+  async function requestLink(e: React.FormEvent) {
+    e.preventDefault()
+    const addr = (forgotEmail || email).trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) return
+    setForgotLoading(true)
+    try {
+      await fetch('/api/portal/request-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: addr }),
+      })
+      setForgotSent(true)
+    } finally {
+      setForgotLoading(false)
+    }
   }
 
   return (
-    <form onSubmit={submit} noValidate>
+    <div>
       <h1 className="font-bricolage text-2xl font-bold tracking-tight">Votre espace client</h1>
-      <p className="mt-1.5 text-sm text-[#787C8A] leading-relaxed">
-        Entrez votre e-mail : nous vous envoyons un lien de connexion sécurisé, sans mot de passe.
-      </p>
+      <p className="mt-1.5 text-sm text-[#787C8A] leading-relaxed">Connectez-vous avec votre e-mail et votre mot de passe.</p>
 
-      <label htmlFor="email" className="mt-6 block text-sm font-semibold text-[#414350]">Adresse e-mail</label>
-      <input
-        id="email"
-        type="email"
-        inputMode="email"
-        autoComplete="email"
-        value={email}
-        onChange={(e) => { setEmail(e.target.value); setError('') }}
-        placeholder="vous@entreprise.fr"
-        className="mt-1.5 h-12 w-full rounded-xl border border-[#DCDDE6] bg-white px-4 text-[15px] outline-none transition focus:border-transparent focus:ring-2 focus:ring-[#6A4FE6]"
-      />
-      {error && <p className="mt-2 text-sm text-[#D23B3B]" role="alert">⚠ {error}</p>}
+      <form onSubmit={login} noValidate className="mt-6 space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-semibold text-[#414350]">Adresse e-mail</label>
+          <input id="email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setError('') }} placeholder="vous@entreprise.fr" className="mt-1.5 h-12 w-full rounded-xl border border-[#DCDDE6] bg-white px-4 text-[15px] outline-none transition focus:border-transparent focus:ring-2 focus:ring-[#6A4FE6]" />
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-sm font-semibold text-[#414350]">Mot de passe</label>
+            <button type="button" onClick={() => { setForgotOpen((v) => !v); setForgotSent(false) }} className="text-xs font-semibold text-[#6A4FE6] hover:underline">
+              Première connexion / oublié ?
+            </button>
+          </div>
+          <div className="mt-1.5">
+            <PortalPasswordInput id="password" value={password} onChange={(v) => { setPassword(v); setError('') }} autoComplete="current-password" />
+          </div>
+        </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-[#6A4FE6] px-4 font-semibold text-white transition hover:bg-[#5840CC] focus:outline-none focus:ring-2 focus:ring-[#6A4FE6] focus:ring-offset-2 disabled:opacity-50"
-      >
-        {loading ? 'Envoi…' : 'Recevoir mon lien'}
-      </button>
+        {error && <p className="text-sm text-[#D23B3B]" role="alert">⚠ {error}</p>}
 
-      <p className="mt-4 text-center text-xs text-[#9AA0AE]">Connexion réservée aux clients MonsieurLead.</p>
-    </form>
+        <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center rounded-xl bg-[#6A4FE6] px-4 font-semibold text-white transition hover:bg-[#5840CC] focus:outline-none focus:ring-2 focus:ring-[#6A4FE6] focus:ring-offset-2 disabled:opacity-50">
+          {loading ? 'Connexion…' : 'Se connecter'}
+        </button>
+      </form>
+
+      {forgotOpen && (
+        <div className="mt-5 rounded-xl border border-[#E8E9EF] bg-[#FAFAFC] p-4">
+          {forgotSent ? (
+            <p className="text-sm text-[#1F8A53]">✓ Si un compte existe pour cette adresse, un lien vient d&apos;être envoyé pour définir votre mot de passe (valable 30 min).</p>
+          ) : (
+            <form onSubmit={requestLink}>
+              <p className="text-sm font-semibold text-[#414350]">Première connexion ou mot de passe oublié</p>
+              <p className="mt-1 text-xs text-[#787C8A]">Entrez votre e-mail : nous vous envoyons un lien pour créer votre mot de passe.</p>
+              <div className="mt-2.5 flex gap-2">
+                <input type="email" inputMode="email" autoComplete="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="vous@entreprise.fr" className="h-11 flex-1 rounded-xl border border-[#DCDDE6] bg-white px-3 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-[#6A4FE6]" />
+                <button type="submit" disabled={forgotLoading} className="h-11 shrink-0 rounded-xl bg-[#6A4FE6] px-4 text-sm font-semibold text-white hover:bg-[#5840CC] disabled:opacity-50">
+                  {forgotLoading ? '…' : 'Envoyer'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      <p className="mt-5 text-center text-xs text-[#9AA0AE]">Connexion réservée aux clients MonsieurLead.</p>
+    </div>
   )
 }

@@ -241,15 +241,19 @@ export async function sendQuotaDepletedEmail(opts: { to: string[]; clientName: s
   return true
 }
 
-// Envoie le lien magique de connexion au portail client.
-export async function sendClientLoginEmail(opts: { to: string; clientName: string; link: string }): Promise<boolean> {
+// Envoie le lien de définition / réinitialisation du mot de passe du portail client.
+export async function sendClientPasswordEmail(opts: { to: string; clientName: string; link: string; reset?: boolean }): Promise<boolean> {
   const t = getTransporter()
   if (!t) return false
   const from = process.env.MAIL_FROM || process.env.SMTP_USER
-  const subject = 'Votre lien de connexion — MonsieurLead'
+  const action = opts.reset ? 'Réinitialiser mon mot de passe' : 'Définir mon mot de passe'
+  const subject = opts.reset ? 'Réinitialisation de votre mot de passe — MonsieurLead' : 'Créez votre mot de passe — MonsieurLead'
+  const intro = opts.reset
+    ? 'Vous avez demandé à réinitialiser le mot de passe de votre espace client MonsieurLead. Cliquez ci-dessous pour en choisir un nouveau.'
+    : 'Bienvenue sur votre espace client MonsieurLead. Cliquez ci-dessous pour créer votre mot de passe et accéder à votre compte.'
 
   const text =
-    `Bonjour,\n\nVoici votre lien de connexion à votre espace MonsieurLead :\n${opts.link}\n\n` +
+    `Bonjour,\n\n${intro}\n\n${opts.link}\n\n` +
     `Ce lien est valable 30 minutes et à usage unique. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`
 
   const html = `
@@ -258,13 +262,13 @@ export async function sendClientLoginEmail(opts: { to: string; clientName: strin
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
         <tr><td style="background:#6A4FE6;border-radius:14px 14px 0 0;padding:22px 24px">
           <div style="color:#FFFFFF;font-size:18px;font-weight:800;letter-spacing:-.01em">MonsieurLead</div>
-          <div style="color:#DAD3FB;font-size:13px;margin-top:2px">Connexion à votre espace</div>
+          <div style="color:#DAD3FB;font-size:13px;margin-top:2px">${opts.reset ? 'Réinitialisation du mot de passe' : 'Création de votre mot de passe'}</div>
         </td></tr>
       </table>
       <div style="background:#FFFFFF;border:1px solid #E8E9EF;border-top:0;border-radius:0 0 14px 14px;padding:24px">
         <p style="margin:0 0 16px;font-size:15px;color:#16171D;line-height:1.6">Bonjour,</p>
-        <p style="margin:0 0 20px;font-size:14px;color:#414350;line-height:1.6">Cliquez sur le bouton ci-dessous pour accéder à votre espace client MonsieurLead.</p>
-        <a href="${escapeHtml(opts.link)}" style="display:inline-block;background:#6A4FE6;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px;border-radius:12px">Accéder à mon espace</a>
+        <p style="margin:0 0 20px;font-size:14px;color:#414350;line-height:1.6">${intro}</p>
+        <a href="${escapeHtml(opts.link)}" style="display:inline-block;background:#6A4FE6;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px;border-radius:12px">${action}</a>
         <p style="margin:18px 0 0;font-size:13px;color:#787C8A;line-height:1.6">Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :</p>
         <p style="margin:4px 0 0;font-size:13px;line-height:1.5"><a href="${escapeHtml(opts.link)}" style="color:#6A4FE6;word-break:break-all">${escapeHtml(opts.link)}</a></p>
         <p style="margin:18px 0 0;font-size:12px;color:#9AA0AE;line-height:1.6">Ce lien est valable 30 minutes et à usage unique. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>

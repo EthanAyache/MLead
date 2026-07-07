@@ -182,6 +182,8 @@ model Client {
   prepaidBalance   Float       @default(0)
   // Le client a-t-il déjà été prévenu que son solde est épuisé ? (évite de renvoyer le mail à chaque lead)
   prepaidDepletedNotified Boolean @default(false)
+  // Mot de passe du portail client (haché bcrypt). null = pas encore défini (première connexion à faire).
+  portalPassword   String?     @db.Text
   archived         Boolean     @default(false)
   createdAt        DateTime    @default(now())
 

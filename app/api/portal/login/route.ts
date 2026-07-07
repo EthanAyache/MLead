@@ -1,35 +1,37 @@
 import { NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { generateLoginToken, LOGIN_TOKEN_TTL_MIN } from '@/lib/clientSession'
-import { sendClientLoginEmail } from '@/lib/mail'
-import { requestOrigin } from '@/lib/origin'
+import { CLIENT_COOKIE, makeClientSessionValue } from '@/lib/clientSession'
 
 export const runtime = 'nodejs'
 
-// Envoie un lien magique de connexion au client dont l'e-mail est fourni.
-// Réponse générique (on ne révèle jamais si l'e-mail existe → anti-énumération).
+// Connexion du client au portail : e-mail + mot de passe.
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
   const email = String(body.email ?? '').trim().toLowerCase()
-  const generic = NextResponse.json({ ok: true })
+  const password = String(body.password ?? '')
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return generic
+  const invalid = NextResponse.json({ error: 'E-mail ou mot de passe incorrect.' }, { status: 401 })
+  if (!email || !password) return invalid
 
-  // On compare en minuscules (les e-mails clients ne sont pas forcément normalisés en base).
-  const clients = await prisma.client.findMany({ where: { archived: false }, select: { id: true, name: true, email: true } })
-  const client = clients.find((c) => (c.email ?? '').trim().toLowerCase() === email)
-  if (!client || !client.email) return generic
-
-  const token = generateLoginToken()
-  await prisma.clientLoginToken.create({
-    data: { token, clientId: client.id, expiresAt: new Date(Date.now() + LOGIN_TOKEN_TTL_MIN * 60 * 1000) },
+  // Les e-mails clients ne sont pas forcément normalisés en base → comparaison en minuscules.
+  const clients = await prisma.client.findMany({
+    where: { archived: false },
+    select: { id: true, email: true, portalPassword: true },
   })
+  const client = clients.find((c) => (c.email ?? '').trim().toLowerCase() === email)
+  if (!client) return invalid
 
-  const link = `${requestOrigin(request)}/api/portal/verify?token=${token}`
-  try {
-    await sendClientLoginEmail({ to: client.email, clientName: client.name, link })
-  } catch (e) {
-    console.error('[portal-login] échec envoi:', (e as Error)?.message || e)
+  if (!client.portalPassword) {
+    return NextResponse.json({ error: "Aucun mot de passe défini. Utilisez « Première connexion / mot de passe oublié ».", code: 'NO_PASSWORD' }, { status: 403 })
   }
-  return generic
+
+  const ok = await bcrypt.compare(password, client.portalPassword)
+  if (!ok) return invalid
+
+  const res = NextResponse.json({ ok: true })
+  res.cookies.set(CLIENT_COOKIE, makeClientSessionValue(client.id), {
+    httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 30 * 24 * 60 * 60,
+  })
+  return res
 }
