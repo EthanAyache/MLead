@@ -196,9 +196,24 @@ model Client {
   campagnes       Campagne[]
   monthlyInvoices MonthlyInvoice[]
   topups          PrepaidTopup[]
+  loginTokens     ClientLoginToken[]
 
   @@index([userId])
   @@index([apporteurId])
+}
+
+// Jeton de connexion "lien magique" du portail client : usage unique, courte durée.
+model ClientLoginToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
 }
 
 // Rechargement de solde prépayé d'un client (achat d'un « pack » de leads).

@@ -14,6 +14,10 @@ export default {
         p.startsWith("/login") ||
         p.startsWith("/signup")
 
+      // Portail client : espace public authentifié à part (cookie signé, vérifié dans les pages).
+      // Le middleware admin ne s'y applique pas.
+      if (p.startsWith("/portail")) return true
+
       if (isAuthPage) {
         if (isLoggedIn) return Response.redirect(new URL("/dashboard", nextUrl))
         return true
