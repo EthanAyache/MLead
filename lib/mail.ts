@@ -251,10 +251,10 @@ export async function sendInvoiceCopyToAdmin(opts: {
 }): Promise<boolean> {
   const t = getTransporter()
   if (!t) return false
-  const to = parseRecipients(process.env.JBOOST_EMAIL)
-  const recipients = to.length ? to : parseRecipients(process.env.MAIL_FROM || process.env.SMTP_USER)
-  if (recipients.length === 0) return false
   const from = process.env.MAIL_FROM || process.env.SMTP_USER
+  // Copie envoyée au compte MonsieurLead (agencejboost@gmail.com) — l'adresse d'envoi de l'app.
+  const recipients = parseRecipients(from)
+  if (recipients.length === 0) return false
 
   const subject = `Copie facture — ${opts.clientName} · ${opts.kind}`
   const links =
