@@ -84,6 +84,7 @@ export default async function AAppelerPage() {
       campagneName: l.dossier.campagne.name,
       siteName: l.dossier.name,
       offers: l.dossier.offers.filter((o) => chosenIds.has(o.id)).map((o) => o.name).join(', '),
+      extra: coerceExtra(l.extra),
     }
   })
 

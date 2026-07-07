@@ -26,7 +26,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
   const dossier = await prisma.dossier.findUnique({
     where: { id },
     include: {
-      campagne: { include: { client: { select: { id: true, name: true } } } },
+      campagne: { include: { client: { select: { id: true, name: true, billingMode: true, prepaidBalance: true } } } },
       leads: { orderBy: { receivedAt: 'desc' }, include: { chosenOffers: true } },
       offers: { orderBy: { createdAt: 'asc' } },
     },
@@ -67,6 +67,11 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
   // TTC : la TVA 20 % ne porte que sur la part « leads » (facturée au client). La commission JBoost n'est pas concernée.
   const totalDueTtc = ttcFromHt(duePerLead) + dueCommission
 
+  // Client prépayé : les leads sont déjà payés (solde décompté à la réception) → on affiche le solde restant.
+  const isPrepaid = dossier.campagne.client.billingMode === 'PREPAID'
+  const prepaidBalance = dossier.campagne.client.prepaidBalance
+  const prepaidLeadsLeft = dossier.unitPrice > 0 ? Math.floor(prepaidBalance / dossier.unitPrice) : null
+
   const rows: LeadRow[] = dossier.leads.map((l) => ({
     id: l.id,
     name: l.name,
@@ -90,6 +95,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     campagneName: dossier.campagne.name,
     siteName: dossier.name,
     offers: l.chosenOffers.map((o) => o.name).join(', '),
+    extra: coerceExtra(l.extra),
   }))
 
   return (
@@ -133,9 +139,19 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
               <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} facturable{billableThisMonth > 1 ? 's' : ''}</div>
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-              <div className="text-xs font-semibold text-gray-500 uppercase">Dû par lead (HT)</div>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{duePerLead.toFixed(2)} € <span className="text-sm font-semibold text-gray-400">HT</span></div>
-              <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} × {dossier.unitPrice.toFixed(2)} € · {formatEuros(ttcFromHt(duePerLead))} TTC</div>
+              {isPrepaid ? (
+                <>
+                  <div className="text-xs font-semibold text-violet-600 uppercase">Solde prépayé (client)</div>
+                  <div className="text-2xl font-bold text-violet-800 mt-1">{formatEuros(prepaidBalance)}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">{prepaidLeadsLeft !== null ? `≈ ${prepaidLeadsLeft} lead(s) à ${dossier.unitPrice.toFixed(2)} €` : 'site gratuit'} · déjà payé</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xs font-semibold text-gray-500 uppercase">Dû par lead (HT)</div>
+                  <div className="text-2xl font-bold text-gray-900 mt-1">{duePerLead.toFixed(2)} € <span className="text-sm font-semibold text-gray-400">HT</span></div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">{billableThisMonth} × {dossier.unitPrice.toFixed(2)} € · {formatEuros(ttcFromHt(duePerLead))} TTC</div>
+                </>
+              )}
             </div>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
               <div className="text-xs font-semibold text-gray-500 uppercase">Dû par commission</div>
@@ -143,9 +159,19 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
               <div className="text-[11px] text-gray-400 mt-0.5">offres prises (leads appelés par JBoost)</div>
             </div>
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-              <div className="text-xs font-semibold text-blue-700 uppercase">Total dû ce mois (HT)</div>
-              <div className="text-2xl font-bold text-blue-700 mt-1">{totalDue.toFixed(2)} € <span className="text-sm font-semibold text-blue-500/70">HT</span></div>
-              <div className="text-[11px] text-blue-500/70 mt-0.5">par lead + commission · {formatEuros(totalDueTtc)} TTC</div>
+              {isPrepaid ? (
+                <>
+                  <div className="text-xs font-semibold text-blue-700 uppercase">Total dû ce mois (HT)</div>
+                  <div className="text-2xl font-bold text-blue-700 mt-1">{dueCommission.toFixed(2)} € <span className="text-sm font-semibold text-blue-500/70">HT</span></div>
+                  <div className="text-[11px] text-blue-500/70 mt-0.5">commission uniquement (leads déjà payés en prépayé)</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xs font-semibold text-blue-700 uppercase">Total dû ce mois (HT)</div>
+                  <div className="text-2xl font-bold text-blue-700 mt-1">{totalDue.toFixed(2)} € <span className="text-sm font-semibold text-blue-500/70">HT</span></div>
+                  <div className="text-[11px] text-blue-500/70 mt-0.5">par lead + commission · {formatEuros(totalDueTtc)} TTC</div>
+                </>
+              )}
             </div>
           </div>
 

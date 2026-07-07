@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import AutoRefresh from '@/app/components/AutoRefresh'
+import { coerceExtra } from '@/lib/leadExtra'
 import LeadsExportTable, { type ExportRow } from './LeadsExportTable'
 import AddLeadModal from '@/app/components/AddLeadModal'
 
@@ -37,6 +38,7 @@ export default async function LeadsRecusPage() {
     campagneName: l.dossier.campagne.name,
     siteName: l.dossier.name,
     offers: l.chosenOffers.map((o) => o.name).join(', '),
+    extra: coerceExtra(l.extra),
   }))
 
   // Sites disponibles pour l'ajout manuel d'un lead

@@ -1,6 +1,7 @@
 'use client'
 
 import * as XLSX from 'xlsx'
+import { prettyFieldLabel } from '@/lib/leadExtra'
 
 // Ligne de lead prête à exporter (Excel / CSV / PDF). Chaque page mappe ses leads vers ce format.
 export type LeadExportRow = {
@@ -16,6 +17,8 @@ export type LeadExportRow = {
   campagneName: string
   siteName: string
   offers: string
+  // Champs supplémentaires du formulaire (destination, dates…) : une colonne par champ à l'export.
+  extra?: Record<string, string> | null
 }
 
 const STATUS_LABEL: Record<string, string> = { VALID: 'Valide', DUPLICATE: 'Doublon', REJECTED: 'Rejeté' }
@@ -24,22 +27,31 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleString('fr-FR')
 }
 
-// Lignes "à plat" avec en-têtes lisibles (Excel / CSV).
+// Lignes "à plat" avec en-têtes lisibles (Excel / CSV). Les champs supplémentaires deviennent
+// des colonnes dédiées (une par champ rencontré, dans l'ordre de première apparition).
 function toFlat(rows: LeadExportRow[]) {
-  return rows.map((r) => ({
-    Date: fmtDate(r.receivedAt),
-    Nom: r.name ?? '',
-    Email: r.email ?? '',
-    'Téléphone': r.phone ?? '',
-    Client: r.clientName,
-    Campagne: r.campagneName,
-    Site: r.siteName,
-    Statut: STATUS_LABEL[r.status] ?? r.status,
-    'Affecté JBoost': r.assignedToJboost ? 'Oui' : 'Non',
-    'Offres prises': r.offers,
-    Source: r.source ?? '',
-    Message: r.message ?? '',
-  }))
+  const extraKeys: string[] = []
+  for (const r of rows) {
+    if (r.extra) for (const k of Object.keys(r.extra)) if (!extraKeys.includes(k)) extraKeys.push(k)
+  }
+  return rows.map((r) => {
+    const base: Record<string, string> = {
+      Date: fmtDate(r.receivedAt),
+      Nom: r.name ?? '',
+      Email: r.email ?? '',
+      'Téléphone': r.phone ?? '',
+      Client: r.clientName,
+      Campagne: r.campagneName,
+      Site: r.siteName,
+      Statut: STATUS_LABEL[r.status] ?? r.status,
+      'Affecté JBoost': r.assignedToJboost ? 'Oui' : 'Non',
+      'Offres prises': r.offers,
+      Source: r.source ?? '',
+      Message: r.message ?? '',
+    }
+    for (const k of extraKeys) base[prettyFieldLabel(k)] = r.extra?.[k] ?? ''
+    return base
+  })
 }
 
 export default function LeadsExportButtons({ rows, title, fileBase }: { rows: LeadExportRow[]; title: string; fileBase: string }) {

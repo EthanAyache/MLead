@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
+import { coerceExtra } from '@/lib/leadExtra'
 import Header from '@/app/dashboard/Header'
 import CampagneForm from './CampagneForm'
 import PrepaidPanel, { type Topup } from './PrepaidPanel'
@@ -53,6 +54,7 @@ export default async function ClientCampagnesPage({ params }: { params: Promise<
     campagneName: l.dossier.campagne.name,
     siteName: l.dossier.name,
     offers: l.chosenOffers.map((o) => o.name).join(', '),
+    extra: coerceExtra(l.extra),
   }))
 
   return (

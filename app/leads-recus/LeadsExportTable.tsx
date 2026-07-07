@@ -19,6 +19,7 @@ export type ExportRow = {
   campagneName: string
   siteName: string
   offers: string
+  extra?: Record<string, string> | null
 }
 
 const STATUS_LABEL: Record<ExportRow['status'], string> = {
