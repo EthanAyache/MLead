@@ -81,8 +81,8 @@ export default function LoginPage() {
         </button>
 
         <p className={styles.p}>
-          Pas encore de compte ?
-          <Link href="/signup" className={styles.span}>Créer un compte</Link>
+          Vous êtes client ?
+          <Link href="/portail/login" className={styles.span}>Accéder à votre espace</Link>
         </p>
       </form>
     </div>
