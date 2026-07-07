@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function PortalRechargePage() {
   const client = await getPortalClient()
-  if (!client) redirect('/portail/login')
+  if (!client) redirect('/login')
 
   const priceAgg = await prisma.dossier.aggregate({
     _avg: { unitPrice: true },

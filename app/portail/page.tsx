@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function PortalDashboard() {
   const client = await getPortalClient()
-  if (!client) redirect('/portail/login')
+  if (!client) redirect('/login')
 
   const isPrepaid = client.billingMode === 'PREPAID'
 

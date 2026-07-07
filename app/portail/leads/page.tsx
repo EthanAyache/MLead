@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function PortalAllLeadsPage() {
   const client = await getPortalClient()
-  if (!client) redirect('/portail/login')
+  if (!client) redirect('/login')
 
   const leads = await prisma.inboundLead.findMany({
     where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },

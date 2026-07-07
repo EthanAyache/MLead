@@ -28,7 +28,7 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
             <div className="text-center">
               <h1 className="font-bricolage text-xl font-bold">Lien invalide ou expiré</h1>
               <p className="mt-2 text-sm text-[#787C8A] leading-relaxed">Ce lien n&apos;est plus valable. Redemandez-en un depuis la page de connexion.</p>
-              <Link href="/portail/login" className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-[#6A4FE6] px-5 font-semibold text-white transition hover:bg-[#5840CC]">
+              <Link href="/login" className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-[#6A4FE6] px-5 font-semibold text-white transition hover:bg-[#5840CC]">
                 Aller à la connexion
               </Link>
             </div>

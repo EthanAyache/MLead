@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function PortalSiteLeadsPage({ params }: { params: Promise<{ id: string }> }) {
   const client = await getPortalClient()
-  if (!client) redirect('/portail/login')
+  if (!client) redirect('/login')
 
   const { id } = await params
   // On vérifie que le site appartient bien à ce client (isolation).
