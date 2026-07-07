@@ -201,3 +201,42 @@ export async function sendLeadEmail(opts: {
   })
   return true
 }
+
+// Prévient le client que son solde prépayé de leads est épuisé (envoyé une seule fois par épuisement).
+export async function sendQuotaDepletedEmail(opts: { to: string[]; clientName: string }): Promise<boolean> {
+  const t = getTransporter()
+  if (!t || opts.to.length === 0) return false
+  const from = process.env.MAIL_FROM || process.env.SMTP_USER
+  const subject = 'Votre solde de leads est épuisé — MonsieurLead'
+
+  const text =
+    `Bonjour,\n\nVotre solde prépayé de leads est épuisé : nous ne vous transmettons plus de nouveaux leads pour le moment.\n\n` +
+    `Pour continuer à recevoir des leads, vous pouvez recharger votre solde, ou passer à la facturation mensuelle. ` +
+    `Contactez-nous pour choisir la formule qui vous convient.\n\n— MonsieurLead`
+
+  const html = `
+  <div style="background:#F4F5F8;padding:24px 12px;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+    <div style="max-width:600px;margin:0 auto">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+        <tr><td style="background:#6A4FE6;border-radius:14px 14px 0 0;padding:22px 24px">
+          <div style="color:#FFFFFF;font-size:18px;font-weight:800;letter-spacing:-.01em">MonsieurLead</div>
+          <div style="color:#DAD3FB;font-size:13px;margin-top:2px">Solde de leads épuisé</div>
+        </td></tr>
+      </table>
+      <div style="background:#FFFFFF;border:1px solid #E8E9EF;border-top:0;border-radius:0 0 14px 14px;padding:22px 24px">
+        <p style="margin:0 0 12px;font-size:15px;color:#16171D;line-height:1.6">Bonjour,</p>
+        <div style="background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;padding:11px 14px;border-radius:10px;font-size:14px;line-height:1.5;margin-bottom:14px">
+          Votre solde prépayé de leads est <strong>épuisé</strong> — nous ne vous transmettons plus de nouveaux leads pour le moment.
+        </div>
+        <p style="margin:0;font-size:14px;color:#414350;line-height:1.6">
+          Pour continuer à recevoir des leads, vous pouvez <strong>recharger votre solde</strong>, ou <strong>passer à la facturation mensuelle</strong>.
+          Contactez-nous pour choisir la formule qui vous convient.
+        </p>
+      </div>
+      <p style="color:#9AA0AE;text-align:center;font-size:11.5px;margin:16px 0 0">MonsieurLead — ${escapeHtml(opts.clientName)}</p>
+    </div>
+  </div>`
+
+  await t.sendMail({ from, to: opts.to.join(', '), subject, text, html })
+  return true
+}

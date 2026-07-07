@@ -45,6 +45,21 @@ enum PaymentMode {
   INVOICE
 }
 
+// Formule de facturation d'un client pour les leads reçus via l'API.
+// MONTHLY = facture agrégée en fin de mois. PREPAID = solde en € payé d'avance, décompté par lead.
+enum BillingMode {
+  MONTHLY
+  PREPAID
+}
+
+// Statut d'un rechargement de solde prépayé.
+enum TopupStatus {
+  PENDING // facture Stripe émise, en attente de paiement
+  PAID    // payé → solde crédité
+  FAILED  // paiement échoué
+  MANUAL  // ajusté à la main par un admin (crédité immédiatement)
+}
+
 // Statut d'un lead reçu via l'API. Seuls les VALID sont facturés.
 enum LeadStatus {
   VALID
@@ -161,6 +176,12 @@ model Client {
   stripeCustomerId String?
   // Mode de facturation pay-per-lead : AUTO (prélèvement carte) ou INVOICE (facture à régler)
   paymentMode      PaymentMode @default(AUTO)
+  // Formule : MONTHLY (facture mensuelle) ou PREPAID (solde en € payé d'avance)
+  billingMode      BillingMode @default(MONTHLY)
+  // Solde prépayé en € (formule PREPAID) : décompté du prix du site à chaque lead livré.
+  prepaidBalance   Float       @default(0)
+  // Le client a-t-il déjà été prévenu que son solde est épuisé ? (évite de renvoyer le mail à chaque lead)
+  prepaidDepletedNotified Boolean @default(false)
   archived         Boolean     @default(false)
   createdAt        DateTime    @default(now())
 
@@ -174,9 +195,29 @@ model Client {
   invoices        Invoice[]
   campagnes       Campagne[]
   monthlyInvoices MonthlyInvoice[]
+  topups          PrepaidTopup[]
 
   @@index([userId])
   @@index([apporteurId])
+}
+
+// Rechargement de solde prépayé d'un client (achat d'un « pack » de leads).
+// amount = montant en € crédité au solde. Payé via Stripe (PENDING → PAID au webhook) ou ajusté à la main (MANUAL).
+model PrepaidTopup {
+  id              String      @id @default(cuid())
+  amount          Float
+  currency        Currency    @default(EUR)
+  status          TopupStatus @default(PENDING)
+  stripeInvoiceId String?
+  note            String?
+  createdAt       DateTime    @default(now())
+  paidAt          DateTime?
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([stripeInvoiceId])
 }
 
 model Apporteur {

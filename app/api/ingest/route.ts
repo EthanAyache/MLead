@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { sendLeadEmail, parseRecipients, parseLabeledRecipients, resolveLeadRecipients } from '@/lib/mail'
+import { sendLeadEmail, parseRecipients, parseLabeledRecipients, resolveLeadRecipients, sendQuotaDepletedEmail } from '@/lib/mail'
 
 // Endpoint PUBLIC de réception des leads envoyés par les sites clients.
 // POST /api/ingest?token=ml_xxxxxxxx   body JSON ou form { nom, email, telephone, message, source, website(honeypot) }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   const dossier = await prisma.dossier.findUnique({
     where: { token },
-    include: { campagne: { include: { client: { select: { id: true, name: true, email: true, notifyEmails: true } } } } },
+    include: { campagne: { include: { client: { select: { id: true, name: true, email: true, notifyEmails: true, billingMode: true, prepaidBalance: true, prepaidDepletedNotified: true } } } } },
   })
   if (!dossier || !dossier.active) return json({ error: 'token invalide' }, 401)
 
@@ -109,28 +109,47 @@ export async function POST(request: Request) {
       .slice(0, 45) || null
 
   const client = dossier.campagne.client
+  const isPrepaid = client.billingMode === 'PREPAID'
+  const price = dossier.unitPrice
 
   // Mode "attribué à JBoost" du site : le lead est rappelé par JBoost, exclu de la facture du client
   // et NON transmis au client. Ne concerne que les leads reçus pendant que le mode est actif.
   const assignedToJboost = dossier.autoAssignJboost
 
-  // Client bloqué = facture mensuelle réellement envoyée mais pas encore réglée (SENT).
-  // On ne bloque PAS sur FAILED : un échec côté Stripe est notre problème, pas un impayé du client
-  // (la facture FAILED sera rejouée au prochain run). Tant que le client n'a pas payé un SENT,
-  // on ne lui envoie plus ses leads — mais le lead reste enregistré et JBoost est prévenu.
-  // (Sans objet si le lead est attribué à JBoost : il ne va de toute façon pas au client.)
-  let blocked = false
+  // Décision de livraison au client (leads valides, non JBoost) :
+  //  - PREPAID : livré si le solde couvre le prix du site (site à 0 € toujours livré) ; sinon retenu.
+  //  - MONTHLY : livré sauf si le client est suspendu (facture mensuelle SENT impayée).
+  let deliverToClient = false
+  let holdNote: string | undefined   // note pour JBoost quand le lead est retenu
+  let consumePrice = 0               // montant à déduire du solde prépayé si le lead est livré
+  let notifyDepleted = false         // prévenir le client (1re fois) que son solde est épuisé
+
   if (status === 'VALID' && !assignedToJboost) {
-    const unpaid = await prisma.monthlyInvoice.findFirst({
-      where: { clientId: client.id, status: 'SENT' },
-      select: { id: true },
-    })
-    blocked = unpaid !== null
+    if (isPrepaid) {
+      const affordable = price <= 0 || client.prepaidBalance >= price
+      if (affordable) {
+        deliverToClient = true
+        consumePrice = price > 0 ? price : 0
+      } else {
+        holdNote = `⚠️ ${client.name} — solde prépayé épuisé. Lead NON transmis au client (rechargement requis).`
+        notifyDepleted = !client.prepaidDepletedNotified
+      }
+    } else {
+      // MONTHLY : bloqué si une facture mensuelle est envoyée mais impayée (SENT). Pas sur FAILED
+      // (échec Stripe de notre côté) : la facture FAILED sera rejouée au prochain run.
+      const unpaid = await prisma.monthlyInvoice.findFirst({
+        where: { clientId: client.id, status: 'SENT' },
+        select: { id: true },
+      })
+      if (unpaid) {
+        holdNote = `⚠️ ${client.name} suspendu (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.`
+      } else {
+        deliverToClient = true
+      }
+    }
   }
 
-  // 6. Enregistrement (requête préparée via Prisma).
-  //    forwardedToClient = true seulement si le lead est valide ET transmis au client
-  //    (ni suspendu, ni attribué à JBoost). Sinon false.
+  // 6. Enregistrement. forwardedToClient = true seulement si le lead part réellement au client.
   await prisma.inboundLead.create({
     data: {
       dossierId: dossier.id,
@@ -143,9 +162,14 @@ export async function POST(request: Request) {
       status,
       ip,
       assignedToJboost,
-      forwardedToClient: status === 'VALID' && !blocked && !assignedToJboost,
+      forwardedToClient: deliverToClient,
     },
   })
+
+  // Prépayé : on déduit le prix du site du solde pour chaque lead effectivement livré.
+  if (consumePrice > 0) {
+    await prisma.client.update({ where: { id: client.id }, data: { prepaidBalance: { decrement: consumePrice } } })
+  }
 
   // Destinataires JBoost uniquement : labels « Mail JBoost » du site → du client → fallback JBOOST_EMAIL.
   const jboostRecipients = () => {
@@ -153,25 +177,31 @@ export async function POST(request: Request) {
     const cli = parseLabeledRecipients(client.notifyEmails)
     return [...new Set(site.jboost.length ? site.jboost : cli.jboost.length ? cli.jboost : parseRecipients(process.env.JBOOST_EMAIL))]
   }
+  // Destinataires « client » (sans les copies JBoost), pour le mail « solde épuisé ».
+  const clientRecipients = () => {
+    const site = parseLabeledRecipients(dossier.notifyEmails)
+    const cli = parseLabeledRecipients(client.notifyEmails)
+    return [...new Set(site.client.length ? site.client : cli.client.length ? cli.client : parseRecipients(client.email))]
+  }
 
   // 7. Transfert e-mail automatique (leads valides uniquement).
   if (status === 'VALID') {
     let recipients: string[]
     let note: string | undefined
-    if (assignedToJboost) {
-      // Lead attribué à JBoost : c'est JBoost qui rappelle, on ne prévient que JBoost.
-      recipients = jboostRecipients()
-      note = `Lead attribué à JBoost — rappelé par JBoost, non transmis / non facturé au client.`
-    } else if (blocked) {
-      recipients = jboostRecipients()
-      note = `⚠️ ${client.name} suspendu (facture impayée) — lead NON transmis au client. Il sera transmis dès régularisation.`
-    } else {
-      // Comportement normal : tous les destinataires (cascade site → client → e-mail du client).
+    if (deliverToClient) {
+      // Livré au client : cascade site → client → e-mail du client.
       recipients = resolveLeadRecipients({
         siteNotifyEmails: dossier.notifyEmails,
         clientNotifyEmails: client.notifyEmails,
         clientEmail: client.email,
       })
+    } else if (assignedToJboost) {
+      recipients = jboostRecipients()
+      note = `Lead attribué à JBoost — rappelé par JBoost, non transmis / non facturé au client.`
+    } else {
+      // Retenu (client suspendu ou solde épuisé) : on ne prévient que JBoost.
+      recipients = jboostRecipients()
+      note = holdNote
     }
 
     if (recipients.length > 0) {
@@ -189,6 +219,16 @@ export async function POST(request: Request) {
       } catch (e) {
         // L'échec d'envoi ne doit jamais casser la réception du lead, mais on le trace.
         console.error('[lead-mail] échec envoi:', (e as Error)?.message || e)
+      }
+    }
+
+    // Prépayé épuisé : prévenir le client une seule fois (puis mémoriser pour ne pas spammer).
+    if (notifyDepleted) {
+      await prisma.client.update({ where: { id: client.id }, data: { prepaidDepletedNotified: true } }).catch(() => {})
+      const to = clientRecipients()
+      if (to.length > 0) {
+        try { await sendQuotaDepletedEmail({ to, clientName: client.name }) }
+        catch (e) { console.error('[quota-mail] échec envoi:', (e as Error)?.message || e) }
       }
     }
   }

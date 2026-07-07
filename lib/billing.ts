@@ -1,25 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { stripe } from '@/lib/stripe'
-import { TVA_PERCENT } from '@/lib/tva'
-
-// Taux de TVA Stripe (20 %, « exclusif » = ajouté au montant HT des lignes).
-// On réutilise le taux existant s'il y en a un, sinon on le crée une fois. La facture
-// Stripe affiche alors : lignes HT + TVA 20 % + total TTC (comme une vraie facture).
-let cachedVatRateId: string | null = null
-async function getVatRateId(): Promise<string> {
-  if (cachedVatRateId) return cachedVatRateId
-  const rates = await stripe.taxRates.list({ active: true, limit: 100 })
-  const found = rates.data.find((r) => r.percentage === TVA_PERCENT && !r.inclusive && r.display_name === 'TVA')
-  const id = found?.id ?? (await stripe.taxRates.create({
-    display_name: 'TVA',
-    description: `TVA ${TVA_PERCENT}%`,
-    percentage: TVA_PERCENT,
-    inclusive: false,
-    country: 'FR',
-  })).id
-  cachedVatRateId = id
-  return id
-}
+import { stripe, getVatRateId } from '@/lib/stripe'
 
 // Facturation mensuelle pay-per-lead.
 // Pour chaque client : nb de leads facturables (VALID, non affectés à JBoost, pas déjà facturés)
@@ -50,9 +30,10 @@ export function currentPeriod(d: Date = new Date()): string {
 export async function runMonthlyBilling(opts?: { period?: string }): Promise<BillingResult> {
   const period = opts?.period ?? currentPeriod()
 
-  // Pas de session côté cron → on facture tous les clients actifs.
+  // Pas de session côté cron → on facture tous les clients actifs EN FORMULE MENSUELLE.
+  // Les clients en prépayé sont exclus : ils paient d'avance (solde décompté à la réception).
   const clients = await prisma.client.findMany({
-    where: { archived: false },
+    where: { archived: false, billingMode: 'MONTHLY' },
     select: { id: true, name: true, email: true, phone: true, stripeCustomerId: true },
     orderBy: { name: 'asc' },
   })

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import Header from '@/app/dashboard/Header'
 import CampagneForm from './CampagneForm'
+import PrepaidPanel, { type Topup } from './PrepaidPanel'
 import LeadsExportButtons, { type LeadExportRow } from '@/app/components/LeadsExportButtons'
 
 export default async function ClientCampagnesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +34,16 @@ export default async function ClientCampagnesPage({ params }: { params: Promise<
       dossier: { include: { campagne: { select: { name: true } } } },
     },
   })
+  // Prépayé : historique des recharges + prix moyen HT par lead (pour l'estimation « ≈ N leads »).
+  const [topupsRaw, priceAgg] = await Promise.all([
+    prisma.prepaidTopup.findMany({ where: { clientId: id }, orderBy: { createdAt: 'desc' }, take: 10 }),
+    prisma.dossier.aggregate({ _avg: { unitPrice: true }, where: { campagne: { clientId: id }, unitPrice: { gt: 0 } } }),
+  ])
+  const avgPrice = priceAgg._avg.unitPrice ?? 0
+  const topups: Topup[] = topupsRaw.map((t) => ({
+    id: t.id, amount: t.amount, status: t.status, note: t.note, createdAt: t.createdAt.toISOString(),
+  }))
+
   const exportRows: LeadExportRow[] = leads.map((l) => ({
     receivedAt: l.receivedAt.toISOString(),
     name: l.name, email: l.email, phone: l.phone, message: l.message, source: l.source,
@@ -78,6 +89,14 @@ export default async function ClientCampagnesPage({ params }: { params: Promise<
           <p className="text-xs text-gray-400 mb-6">
             Une <strong>campagne</strong> regroupe les <strong>sites</strong> d&apos;un même thème. Chaque site a son propre lien API et son prix par lead.
           </p>
+
+          <PrepaidPanel
+            clientId={client.id}
+            billingMode={client.billingMode}
+            prepaidBalance={client.prepaidBalance}
+            avgPrice={avgPrice}
+            topups={topups}
+          />
 
           {client.campagnes.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm">

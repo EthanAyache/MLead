@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { stripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 import { sendLeadEmail, resolveLeadRecipients } from '@/lib/mail'
+import { creditPrepaidBalance } from '@/lib/prepaid'
 import Stripe from 'stripe'
 
 // Cette config est obligatoire pour que Next.js nous donne le body brut
@@ -128,6 +129,17 @@ export async function POST(request: Request) {
               await forwardHeldLeadsForClient(clientId)
             }
           }
+
+          // Pack prépayé (modèle PrepaidTopup) → créditer le solde du client + renvoyer ses leads retenus.
+          const topup = await prisma.prepaidTopup.findFirst({
+            where: { stripeInvoiceId: invoice.id, status: 'PENDING' },
+            select: { id: true, clientId: true, amount: true },
+          })
+          if (topup) {
+            await prisma.prepaidTopup.update({ where: { id: topup.id }, data: { status: 'PAID', paidAt: new Date() } })
+            await creditPrepaidBalance(topup.clientId, topup.amount)
+            console.log(`✅ Pack prépayé crédité : ${topup.amount} € (client ${topup.clientId})`)
+          }
         }
         break
       }
@@ -137,6 +149,10 @@ export async function POST(request: Request) {
         if (invoice.id) {
           await prisma.monthlyInvoice.updateMany({
             where: { stripeInvoiceId: invoice.id },
+            data: { status: 'FAILED' },
+          })
+          await prisma.prepaidTopup.updateMany({
+            where: { stripeInvoiceId: invoice.id, status: 'PENDING' },
             data: { status: 'FAILED' },
           })
         }
