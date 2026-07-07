@@ -68,7 +68,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
   const totalDueTtc = ttcFromHt(duePerLead) + dueCommission
 
   // Client prépayé : les leads sont déjà payés (solde décompté à la réception) → on affiche le solde restant.
-  const isPrepaid = dossier.campagne.client.billingMode === 'PREPAID'
+  const isPrepaid = dossier.billingMode === 'PREPAID'
   const prepaidBalance = dossier.campagne.client.prepaidBalance
   const prepaidLeadsLeft = dossier.unitPrice > 0 ? Math.floor(prepaidBalance / dossier.unitPrice) : null
 
@@ -182,6 +182,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             active={dossier.active}
             autoAssignJboost={dossier.autoAssignJboost}
             websiteUrl={dossier.websiteUrl ?? ''}
+            billingMode={dossier.billingMode}
             isAdmin={isAdmin}
             origin={origin}
             notifyEmails={dossier.notifyEmails ?? ''}

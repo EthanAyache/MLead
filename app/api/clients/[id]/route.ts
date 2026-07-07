@@ -42,7 +42,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if ('phone' in body) data.phone = body.phone?.trim() || null
   if ('notifyEmails' in body) data.notifyEmails = body.notifyEmails?.trim() || null
   if ('apporteurId' in body) data.apporteurId = body.apporteurId || null
-  if (body.billingMode === 'MONTHLY' || body.billingMode === 'PREPAID') data.billingMode = body.billingMode
 
   const client = await prisma.client.update({ where: { id }, data })
   return NextResponse.json(client)

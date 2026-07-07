@@ -5,7 +5,6 @@ import { getPortalClient } from '@/lib/clientSession'
 import { formatEuros } from '@/lib/tva'
 import { parseRecipients } from '@/lib/mail'
 import PortalHeader from './PortalHeader'
-import SwitchToMonthly from './SwitchToMonthly'
 import LeadEmailForm from './LeadEmailForm'
 import SitesManager from './SitesManager'
 
@@ -15,10 +14,7 @@ export default async function PortalDashboard() {
   const client = await getPortalClient()
   if (!client) redirect('/login')
 
-  const isPrepaid = client.billingMode === 'PREPAID'
-
-  const [priceAgg, recent, sites, leadCounts, unpaidMonthly, topupCount, pendingStop] = await Promise.all([
-    prisma.dossier.aggregate({ _avg: { unitPrice: true }, where: { campagne: { clientId: client.id }, unitPrice: { gt: 0 } } }),
+  const [recent, sites, leadCounts, unpaidMonthly, topupCount, pendingStop] = await Promise.all([
     prisma.inboundLead.findMany({
       where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },
       orderBy: { receivedAt: 'desc' },
@@ -28,7 +24,7 @@ export default async function PortalDashboard() {
     prisma.dossier.findMany({
       where: { campagne: { clientId: client.id } },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, unitPrice: true, archived: true, campagne: { select: { name: true } } },
+      select: { id: true, name: true, unitPrice: true, billingMode: true, archived: true, campagne: { select: { name: true } } },
     }),
     prisma.inboundLead.groupBy({
       by: ['dossierId'],
@@ -37,32 +33,36 @@ export default async function PortalDashboard() {
       where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },
       _count: { _all: true },
     }),
-    isPrepaid ? Promise.resolve(null) : prisma.monthlyInvoice.findFirst({
-      where: { clientId: client.id, status: { in: ['SENT', 'FAILED'] } },
-      select: { id: true },
-    }),
-    // A-t-il déjà rechargé au moins une fois ? (paiement Stripe ou crédit manuel admin)
-    isPrepaid ? prisma.prepaidTopup.count({ where: { clientId: client.id, status: { in: ['PAID', 'MANUAL'] } } }) : Promise.resolve(0),
+    prisma.monthlyInvoice.findFirst({ where: { clientId: client.id, status: { in: ['SENT', 'FAILED'] } }, select: { id: true } }),
+    prisma.prepaidTopup.count({ where: { clientId: client.id, status: { in: ['PAID', 'MANUAL'] } } }),
     // Facture d'arrêt en attente de paiement (verrou du compte).
     prisma.stopInvoice.findFirst({ where: { clientId: client.id, status: { in: ['SENT', 'FAILED'] } }, orderBy: { createdAt: 'desc' }, select: { payUrl: true } }),
   ])
 
-  const avgPrice = priceAgg._avg.unitPrice ?? 0
-  const leadsLeft = isPrepaid && avgPrice > 0 ? Math.floor(client.prepaidBalance / avgPrice) : null
-  const depleted = isPrepaid && (client.prepaidBalance <= 0 || (avgPrice > 0 && client.prepaidBalance < avgPrice))
-  const needsRegularisation = !isPrepaid && unpaidMonthly !== null
+  const countByDossier = new Map(leadCounts.map((c) => [c.dossierId, c._count._all]))
+  const toSiteRow = (s: (typeof sites)[number]) => ({
+    id: s.id, name: s.name, campagneName: s.campagne.name, unitPrice: s.unitPrice,
+    billingMode: s.billingMode as 'MONTHLY' | 'PREPAID', leadsCount: countByDossier.get(s.id) ?? 0,
+  })
+  const activeSites = sites.filter((s) => !s.archived).map(toSiteRow)
+  const archivedSites = sites.filter((s) => s.archived).map(toSiteRow)
+
+  // Solde partagé + estimation basée sur le prix moyen des sites PRÉPAYÉS.
+  const walletBalance = client.prepaidBalance
+  const prepaidPaidSites = activeSites.filter((s) => s.billingMode === 'PREPAID' && s.unitPrice > 0)
+  const hasPrepaidSite = activeSites.some((s) => s.billingMode === 'PREPAID')
+  const avgPrepaidPrice = prepaidPaidSites.length ? prepaidPaidSites.reduce((a, s) => a + s.unitPrice, 0) / prepaidPaidSites.length : 0
+  const leadsLeft = avgPrepaidPrice > 0 ? Math.floor(walletBalance / avgPrepaidPrice) : null
+  const depleted = hasPrepaidSite && (walletBalance <= 0 || (avgPrepaidPrice > 0 && walletBalance < avgPrepaidPrice))
+  const needsRegularisation = unpaidMonthly !== null
   const hasTopup = topupCount > 0
-  // État du bandeau : régularisation (mensuel impayé) / solde épuisé (a déjà acheté) / bienvenue (jamais acheté).
+  // Bandeau : régularisation (site mensuel impayé) / solde épuisé (déjà rechargé) / bienvenue (jamais rechargé).
   const banner: 'regularise' | 'depleted' | 'welcome' | null =
     needsRegularisation ? 'regularise' : depleted ? (hasTopup ? 'depleted' : 'welcome') : null
-  const countByDossier = new Map(leadCounts.map((c) => [c.dossierId, c._count._all]))
   const currentLeadEmail = parseRecipients(client.notifyEmails)[0] ?? client.email ?? ''
 
   const stopLocked = pendingStop !== null
   const stopPayUrl = pendingStop?.payUrl ?? null
-  const toSiteRow = (s: (typeof sites)[number]) => ({ id: s.id, name: s.name, campagneName: s.campagne.name, unitPrice: s.unitPrice, leadsCount: countByDossier.get(s.id) ?? 0 })
-  const activeSites = sites.filter((s) => !s.archived).map(toSiteRow)
-  const archivedSites = sites.filter((s) => s.archived).map(toSiteRow)
 
   return (
     <>
@@ -95,31 +95,21 @@ export default async function PortalDashboard() {
         <h1 className="font-bricolage text-2xl font-bold tracking-tight">Bonjour {client.name}</h1>
         <p className="mt-1 text-sm text-[#787C8A]">Voici l&apos;état de votre compte, vos sites et vos derniers leads.</p>
 
-        {/* Carte principale : solde (prépayé) ou formule mensuelle */}
-        {isPrepaid ? (
-          <section className="mt-6 rounded-2xl border border-[#E4DEFB] bg-[#F4F1FE] p-6">
-            <div className="text-sm font-semibold uppercase tracking-wide text-[#6A4FE6]">Votre solde</div>
-            <div className="mt-1 font-bricolage text-4xl font-extrabold tracking-tight text-[#2E1F6B]">{formatEuros(client.prepaidBalance)}</div>
-            <div className="mt-1 text-sm text-[#6A4FE6]">
-              {leadsLeft !== null ? `≈ ${leadsLeft} lead${leadsLeft > 1 ? 's' : ''} restant${leadsLeft > 1 ? 's' : ''}` : 'aucun site payant configuré'}
-            </div>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <Link href="/portail/recharge" className="flex h-11 items-center justify-center rounded-xl bg-[#059669] px-5 font-semibold text-white transition hover:bg-[#047857] focus:outline-none focus:ring-2 focus:ring-[#059669] focus:ring-offset-2">
-                Recharger mon solde
-              </Link>
-              <SwitchToMonthly />
-            </div>
-          </section>
-        ) : (
-          <section className="mt-6 rounded-2xl border border-[#E8E9EF] bg-white p-6">
-            <div className="text-sm font-semibold uppercase tracking-wide text-[#787C8A]">Formule mensuelle</div>
-            <p className="mt-2 text-[15px] leading-relaxed text-[#414350]">Vous êtes facturé <strong>chaque mois</strong> selon le nombre de leads reçus. Aucune avance à faire.</p>
-            <p className="mt-1 text-sm text-[#787C8A]">Vous préférez payer d&apos;avance et maîtriser votre budget ? Achetez un pack de leads.</p>
-            <Link href="/portail/recharge" className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-[#6A4FE6] px-5 font-semibold text-white transition hover:bg-[#5840CC] focus:outline-none focus:ring-2 focus:ring-[#6A4FE6] focus:ring-offset-2">
-              Acheter un pack de leads
+        {/* Carte solde prépayé (partagé par tous les sites en formule prépayée) */}
+        <section className="mt-6 rounded-2xl border border-[#E4DEFB] bg-[#F4F1FE] p-6">
+          <div className="text-sm font-semibold uppercase tracking-wide text-[#6A4FE6]">Votre solde prépayé</div>
+          <div className="mt-1 font-bricolage text-4xl font-extrabold tracking-tight text-[#2E1F6B]">{formatEuros(walletBalance)}</div>
+          <div className="mt-1 text-sm text-[#6A4FE6]">
+            {leadsLeft !== null
+              ? `≈ ${leadsLeft} lead${leadsLeft > 1 ? 's' : ''} restant${leadsLeft > 1 ? 's' : ''} sur vos sites prépayés`
+              : hasPrepaidSite ? 'utilisé par vos sites en formule prépayée' : 'passez un site en « prépayé » pour utiliser votre solde'}
+          </div>
+          <div className="mt-5">
+            <Link href="/portail/recharge" className="inline-flex h-11 items-center justify-center rounded-xl bg-[#059669] px-5 font-semibold text-white transition hover:bg-[#047857] focus:outline-none focus:ring-2 focus:ring-[#059669] focus:ring-offset-2">
+              Recharger mon solde
             </Link>
-          </section>
-        )}
+          </div>
+        </section>
 
         {/* Mes sites : consultation + arrêt / réactivation */}
         <SitesManager active={activeSites} archived={archivedSites} locked={stopLocked} stopPayUrl={stopPayUrl} />

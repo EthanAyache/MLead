@@ -24,6 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (typeof body.name === 'string') data.name = body.name.trim()
   if (typeof body.active === 'boolean') data.active = body.active
   if (typeof body.autoAssignJboost === 'boolean') data.autoAssignJboost = body.autoAssignJboost
+  if (body.billingMode === 'MONTHLY' || body.billingMode === 'PREPAID') data.billingMode = body.billingMode
   if ('contractTerms' in body) data.contractTerms = (body.contractTerms ?? '').trim() || null
   if ('websiteUrl' in body) data.websiteUrl = normalizeUrl(body.websiteUrl)
   if ('notifyEmails' in body) data.notifyEmails = (body.notifyEmails ?? '').trim() || null

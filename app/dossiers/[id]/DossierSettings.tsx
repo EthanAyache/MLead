@@ -29,7 +29,7 @@ function parseEmails(raw: string): { client: string; jboost: string; extras: Ext
 }
 
 export default function DossierSettings({
-  dossierId, token, unitPrice, active, autoAssignJboost, websiteUrl, isAdmin, origin, notifyEmails, department,
+  dossierId, token, unitPrice, active, autoAssignJboost, websiteUrl, billingMode, isAdmin, origin, notifyEmails, department,
 }: {
   dossierId: string
   token: string
@@ -37,6 +37,7 @@ export default function DossierSettings({
   active: boolean
   autoAssignJboost: boolean
   websiteUrl: string
+  billingMode: 'MONTHLY' | 'PREPAID'
   isAdmin: boolean
   origin: string
   notifyEmails: string
@@ -45,6 +46,7 @@ export default function DossierSettings({
   const router = useRouter()
   const [tok, setTok] = useState(token)
   const [price, setPrice] = useState(String(unitPrice))
+  const [mode, setMode] = useState(billingMode)
   const [isActive, setIsActive] = useState(active)
   const [autoJboost, setAutoJboost] = useState(autoAssignJboost)
   const [web, setWeb] = useState(websiteUrl)
@@ -96,6 +98,12 @@ export default function DossierSettings({
 
   async function savePrice() {
     const d = await patch({ unitPrice: price })
+    if (d) router.refresh()
+  }
+
+  async function changeMode(next: 'MONTHLY' | 'PREPAID') {
+    setMode(next)
+    const d = await patch({ billingMode: next })
     if (d) router.refresh()
   }
 
@@ -197,6 +205,14 @@ export default function DossierSettings({
               = <strong className="text-gray-700">{formatEuros(ttcFromHt(parseFloat(price)))} TTC</strong> (TVA {TVA_PERCENT} %)
             </p>
           )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">Formule</label>
+          <select value={mode} onChange={(e) => changeMode(e.target.value as 'MONTHLY' | 'PREPAID')} disabled={busy} className="border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+            <option value="MONTHLY">Mensuel</option>
+            <option value="PREPAID">Prépayé (solde)</option>
+          </select>
         </div>
 
         <div>

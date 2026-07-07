@@ -30,7 +30,7 @@ export default async function Kpis() {
     prisma.inboundLead.findMany({
       where: {
         status: 'VALID', assignedToJboost: false, monthlyInvoiceId: null, stopInvoiceId: null,
-        dossier: { campagne: { client: { ...filter, billingMode: 'MONTHLY' } } },
+        dossier: { billingMode: 'MONTHLY', archived: false, campagne: { client: filter } },
       },
       include: { dossier: { select: { unitPrice: true } } },
     }),

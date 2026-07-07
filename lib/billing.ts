@@ -30,10 +30,10 @@ export function currentPeriod(d: Date = new Date()): string {
 export async function runMonthlyBilling(opts?: { period?: string }): Promise<BillingResult> {
   const period = opts?.period ?? currentPeriod()
 
-  // Pas de session côté cron → on facture tous les clients actifs EN FORMULE MENSUELLE.
-  // Les clients en prépayé sont exclus : ils paient d'avance (solde décompté à la réception).
+  // Pas de session côté cron → on facture tous les clients actifs. La formule est désormais par SITE :
+  // seuls les leads des sites MENSUELS sont facturés (les sites prépayés sont déjà réglés via le solde).
   const clients = await prisma.client.findMany({
-    where: { archived: false, billingMode: 'MONTHLY' },
+    where: { archived: false },
     select: { id: true, name: true, email: true, phone: true, stripeCustomerId: true },
     orderBy: { name: 'asc' },
   })
@@ -74,7 +74,7 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
           assignedToJboost: false,
           monthlyInvoiceId: null,
           stopInvoiceId: null, // déjà facturé lors d'un arrêt de site → à ne pas refacturer
-          dossier: { campagne: { clientId: client.id } },
+          dossier: { billingMode: 'MONTHLY', archived: false, campagne: { clientId: client.id } },
         },
         select: { id: true, dossier: { select: { id: true, name: true, unitPrice: true } } },
       })

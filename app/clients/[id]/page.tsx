@@ -38,7 +38,7 @@ export default async function ClientCampagnesPage({ params }: { params: Promise<
   // Prépayé : historique des recharges + prix moyen HT par lead (pour l'estimation « ≈ N leads »).
   const [topupsRaw, priceAgg] = await Promise.all([
     prisma.prepaidTopup.findMany({ where: { clientId: id }, orderBy: { createdAt: 'desc' }, take: 10 }),
-    prisma.dossier.aggregate({ _avg: { unitPrice: true }, where: { campagne: { clientId: id }, unitPrice: { gt: 0 } } }),
+    prisma.dossier.aggregate({ _avg: { unitPrice: true }, where: { campagne: { clientId: id }, unitPrice: { gt: 0 }, billingMode: 'PREPAID', archived: false } }),
   ])
   const avgPrice = priceAgg._avg.unitPrice ?? 0
   const topups: Topup[] = topupsRaw.map((t) => ({
@@ -94,7 +94,6 @@ export default async function ClientCampagnesPage({ params }: { params: Promise<
 
           <PrepaidPanel
             clientId={client.id}
-            billingMode={client.billingMode}
             prepaidBalance={client.prepaidBalance}
             avgPrice={avgPrice}
             topups={topups}

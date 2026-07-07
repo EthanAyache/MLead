@@ -109,7 +109,7 @@ export async function POST(request: Request) {
       .slice(0, 45) || null
 
   const client = dossier.campagne.client
-  const isPrepaid = client.billingMode === 'PREPAID'
+  const isPrepaid = dossier.billingMode === 'PREPAID' // formule DU SITE
   const price = dossier.unitPrice
 
   // Mode "attribué à JBoost" du site : le lead est rappelé par JBoost, exclu de la facture du client

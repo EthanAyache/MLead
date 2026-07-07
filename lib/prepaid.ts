@@ -7,7 +7,7 @@ import { coerceExtra } from '@/lib/leadExtra'
 async function deliverHeldPrepaidLeads(clientId: string, startingBalance: number): Promise<number> {
   let balance = startingBalance
   const held = await prisma.inboundLead.findMany({
-    where: { status: 'VALID', assignedToJboost: false, forwardedToClient: false, dossier: { campagne: { clientId } } },
+    where: { status: 'VALID', assignedToJboost: false, forwardedToClient: false, dossier: { billingMode: 'PREPAID', campagne: { clientId } } },
     orderBy: { receivedAt: 'asc' },
     include: {
       dossier: {
@@ -62,14 +62,13 @@ async function deliverHeldPrepaidLeads(clientId: string, startingBalance: number
 export async function creditPrepaidBalance(clientId: string, amount: number): Promise<void> {
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    select: { billingMode: true, prepaidBalance: true },
+    select: { prepaidBalance: true },
   })
   if (!client) return
 
+  // Le solde est partagé : on crédite puis on livre les leads retenus des sites prépayés du client.
   let balance = client.prepaidBalance + Math.max(0, amount)
-  if (client.billingMode === 'PREPAID') {
-    balance = await deliverHeldPrepaidLeads(clientId, balance)
-  }
+  balance = await deliverHeldPrepaidLeads(clientId, balance)
 
   await prisma.client.update({
     where: { id: clientId },

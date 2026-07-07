@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export type SiteRow = { id: string; name: string; campagneName: string; unitPrice: number; leadsCount: number }
+export type SiteRow = { id: string; name: string; campagneName: string; unitPrice: number; billingMode: 'MONTHLY' | 'PREPAID'; leadsCount: number }
 
 export default function SitesManager({
   active, archived, locked, stopPayUrl,
@@ -53,6 +53,23 @@ export default function SitesManager({
     await stopSites([...selected], false)
   }
 
+  async function changeMode(id: string, mode: 'MONTHLY' | 'PREPAID') {
+    setBusy(true); setError('')
+    try {
+      const res = await fetch('/api/portal/site-mode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dossierId: id, mode }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(data.error || 'Une erreur est survenue.'); setBusy(false); return }
+      router.refresh()
+    } catch {
+      setError('Erreur réseau. Réessayez.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function reactivate(id: string) {
     setBusy(true); setError('')
     try {
@@ -90,20 +107,30 @@ export default function SitesManager({
         ) : (
           <ul className="divide-y divide-[#EEF0F5]">
             {active.map((s) => (
-              <li key={s.id} className="flex items-center gap-3 px-5 py-3.5">
-                <input
-                  type="checkbox"
-                  checked={selected.has(s.id)}
-                  onChange={() => toggle(s.id)}
-                  disabled={locked || busy}
-                  aria-label={`Sélectionner ${s.name}`}
-                  className="h-4 w-4 shrink-0 rounded border-[#DCDDE6] text-[#6A4FE6] focus:ring-[#6A4FE6] disabled:opacity-40"
-                />
-                <Link href={`/portail/site/${s.id}`} className="min-w-0 flex-1">
-                  <div className="truncate font-semibold text-[#16171D] hover:text-[#6A4FE6]">{s.name}</div>
-                  <div className="truncate text-xs text-[#9AA0AE]">{s.campagneName} · {s.unitPrice.toFixed(2)} € HT / lead</div>
-                </Link>
-                <span className="shrink-0 text-sm"><span className="font-bold text-[#16171D]">{s.leadsCount}</span> <span className="text-[#9AA0AE]">leads</span></span>
+              <li key={s.id} className="px-5 py-3.5">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(s.id)}
+                    onChange={() => toggle(s.id)}
+                    disabled={locked || busy}
+                    aria-label={`Sélectionner ${s.name}`}
+                    className="h-4 w-4 shrink-0 rounded border-[#DCDDE6] text-[#6A4FE6] focus:ring-[#6A4FE6] disabled:opacity-40"
+                  />
+                  <Link href={`/portail/site/${s.id}`} className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-[#16171D] hover:text-[#6A4FE6]">{s.name}</div>
+                    <div className="truncate text-xs text-[#9AA0AE]">{s.campagneName} · {s.unitPrice.toFixed(2)} € HT / lead</div>
+                  </Link>
+                  <span className="shrink-0 text-sm"><span className="font-bold text-[#16171D]">{s.leadsCount}</span> <span className="text-[#9AA0AE]">leads</span></span>
+                </div>
+                {/* Formule du site */}
+                <div className="mt-2 flex items-center gap-2 pl-7">
+                  <span className="text-xs text-[#787C8A]">Formule :</span>
+                  <div className="inline-flex gap-0.5 rounded-lg bg-[#F1F2F6] p-0.5">
+                    <button onClick={() => changeMode(s.id, 'MONTHLY')} disabled={locked || busy || s.billingMode === 'MONTHLY'} className={`rounded-md px-2.5 py-1 text-xs font-semibold transition disabled:cursor-default ${s.billingMode === 'MONTHLY' ? 'bg-white text-[#16171D] shadow-[0_1px_2px_rgba(20,22,30,.08)]' : 'text-[#787C8A] hover:text-[#16171D]'}`}>Mensuel</button>
+                    <button onClick={() => changeMode(s.id, 'PREPAID')} disabled={locked || busy || s.billingMode === 'PREPAID'} className={`rounded-md px-2.5 py-1 text-xs font-semibold transition disabled:cursor-default ${s.billingMode === 'PREPAID' ? 'bg-white text-[#6A4FE6] shadow-[0_1px_2px_rgba(20,22,30,.08)]' : 'text-[#787C8A] hover:text-[#16171D]'}`}>Prépayé</button>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>

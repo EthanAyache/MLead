@@ -435,6 +435,8 @@ model Dossier {
   name      String
   token     String   @unique // 'ml_' + 32 hex, identifie le site dans l'URL de l'API
   unitPrice Float    @default(0)
+  // Formule de facturation DU SITE : MONTHLY (facturé au mois) ou PREPAID (décompté du solde partagé du client).
+  billingMode BillingMode @default(MONTHLY)
   active    Boolean  @default(true)
   // Mode "attribué à JBoost" : quand activé, chaque NOUVEAU lead reçu est automatiquement
   // affecté à JBoost (rappelé par JBoost, exclu de la facture du client). N'affecte pas les leads déjà reçus.

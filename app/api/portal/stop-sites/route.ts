@@ -29,20 +29,21 @@ export async function POST(request: Request) {
   // Sites du client, actifs et non déjà archivés.
   const sites = await prisma.dossier.findMany({
     where: { id: { in: ids }, archived: false, campagne: { clientId: client.id } },
-    select: { id: true, name: true, unitPrice: true },
+    select: { id: true, name: true, unitPrice: true, billingMode: true },
   })
   if (sites.length === 0) return NextResponse.json({ error: 'Sites introuvables' }, { status: 404 })
   const siteIds = sites.map((s) => s.id)
+  // Seuls les sites MENSUELS génèrent une facture d'arrêt (les prépayés sont déjà réglés via le solde).
+  const monthlySiteIds = sites.filter((s) => s.billingMode === 'MONTHLY').map((s) => s.id)
 
-  const isMonthly = client.billingMode === 'MONTHLY'
   let payUrl: string | null = null
 
-  if (isMonthly) {
-    // Leads non encore facturés de ces sites (mêmes critères que la facturation mensuelle).
+  if (monthlySiteIds.length > 0) {
+    // Leads non encore facturés de ces sites mensuels (mêmes critères que la facturation mensuelle).
     const leads = await prisma.inboundLead.findMany({
       where: {
         status: 'VALID', assignedToJboost: false, monthlyInvoiceId: null, stopInvoiceId: null,
-        dossierId: { in: siteIds },
+        dossierId: { in: monthlySiteIds },
       },
       select: { id: true, dossier: { select: { id: true, name: true, unitPrice: true } } },
     })
