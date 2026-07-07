@@ -2,15 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateLoginToken, LOGIN_TOKEN_TTL_MIN } from '@/lib/clientSession'
 import { sendClientLoginEmail } from '@/lib/mail'
+import { requestOrigin } from '@/lib/origin'
 
 export const runtime = 'nodejs'
-
-function getOrigin(request: Request): string {
-  const h = request.headers
-  const proto = h.get('x-forwarded-proto') || 'https'
-  const host = h.get('x-forwarded-host') || h.get('host') || 'monsieurlead.jboost.fr'
-  return `${proto}://${host}`
-}
 
 // Envoie un lien magique de connexion au client dont l'e-mail est fourni.
 // Réponse générique (on ne révèle jamais si l'e-mail existe → anti-énumération).
@@ -31,7 +25,7 @@ export async function POST(request: Request) {
     data: { token, clientId: client.id, expiresAt: new Date(Date.now() + LOGIN_TOKEN_TTL_MIN * 60 * 1000) },
   })
 
-  const link = `${getOrigin(request)}/api/portal/verify?token=${token}`
+  const link = `${requestOrigin(request)}/api/portal/verify?token=${token}`
   try {
     await sendClientLoginEmail({ to: client.email, clientName: client.name, link })
   } catch (e) {

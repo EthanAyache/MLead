@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { CLIENT_COOKIE, makeClientSessionValue } from '@/lib/clientSession'
+import { requestOrigin } from '@/lib/origin'
 
 export const runtime = 'nodejs'
 
 // Vérifie le jeton du lien magique, ouvre la session client (cookie signé), redirige vers le portail.
 export async function GET(request: Request) {
-  const url = new URL(request.url)
-  const token = url.searchParams.get('token') || ''
-  const fail = NextResponse.redirect(new URL('/portail/login?error=lien', url.origin))
+  const origin = requestOrigin(request)
+  const token = new URL(request.url).searchParams.get('token') || ''
+  const fail = NextResponse.redirect(new URL('/portail/login?error=lien', origin))
 
   if (!token) return fail
 
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
   // Usage unique
   await prisma.clientLoginToken.update({ where: { id: row.id }, data: { usedAt: new Date() } })
 
-  const res = NextResponse.redirect(new URL('/portail', url.origin))
+  const res = NextResponse.redirect(new URL('/portail', origin))
   res.cookies.set(CLIENT_COOKIE, makeClientSessionValue(row.clientId), {
     httpOnly: true,
     secure: true,
