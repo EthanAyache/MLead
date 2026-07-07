@@ -7,6 +7,7 @@ import { parseRecipients } from '@/lib/mail'
 import PortalHeader from './PortalHeader'
 import SwitchToMonthly from './SwitchToMonthly'
 import LeadEmailForm from './LeadEmailForm'
+import SitesManager from './SitesManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export default async function PortalDashboard() {
 
   const isPrepaid = client.billingMode === 'PREPAID'
 
-  const [priceAgg, recent, sites, leadCounts, unpaidMonthly, topupCount] = await Promise.all([
+  const [priceAgg, recent, sites, leadCounts, unpaidMonthly, topupCount, pendingStop] = await Promise.all([
     prisma.dossier.aggregate({ _avg: { unitPrice: true }, where: { campagne: { clientId: client.id }, unitPrice: { gt: 0 } } }),
     prisma.inboundLead.findMany({
       where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },
@@ -27,7 +28,7 @@ export default async function PortalDashboard() {
     prisma.dossier.findMany({
       where: { campagne: { clientId: client.id } },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, unitPrice: true, campagne: { select: { name: true } } },
+      select: { id: true, name: true, unitPrice: true, archived: true, campagne: { select: { name: true } } },
     }),
     prisma.inboundLead.groupBy({
       by: ['dossierId'],
@@ -42,6 +43,8 @@ export default async function PortalDashboard() {
     }),
     // A-t-il déjà rechargé au moins une fois ? (paiement Stripe ou crédit manuel admin)
     isPrepaid ? prisma.prepaidTopup.count({ where: { clientId: client.id, status: { in: ['PAID', 'MANUAL'] } } }) : Promise.resolve(0),
+    // Facture d'arrêt en attente de paiement (verrou du compte).
+    prisma.stopInvoice.findFirst({ where: { clientId: client.id, status: { in: ['SENT', 'FAILED'] } }, orderBy: { createdAt: 'desc' }, select: { payUrl: true } }),
   ])
 
   const avgPrice = priceAgg._avg.unitPrice ?? 0
@@ -54,6 +57,12 @@ export default async function PortalDashboard() {
     needsRegularisation ? 'regularise' : depleted ? (hasTopup ? 'depleted' : 'welcome') : null
   const countByDossier = new Map(leadCounts.map((c) => [c.dossierId, c._count._all]))
   const currentLeadEmail = parseRecipients(client.notifyEmails)[0] ?? client.email ?? ''
+
+  const stopLocked = pendingStop !== null
+  const stopPayUrl = pendingStop?.payUrl ?? null
+  const toSiteRow = (s: (typeof sites)[number]) => ({ id: s.id, name: s.name, campagneName: s.campagne.name, unitPrice: s.unitPrice, leadsCount: countByDossier.get(s.id) ?? 0 })
+  const activeSites = sites.filter((s) => !s.archived).map(toSiteRow)
+  const archivedSites = sites.filter((s) => s.archived).map(toSiteRow)
 
   return (
     <>
@@ -112,32 +121,8 @@ export default async function PortalDashboard() {
           </section>
         )}
 
-        {/* Mes sites (cliquables → leads du site) */}
-        <section className="mt-6">
-          <h2 className="font-bricolage text-lg font-bold">Vos sites</h2>
-          <div className="mt-3 overflow-hidden rounded-2xl border border-[#E8E9EF] bg-white">
-            {sites.length === 0 ? (
-              <div className="px-5 py-8 text-center text-sm text-[#787C8A]">Aucun site configuré pour le moment.</div>
-            ) : (
-              <ul className="divide-y divide-[#EEF0F5]">
-                {sites.map((s) => (
-                  <li key={s.id}>
-                    <Link href={`/portail/site/${s.id}`} className="flex items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-[#FAFAFC] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#6A4FE6]">
-                      <div className="min-w-0">
-                        <div className="font-semibold text-[#16171D]">{s.name}</div>
-                        <div className="text-xs text-[#9AA0AE]">{s.campagne.name} · {s.unitPrice.toFixed(2)} € HT / lead</div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3 text-sm">
-                        <span><span className="font-bold text-[#16171D]">{countByDossier.get(s.id) ?? 0}</span> <span className="text-[#9AA0AE]">leads</span></span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9AA0AE" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+        {/* Mes sites : consultation + arrêt / réactivation */}
+        <SitesManager active={activeSites} archived={archivedSites} locked={stopLocked} stopPayUrl={stopPayUrl} />
 
         {/* E-mail de réception des leads */}
         <section className="mt-6 rounded-2xl border border-[#E8E9EF] bg-white p-6">

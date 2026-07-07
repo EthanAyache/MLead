@@ -142,6 +142,13 @@ export async function POST(request: Request) {
             await creditPrepaidBalance(topup.clientId, topup.amount)
             console.log(`✅ Pack prépayé crédité : ${topup.amount} € (client ${topup.clientId})`)
           }
+
+          // Facture d'arrêt de site (modèle StopInvoice) → payée = compte déverrouillé (sites déjà archivés).
+          const stopPaid = await prisma.stopInvoice.updateMany({
+            where: { stripeInvoiceId: invoice.id, status: { in: ['SENT', 'FAILED'] } },
+            data: { status: 'PAID', paidAt: new Date() },
+          })
+          if (stopPaid.count > 0) console.log(`✅ Facture d'arrêt payée (${invoice.id})`)
         }
         break
       }
@@ -155,6 +162,10 @@ export async function POST(request: Request) {
           })
           await prisma.prepaidTopup.updateMany({
             where: { stripeInvoiceId: invoice.id, status: 'PENDING' },
+            data: { status: 'FAILED' },
+          })
+          await prisma.stopInvoice.updateMany({
+            where: { stripeInvoiceId: invoice.id, status: 'SENT' },
             data: { status: 'FAILED' },
           })
         }

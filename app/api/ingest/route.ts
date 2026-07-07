@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     where: { token },
     include: { campagne: { include: { client: { select: { id: true, name: true, email: true, notifyEmails: true, billingMode: true, prepaidBalance: true, prepaidDepletedNotified: true } } } } },
   })
-  if (!dossier || !dossier.active) return json({ error: 'token invalide' }, 401)
+  if (!dossier || !dossier.active || dossier.archived) return json({ error: 'token invalide' }, 401)
 
   const body = await readBody(request)
 

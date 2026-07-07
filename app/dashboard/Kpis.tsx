@@ -29,7 +29,7 @@ export default async function Kpis() {
     // On exclut les clients en prépayé (déjà payés d'avance, jamais facturés au mois).
     prisma.inboundLead.findMany({
       where: {
-        status: 'VALID', assignedToJboost: false, monthlyInvoiceId: null,
+        status: 'VALID', assignedToJboost: false, monthlyInvoiceId: null, stopInvoiceId: null,
         dossier: { campagne: { client: { ...filter, billingMode: 'MONTHLY' } } },
       },
       include: { dossier: { select: { unitPrice: true } } },

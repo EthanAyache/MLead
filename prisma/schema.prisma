@@ -199,6 +199,7 @@ model Client {
   monthlyInvoices MonthlyInvoice[]
   topups          PrepaidTopup[]
   loginTokens     ClientLoginToken[]
+  stopInvoices    StopInvoice[]
 
   @@index([userId])
   @@index([apporteurId])
@@ -444,6 +445,8 @@ model Dossier {
   contractTerms String? @db.Text
   // Lien du site (URL publique), cliquable depuis la page du site
   websiteUrl    String?
+  // Site archivé : arrêté par le client (ne reçoit plus de leads, anciens leads consultables).
+  archived      Boolean @default(false)
   // Destinataires e-mail (séparés par , ; ou retour ligne) à qui transférer chaque lead reçu
   notifyEmails  String? @db.Text
   createdAt DateTime @default(now())
@@ -507,11 +510,40 @@ model InboundLead {
   monthlyInvoiceId String?
   monthlyInvoice   MonthlyInvoice? @relation(fields: [monthlyInvoiceId], references: [id])
 
+  // Facture d'arrêt de site où ce lead a été comptabilisé (autre marqueur « déjà facturé »).
+  stopInvoiceId String?
+  stopInvoice   StopInvoice? @relation(fields: [stopInvoiceId], references: [id])
+
   @@index([dossierId, status])
   @@index([receivedAt])
   @@index([monthlyInvoiceId])
+  @@index([stopInvoiceId])
   @@index([assignedToJboost])
   @@index([forwardedToClient])
+}
+
+// Facture émise quand un client arrête un ou plusieurs sites (formule mensuelle) : couvre les leads
+// non encore facturés des sites arrêtés. Tant qu'elle n'est pas payée, le compte est verrouillé.
+model StopInvoice {
+  id              String               @id @default(cuid())
+  amount          Float                @default(0)
+  currency        Currency             @default(EUR)
+  status          MonthlyInvoiceStatus @default(DRAFT)
+  stripeInvoiceId String?
+  // Lien de paiement Stripe hébergé (pour permettre au client de régler depuis le portail).
+  payUrl          String?
+  // Raison saisie par le client (arrêt global) — usage interne, jamais montrée sur la facture.
+  reason          String?              @db.Text
+  createdAt       DateTime             @default(now())
+  paidAt          DateTime?
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leads InboundLead[]
+
+  @@index([clientId])
+  @@index([stripeInvoiceId])
 }
 
 // Facture mensuelle agrégée d'un client (pay-per-lead). Une seule par client et par période.

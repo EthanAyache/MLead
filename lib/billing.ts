@@ -73,6 +73,7 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
           status: 'VALID',
           assignedToJboost: false,
           monthlyInvoiceId: null,
+          stopInvoiceId: null, // déjà facturé lors d'un arrêt de site → à ne pas refacturer
           dossier: { campagne: { clientId: client.id } },
         },
         select: { id: true, dossier: { select: { id: true, name: true, unitPrice: true } } },

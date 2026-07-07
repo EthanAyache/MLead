@@ -5,18 +5,24 @@ import { hasUnpaidStopInvoice } from '@/lib/stopBilling'
 
 export const runtime = 'nodejs'
 
-// Le client change sa formule depuis le portail. Pour l'instant : passer en facturation MENSUELLE.
-// (Passer en PREPAID se fait en achetant un pack via /api/portal/recharge.)
+// Réactive un site archivé (il recommence à recevoir des leads). Impossible tant qu'une facture
+// d'arrêt est en attente de paiement. body = { dossierId: string }
 export async function POST(request: Request) {
   const client = await getPortalClient()
   if (!client) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
   if (await hasUnpaidStopInvoice(client.id)) {
     return NextResponse.json({ error: 'Réglez d\'abord votre facture d\'arrêt en attente.' }, { status: 409 })
   }
 
   const body = await request.json().catch(() => ({}))
-  if (body.mode !== 'MONTHLY') return NextResponse.json({ error: 'Formule invalide' }, { status: 400 })
+  const dossierId = String(body.dossierId ?? '')
+  const site = await prisma.dossier.findFirst({
+    where: { id: dossierId, archived: true, campagne: { clientId: client.id } },
+    select: { id: true },
+  })
+  if (!site) return NextResponse.json({ error: 'Site introuvable' }, { status: 404 })
 
-  await prisma.client.update({ where: { id: client.id }, data: { billingMode: 'MONTHLY' } })
+  await prisma.dossier.update({ where: { id: site.id }, data: { archived: false } })
   return NextResponse.json({ ok: true })
 }

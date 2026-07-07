@@ -241,6 +241,32 @@ export async function sendQuotaDepletedEmail(opts: { to: string[]; clientName: s
   return true
 }
 
+// Prévient JBoost (interne) qu'un client a arrêté un ou plusieurs sites (avec la raison éventuelle).
+export async function sendStopSitesNoticeEmail(opts: { clientName: string; siteNames: string[]; reason?: string | null; global: boolean }): Promise<boolean> {
+  const t = getTransporter()
+  const to = parseRecipients(process.env.JBOOST_EMAIL)
+  if (!t || to.length === 0) return false
+  const from = process.env.MAIL_FROM || process.env.SMTP_USER
+  const subject = opts.global
+    ? `⚠️ ${opts.clientName} a arrêté TOUS ses sites`
+    : `${opts.clientName} a arrêté ${opts.siteNames.length} site(s)`
+
+  const text =
+    `${opts.clientName} vient d'arrêter ${opts.global ? 'tous ses sites' : 'des sites'} :\n` +
+    opts.siteNames.map((s) => `- ${s}`).join('\n') +
+    (opts.reason ? `\n\nRaison indiquée :\n${opts.reason}` : '')
+
+  const html = `
+    <div style="font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#16171D">
+      <p><strong>${escapeHtml(opts.clientName)}</strong> vient d'arrêter ${opts.global ? '<strong>tous ses sites</strong>' : 'des sites'} :</p>
+      <ul>${opts.siteNames.map((s) => `<li>${escapeHtml(s)}</li>`).join('')}</ul>
+      ${opts.reason ? `<p style="margin-top:12px"><strong>Raison indiquée :</strong><br>${escapeHtml(opts.reason).replace(/\n/g, '<br>')}</p>` : ''}
+    </div>`
+
+  await t.sendMail({ from, to: to.join(', '), subject, text, html })
+  return true
+}
+
 // Envoie le lien de définition / réinitialisation du mot de passe du portail client.
 export async function sendClientPasswordEmail(opts: { to: string; clientName: string; link: string; reset?: boolean }): Promise<boolean> {
   const t = getTransporter()
