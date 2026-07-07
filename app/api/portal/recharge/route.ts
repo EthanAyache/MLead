@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { stripe, getVatRateId } from '@/lib/stripe'
 import { getPortalClient } from '@/lib/clientSession'
 import { hasUnpaidStopInvoice } from '@/lib/stopBilling'
+import { sendInvoiceToClientAndAdmin } from '@/lib/invoiceNotify'
 
 export const runtime = 'nodejs'
 
@@ -54,7 +55,9 @@ export async function POST(request: Request) {
     })
 
     const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id)
-    // On renvoie la page de paiement Stripe hébergée (carte) : le client y règle directement.
+    // Envoi de la facture par e-mail au client (Stripe) + copie à JBoost.
+    await sendInvoiceToClientAndAdmin(stripeInvoice.id, { clientName: client.name, kind: 'Recharge de solde' })
+    // On renvoie aussi la page de paiement Stripe hébergée (carte) : le client peut régler directement.
     return NextResponse.json({ ok: true, payUrl: finalized.hosted_invoice_url ?? null })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur Stripe'

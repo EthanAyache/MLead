@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { stripe, getVatRateId } from '@/lib/stripe'
+import { sendInvoiceToClientAndAdmin } from '@/lib/invoiceNotify'
 
 // Facturation mensuelle pay-per-lead.
 // Pour chaque client : nb de leads facturables (VALID, non affectés à JBoost, pas déjà facturés)
@@ -156,7 +157,7 @@ export async function runMonthlyBilling(opts?: { period?: string }): Promise<Bil
         }
 
         await stripe.invoices.finalizeInvoice(stripeInvoice.id)
-        await stripe.invoices.sendInvoice(stripeInvoice.id)
+        await sendInvoiceToClientAndAdmin(stripeInvoice.id, { clientName: client.name, kind: 'Facturation mensuelle' })
 
         // 7. Lier les leads à la facture + passer SENT (atomique).
         await prisma.$transaction([

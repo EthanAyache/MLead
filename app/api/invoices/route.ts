@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
+import { sendInvoiceToClientAndAdmin } from '@/lib/invoiceNotify'
 
 export async function GET() {
   const user = await getCurrentUser()
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       })
 
       await stripe.invoices.finalizeInvoice(stripeInvoice.id)
-      await stripe.invoices.sendInvoice(stripeInvoice.id)
+      await sendInvoiceToClientAndAdmin(stripeInvoice.id, { clientName: client.name, kind: 'Facture' })
 
       stripeInvoiceId = stripeInvoice.id
     } catch (err) {

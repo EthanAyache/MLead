@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { stripe, getVatRateId } from '@/lib/stripe'
 import { hasUnpaidStopInvoice } from '@/lib/stopBilling'
+import { sendInvoiceToClientAndAdmin } from '@/lib/invoiceNotify'
 
 // Arrête (archive) un ou plusieurs sites d'un client. Pour les sites MENSUELS, émet une facture d'arrêt
 // des leads non encore facturés (HT + TVA, payable carte + e-mail Stripe) → verrouille le compte tant
@@ -78,7 +79,7 @@ export async function stopSitesForClient(clientId: string, dossierIds: string[])
         }
 
         const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id)
-        await stripe.invoices.sendInvoice(stripeInvoice.id)
+        await sendInvoiceToClientAndAdmin(stripeInvoice.id, { clientName: client.name, kind: 'Arrêt de site' })
         payUrl = finalized.hosted_invoice_url ?? null
         await prisma.$transaction([
           prisma.inboundLead.updateMany({ where: { id: { in: leads.map((l) => l.id) } }, data: { stopInvoiceId: stop.id } }),

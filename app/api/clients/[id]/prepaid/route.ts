@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, visibilityFilter } from '@/lib/auth'
 import { stripe, getVatRateId } from '@/lib/stripe'
 import { creditPrepaidBalance } from '@/lib/prepaid'
+import { sendInvoiceToClientAndAdmin } from '@/lib/invoiceNotify'
 
 export const runtime = 'nodejs'
 
@@ -68,7 +69,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       })
 
       await stripe.invoices.finalizeInvoice(stripeInvoice.id)
-      await stripe.invoices.sendInvoice(stripeInvoice.id)
+      await sendInvoiceToClientAndAdmin(stripeInvoice.id, { clientName: client.name, kind: 'Recharge de solde' })
 
       return NextResponse.json({ ok: true, stripeInvoiceId: stripeInvoice.id })
     } catch (err) {

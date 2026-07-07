@@ -241,6 +241,40 @@ export async function sendQuotaDepletedEmail(opts: { to: string[]; clientName: s
   return true
 }
 
+// Envoie à JBoost (agencejboost) une COPIE d'une facture émise à un client (au cas où).
+export async function sendInvoiceCopyToAdmin(opts: {
+  clientName: string
+  kind: string // ex. « Recharge de solde », « Facturation mensuelle », « Arrêt de site », « Facture »
+  amountTTC: number
+  hostedUrl?: string | null
+  pdfUrl?: string | null
+}): Promise<boolean> {
+  const t = getTransporter()
+  if (!t) return false
+  const to = parseRecipients(process.env.JBOOST_EMAIL)
+  const recipients = to.length ? to : parseRecipients(process.env.MAIL_FROM || process.env.SMTP_USER)
+  if (recipients.length === 0) return false
+  const from = process.env.MAIL_FROM || process.env.SMTP_USER
+
+  const subject = `Copie facture — ${opts.clientName} · ${opts.kind}`
+  const links =
+    (opts.hostedUrl ? `\nFacture en ligne : ${opts.hostedUrl}` : '') +
+    (opts.pdfUrl ? `\nPDF : ${opts.pdfUrl}` : '')
+  const text = `Facture émise à ${opts.clientName}\nType : ${opts.kind}\nMontant : ${opts.amountTTC.toFixed(2)} € TTC${links}`
+
+  const html = `
+    <div style="font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#16171D">
+      <p style="margin:0 0 8px">Facture émise à <strong>${escapeHtml(opts.clientName)}</strong></p>
+      <p style="margin:0 0 4px;color:#414350">Type : ${escapeHtml(opts.kind)}</p>
+      <p style="margin:0 0 12px;color:#414350">Montant : <strong>${opts.amountTTC.toFixed(2)} € TTC</strong></p>
+      ${opts.hostedUrl ? `<p style="margin:0 0 6px"><a href="${escapeHtml(opts.hostedUrl)}" style="color:#6A4FE6">Voir la facture en ligne</a></p>` : ''}
+      ${opts.pdfUrl ? `<p style="margin:0"><a href="${escapeHtml(opts.pdfUrl)}" style="color:#6A4FE6">Télécharger le PDF</a></p>` : ''}
+    </div>`
+
+  await t.sendMail({ from, to: recipients.join(', '), subject, text, html })
+  return true
+}
+
 // Prévient JBoost (interne) qu'un client a arrêté un ou plusieurs sites (avec la raison éventuelle).
 export async function sendStopSitesNoticeEmail(opts: { clientName: string; siteNames: string[]; reason?: string | null; global: boolean }): Promise<boolean> {
   const t = getTransporter()
