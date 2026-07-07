@@ -265,7 +265,9 @@ export async function sendClientLoginEmail(opts: { to: string; clientName: strin
         <p style="margin:0 0 16px;font-size:15px;color:#16171D;line-height:1.6">Bonjour,</p>
         <p style="margin:0 0 20px;font-size:14px;color:#414350;line-height:1.6">Cliquez sur le bouton ci-dessous pour accéder à votre espace client MonsieurLead.</p>
         <a href="${escapeHtml(opts.link)}" style="display:inline-block;background:#6A4FE6;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px;border-radius:12px">Accéder à mon espace</a>
-        <p style="margin:20px 0 0;font-size:12px;color:#9AA0AE;line-height:1.6">Ce lien est valable 30 minutes et à usage unique. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
+        <p style="margin:18px 0 0;font-size:13px;color:#787C8A;line-height:1.6">Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :</p>
+        <p style="margin:4px 0 0;font-size:13px;line-height:1.5"><a href="${escapeHtml(opts.link)}" style="color:#6A4FE6;word-break:break-all">${escapeHtml(opts.link)}</a></p>
+        <p style="margin:18px 0 0;font-size:12px;color:#9AA0AE;line-height:1.6">Ce lien est valable 30 minutes et à usage unique. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
       </div>
       <p style="color:#9AA0AE;text-align:center;font-size:11.5px;margin:16px 0 0">MonsieurLead — ${escapeHtml(opts.clientName)}</p>
     </div>
