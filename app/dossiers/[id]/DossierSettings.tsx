@@ -29,7 +29,7 @@ function parseEmails(raw: string): { client: string; jboost: string; extras: Ext
 }
 
 export default function DossierSettings({
-  dossierId, token, unitPrice, active, autoAssignJboost, websiteUrl, billingMode, isAdmin, origin, notifyEmails, department,
+  dossierId, token, unitPrice, active, autoAssignJboost, websiteUrl, billingMode, archived, isAdmin, origin, notifyEmails, department,
 }: {
   dossierId: string
   token: string
@@ -38,6 +38,7 @@ export default function DossierSettings({
   autoAssignJboost: boolean
   websiteUrl: string
   billingMode: 'MONTHLY' | 'PREPAID'
+  archived: boolean
   isAdmin: boolean
   origin: string
   notifyEmails: string
@@ -139,6 +140,23 @@ export default function DossierSettings({
     if (d) { setIsActive(next); router.refresh() }
   }
 
+  async function stopSite() {
+    if (!confirm('Arrêter ce site ? Il sera archivé (ne recevra plus de leads). En formule mensuelle, une facture des leads non encore réglés sera émise au client (payable par carte, envoyée par e-mail).')) return
+    setBusy(true); setError('')
+    const res = await fetch(`/api/dossiers/${dossierId}/stop`, { method: 'POST' })
+    setBusy(false)
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Erreur'); return }
+    router.refresh()
+  }
+
+  async function reactivateSite() {
+    setBusy(true); setError('')
+    const res = await fetch(`/api/dossiers/${dossierId}/reactivate`, { method: 'POST' })
+    setBusy(false)
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setError(d.error || 'Erreur'); return }
+    router.refresh()
+  }
+
   async function toggleAutoJboost() {
     const next = !autoJboost
     const d = await patch({ autoAssignJboost: next })
@@ -230,6 +248,27 @@ export default function DossierSettings({
         {isAdmin && (
           <button onClick={remove} disabled={busy} className="ml-auto px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 disabled:opacity-50">
             Supprimer le site
+          </button>
+        )}
+      </div>
+
+      {/* Arrêt / réactivation du site (facturation) */}
+      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-xs font-bold text-gray-700 uppercase">{archived ? 'Site arrêté (archivé)' : 'Arrêter le site'}</div>
+          <p className="text-[11px] text-gray-400 mt-1 max-w-xl">
+            {archived
+              ? 'Ce site ne reçoit plus de leads. Vous pouvez le réactiver (impossible tant qu’une facture d’arrêt du client est impayée).'
+              : 'Archive le site (arrête les leads). En formule mensuelle, une facture des leads non réglés est émise au client.'}
+          </p>
+        </div>
+        {archived ? (
+          <button onClick={reactivateSite} disabled={busy} className="shrink-0 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">
+            Réactiver le site
+          </button>
+        ) : (
+          <button onClick={stopSite} disabled={busy} className="shrink-0 px-4 py-2 rounded-lg border border-amber-300 text-amber-700 text-sm font-semibold hover:bg-amber-50 disabled:opacity-50">
+            Arrêter le site
           </button>
         )}
       </div>

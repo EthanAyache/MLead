@@ -183,6 +183,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             autoAssignJboost={dossier.autoAssignJboost}
             websiteUrl={dossier.websiteUrl ?? ''}
             billingMode={dossier.billingMode}
+            archived={dossier.archived}
             isAdmin={isAdmin}
             origin={origin}
             notifyEmails={dossier.notifyEmails ?? ''}
