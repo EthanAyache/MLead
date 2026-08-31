@@ -17,7 +17,12 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
   // (ces pages sont publiques et n'ont rien à voir avec les comptes Mr.Lead).
   if (slug) {
     if (request.nextUrl.pathname === "/") {
-      return NextResponse.rewrite(new URL(`/s/${slug}`, request.url))
+      // On repart de `nextUrl` et pas de `request.url` : derrière Passenger, request.url porte
+      // l'adresse interne du serveur, et Next prendrait la réécriture pour un renvoi vers un
+      // autre serveur (erreur 500) au lieu d'une route de l'application.
+      const url = request.nextUrl.clone()
+      url.pathname = `/s/${slug}`
+      return NextResponse.rewrite(url)
     }
     // Un site généré n'a qu'une page : tout le reste n'existe pas.
     return new NextResponse("Page introuvable", {
