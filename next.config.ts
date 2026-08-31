@@ -1,6 +1,34 @@
 import type { NextConfig } from "next";
 
+// Domaine des sites clients générés. Lu ici au moment du BUILD (les règles de réécriture sont
+// figées dans le manifeste) : la valeur par défaut doit donc rester la bonne en production,
+// car le shell SSH du serveur ne voit pas les variables d'environnement de cPanel.
+const SITES_DOMAIN = process.env.SITES_DOMAIN || "offreofficielle.fr";
+
 const nextConfig: NextConfig = {
+  // Un sous-domaine client (voyage-cacher-loisirel-souccot.offreofficielle.fr) affiche la page
+  // publique du site correspondant. La réécriture est faite ICI, par le routeur, et non dans
+  // proxy.ts : derrière Passenger, Next croit s'appeler « localhost:3000 » et prendrait une
+  // réécriture construite depuis l'URL de la requête pour un renvoi vers un serveur externe.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/",
+          has: [
+            {
+              type: "host",
+              value: `(?<siteSlug>[a-z0-9-]+)\\.${SITES_DOMAIN.replace(/\./g, "\\.")}(?::\\d+)?`,
+            },
+          ],
+          destination: "/s/:siteSlug",
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
+
   // o2switch (CloudLinux) limite le nombre de threads/process par compte.
   // Sans ça, le build spawn ~29 workers et plante en "pthread_create: Resource temporarily unavailable".
   // On force 1 worker pour le build.
