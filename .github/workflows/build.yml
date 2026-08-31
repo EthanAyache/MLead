@@ -20,6 +20,16 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Aucune de ces valeurs n'est utilisée réellement : depuis que les pages alimentées par la
+    # base sont dynamiques, la compilation ne se connecte à rien. Elles évitent juste que Prisma
+    # et NextAuth refusent de démarrer faute de variable définie.
+    env:
+      DATABASE_URL: mysql://build:build@127.0.0.1:3306/build
+      AUTH_SECRET: build-placeholder-not-a-real-secret
+      AUTH_TRUST_HOST: 'true'
+      SITES_DOMAIN: offreofficielle.fr
+
     steps:
       - uses: actions/checkout@v4
 
@@ -32,15 +42,7 @@ jobs:
 
       - run: npx prisma generate
 
-      # Aucune de ces valeurs n'est utilisée réellement : depuis que les pages alimentées par la
-      # base sont dynamiques, le build ne se connecte à rien. Elles évitent juste que Prisma et
-      # NextAuth refusent de démarrer faute de variable.
       - run: npm run build
-        env:
-          DATABASE_URL: mysql://build:build@127.0.0.1:3306/build
-          AUTH_SECRET: build-placeholder-not-a-real-secret
-          AUTH_TRUST_HOST: 'true'
-          SITES_DOMAIN: offreofficielle.fr
 
       - name: Publier le build sur la branche deploy
         run: |
