@@ -1,0 +1,53 @@
+# Compile l'application ailleurs que sur o2switch.
+#
+# Le compte o2switch (CloudLinux) plafonne le nombre de threads : `next build` y échoue de façon
+# aléatoire en « EAGAIN » selon la charge des autres sites du compte. GitHub compile donc à chaque
+# push sur main et dépose le résultat (le dossier .next) sur la branche `deploy`.
+#
+# Déploiement sur le serveur, sans rien compiler :
+#   git fetch origin && git reset --hard origin/deploy
+#   touch tmp/restart.txt
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci --include=dev
+
+      - run: npx prisma generate
+
+      # Aucune de ces valeurs n'est utilisée réellement : depuis que les pages alimentées par la
+      # base sont dynamiques, le build ne se connecte à rien. Elles évitent juste que Prisma et
+      # NextAuth refusent de démarrer faute de variable.
+      - run: npm run build
+        env:
+          DATABASE_URL: mysql://build:build@127.0.0.1:3306/build
+          AUTH_SECRET: build-placeholder-not-a-real-secret
+          AUTH_TRUST_HOST: 'true'
+          SITES_DOMAIN: offreofficielle.fr
+
+      - name: Publier le build sur la branche deploy
+        run: |
+          rm -rf .next/cache
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout -B deploy
+          git add -f .next
+          git commit -m "build de ${GITHUB_SHA::7}"
+          git push -f origin deploy
