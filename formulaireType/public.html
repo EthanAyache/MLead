@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Page type : formulaire de rappel, galerie photos et bloc de présentation. Du xx au xx mois année.">
+<meta name="theme-color" content="#E9F5FA">
+<title>Template Voyage Cacher</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- =========================================================
+     PAGE PUBLIQUE — lecture seule.
+     Le contenu de la présentation et les photos proviennent
+     de la page admin (index.html) via le store partagé.
+     Aucun outil d'édition ici.
+     ========================================================= -->
+
+<!-- ========== Bibliothèque d'icônes (SVG, style Lucide) ========== -->
+<svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+    <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  </defs>
+</svg>
+
+<main class="phone">
+
+  <!-- ================= EN-TÊTE ================= -->
+  <header class="hero">
+    <div class="hero__inner">
+      <h1 class="hero__brand">Template Voyage Cacher</h1>
+      <span class="hero__rule" aria-hidden="true"></span>
+      <p class="hero__tagline">Titre de l'offre</p>
+      <p class="hero__dates">
+        <svg class="ic ic--sm" aria-hidden="true"><use href="#i-cal"/></svg>
+        Du xx au xx mois année
+      </p>
+    </div>
+  </header>
+
+  <!-- ================= FORMULAIRE ================= -->
+  <section class="card card--form" aria-labelledby="t-form">
+    <div class="card__head">
+      <h2 class="card__title" id="t-form">Rappelez-moi</h2>
+      <p class="card__sub">Laissez vos coordonnées, nous vous rappelons sous 24&nbsp;h.</p>
+    </div>
+
+    <form id="formRappel" novalidate>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="nom">Nom <abbr class="req" title="obligatoire">*</abbr></label>
+          <div class="control control--icon">
+            <svg class="ic control__ic" aria-hidden="true"><use href="#i-user"/></svg>
+            <input type="text" id="nom" name="nom" placeholder="Votre nom"
+                   autocomplete="name" required aria-describedby="err-nom">
+          </div>
+          <p class="err" id="err-nom" role="alert"></p>
+        </div>
+
+        <div class="field">
+          <label for="tel">Téléphone <abbr class="req" title="obligatoire">*</abbr></label>
+          <div class="control control--icon">
+            <svg class="ic control__ic" aria-hidden="true"><use href="#i-phone"/></svg>
+            <input type="tel" id="tel" name="tel" placeholder="06 12 34 56 78"
+                   inputmode="tel" autocomplete="tel" required aria-describedby="err-tel">
+          </div>
+          <p class="err" id="err-tel" role="alert"></p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">E-mail <abbr class="req" title="obligatoire">*</abbr></label>
+        <div class="control control--icon">
+          <svg class="ic control__ic" aria-hidden="true"><use href="#i-mail"/></svg>
+          <input type="email" id="email" name="email" placeholder="vous@exemple.com"
+                 inputmode="email" autocomplete="email" required aria-describedby="err-email hint-email">
+        </div>
+        <p class="hint" id="hint-email">Nous y enverrons le programme détaillé.</p>
+        <p class="err" id="err-email" role="alert"></p>
+      </div>
+
+      <!-- Nombre de voyageurs : compteurs − / + (voir common.js) -->
+      <fieldset class="compteurs">
+        <legend class="compteurs__legend">Nombre de voyageurs</legend>
+
+        <div class="compteurs__grille">
+          <div class="compte">
+            <label class="compte__txt" for="adultes">
+              <strong>Adultes</strong>
+              <small>18 ans et plus</small>
+            </label>
+            <div class="stepper">
+              <button type="button" class="stepper__btn" data-cible="adultes" data-pas="-1" aria-label="Retirer un adulte">
+                <svg class="ic ic--sm" aria-hidden="true"><use href="#i-minus"/></svg>
+              </button>
+              <input class="stepper__val" type="number" id="adultes" name="adultes"
+                     value="1" min="1" max="12" step="1" inputmode="numeric">
+              <button type="button" class="stepper__btn" data-cible="adultes" data-pas="1" aria-label="Ajouter un adulte">
+                <svg class="ic ic--sm" aria-hidden="true"><use href="#i-plus"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="compte">
+            <label class="compte__txt" for="enfants">
+              <strong>Enfants</strong>
+              <small>De 2 à 17 ans</small>
+            </label>
+            <div class="stepper">
+              <button type="button" class="stepper__btn" data-cible="enfants" data-pas="-1" aria-label="Retirer un enfant">
+                <svg class="ic ic--sm" aria-hidden="true"><use href="#i-minus"/></svg>
+              </button>
+              <input class="stepper__val" type="number" id="enfants" name="enfants"
+                     value="0" min="0" max="10" step="1" inputmode="numeric">
+              <button type="button" class="stepper__btn" data-cible="enfants" data-pas="1" aria-label="Ajouter un enfant">
+                <svg class="ic ic--sm" aria-hidden="true"><use href="#i-plus"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="compte">
+            <label class="compte__txt" for="bebes">
+              <strong>Bébés</strong>
+              <small>Moins de 2 ans</small>
+            </label>
+            <div class="stepper">
+              <button type="button" class="stepper__btn" data-cible="bebes" data-pas="-1" aria-label="Retirer un bébé">
+                <svg class="ic ic--sm" aria-hidden="true"><use href="#i-minus"/></svg>
+              </button>
+              <input class="stepper__val" type="number" id="bebes" name="bebes"
+                     value="0" min="0" max="6" step="1" inputmode="numeric">
+              <button type="button" class="stepper__btn" data-cible="bebes" data-pas="1" aria-label="Ajouter un bébé">
+                <svg class="ic ic--sm" aria-hidden="true"><use href="#i-plus"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Âges des enfants : générés en JS -->
+      <fieldset class="ages" id="zoneEnfants" hidden>
+        <legend class="ages__legend">Âge des enfants au départ</legend>
+        <div class="grid-2" id="listeEnfants"></div>
+      </fieldset>
+
+      <div class="field">
+        <label for="message">Votre message <span class="opt">(facultatif)</span></label>
+        <div class="control">
+          <textarea id="message" name="message" rows="4"
+                    placeholder="Une question, une demande particulière…"></textarea>
+        </div>
+        <p class="hint">Vous serez recontacté par téléphone ou par e-mail.</p>
+      </div>
+
+      <div class="consents">
+        <label class="switch">
+          <input type="checkbox" id="parMail" checked>
+          <span class="switch__box" aria-hidden="true"><svg class="ic ic--xs"><use href="#i-check"/></svg></span>
+          <span class="switch__txt">
+            <strong>Être recontacté par mail</strong>
+            <small>Réponse écrite à l'adresse renseignée ci-dessus.</small>
+          </span>
+        </label>
+
+        <label class="switch">
+          <input type="checkbox" id="whatsapp" checked>
+          <span class="switch__box" aria-hidden="true"><svg class="ic ic--xs"><use href="#i-check"/></svg></span>
+          <span class="switch__txt">
+            <strong>Être recontacté par WhatsApp</strong>
+            <small>Réponse plus rapide, sur le numéro renseigné ci-dessus.</small>
+          </span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" id="btnEnvoyer">
+        <span class="btn__spinner" aria-hidden="true"></span>
+        <svg class="ic btn__ic" aria-hidden="true"><use href="#i-send"/></svg>
+        <span class="btn__label">Suivant</span>
+      </button>
+
+      <p class="legal">
+        Vos données servent uniquement à traiter votre demande. Aucune revente à des tiers.
+      </p>
+    </form>
+
+    <!-- État de succès -->
+    <div class="success" id="succes" hidden>
+      <span class="success__badge" aria-hidden="true"><svg class="ic"><use href="#i-check"/></svg></span>
+      <h3 class="success__title">Demande envoyée</h3>
+      <p class="success__txt">Merci&nbsp;! Un conseiller vous rappelle sous 24&nbsp;h ouvrées.</p>
+      <button type="button" class="btn btn--ghost" id="btnNouvelle">Envoyer une autre demande</button>
+    </div>
+  </section>
+
+  <!-- ================= SLIDER PHOTOS (lecture seule) ================= -->
+  <section class="card card--media" aria-labelledby="t-photos">
+    <div class="card__head card__head--row">
+      <h2 class="card__title card__title--sm" id="t-photos">Galerie photos</h2>
+      <span class="counter" id="compteur" aria-live="polite">1 / 3</span>
+    </div>
+
+    <div class="slider" id="slider" tabindex="0" role="group"
+         aria-roledescription="carrousel" aria-label="Photos (flèches gauche et droite pour naviguer)">
+      <div class="slider__track" id="slides"></div>
+
+      <button type="button" class="slider__nav slider__nav--prev" id="prev" aria-label="Photo précédente">
+        <svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>
+      </button>
+      <button type="button" class="slider__nav slider__nav--next" id="next" aria-label="Photo suivante">
+        <svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg>
+      </button>
+
+      <div class="slider__dots" id="puces"></div>
+    </div>
+  </section>
+
+  <!-- ================= PRÉSENTATION (lecture seule) ================= -->
+  <section class="card card--editor" aria-labelledby="t-edit">
+    <div class="card__head card__head--row">
+      <h2 class="card__title card__title--sm" id="t-edit">Présentation</h2>
+      <span class="live" id="temoinMaj" role="status" aria-live="polite">Contenu mis à jour</span>
+    </div>
+
+    <!-- Même contenu par défaut que la page admin : il sert de repli
+         tant que rien n'a été publié. -->
+    <div class="editor editor--lock" id="contenu">
+      <h2>Titre principal <em>et sa nuance</em></h2>
+      <h3>Sous-titre</h3>
+      <p>Paragraphe de présentation : décrivez l'offre en quelques lignes, du <b>xx au xx mois année</b>. Remplacez ce texte par le vôtre.</p>
+      <ul>
+        <li>Premier point à mettre en avant</li>
+        <li>Deuxième point à mettre en avant</li>
+        <li>Troisième point à mettre en avant</li>
+      </ul>
+      <p>Demandez à être rappelé grâce au formulaire ci-dessus : un conseiller vous présentera le programme complet.</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p><strong>Template Voyage Cacher</strong> — Titre de l'offre</p>
+    <p class="foot__sm">Du xx au xx mois année</p>
+  </footer>
+
+</main>
+
+<script src="sync.js"></script>
+<script src="common.js"></script>
+</body>
+</html>

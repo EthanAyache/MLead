@@ -55,9 +55,9 @@ enum BillingMode {
 // Statut d'un rechargement de solde prépayé.
 enum TopupStatus {
   PENDING // facture Stripe émise, en attente de paiement
-  PAID    // payé → solde crédité
-  FAILED  // paiement échoué
-  MANUAL  // ajusté à la main par un admin (crédité immédiatement)
+  PAID // payé → solde crédité
+  FAILED // paiement échoué
+  MANUAL // ajusté à la main par un admin (crédité immédiatement)
 }
 
 // Statut d'un lead reçu via l'API. Seuls les VALID sont facturés.
@@ -156,36 +156,36 @@ model Brand {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  leads             Lead[]
-  invoices          Invoice[]
+  leads              Lead[]
+  invoices           Invoice[]
   purchasedProspects Prospect[] @relation("BrandPurchasedProspects")
 
   @@index([userId])
 }
 
 model Client {
-  id               String      @id @default(cuid())
-  name             String
+  id                      String      @id @default(cuid())
+  name                    String
   // Raison sociale et numéro SIRET (facturation / identification de l'entreprise cliente)
-  companyName      String?
-  siret            String?
-  email            String?
-  phone            String?
+  companyName             String?
+  siret                   String?
+  email                   String?
+  phone                   String?
   // E-mails (séparés par , ; ou retour ligne) où sont transférés les leads par défaut, pour tous ses sites
-  notifyEmails     String?     @db.Text
-  stripeCustomerId String?
+  notifyEmails            String?     @db.Text
+  stripeCustomerId        String?
   // Mode de facturation pay-per-lead : AUTO (prélèvement carte) ou INVOICE (facture à régler)
-  paymentMode      PaymentMode @default(AUTO)
+  paymentMode             PaymentMode @default(AUTO)
   // Formule : MONTHLY (facture mensuelle) ou PREPAID (solde en € payé d'avance)
-  billingMode      BillingMode @default(MONTHLY)
+  billingMode             BillingMode @default(MONTHLY)
   // Solde prépayé en € (formule PREPAID) : décompté du prix du site à chaque lead livré.
-  prepaidBalance   Float       @default(0)
+  prepaidBalance          Float       @default(0)
   // Le client a-t-il déjà été prévenu que son solde est épuisé ? (évite de renvoyer le mail à chaque lead)
-  prepaidDepletedNotified Boolean @default(false)
+  prepaidDepletedNotified Boolean     @default(false)
   // Mot de passe du portail client (haché bcrypt). null = pas encore défini (première connexion à faire).
-  portalPassword   String?     @db.Text
-  archived         Boolean     @default(false)
-  createdAt        DateTime    @default(now())
+  portalPassword          String?     @db.Text
+  archived                Boolean     @default(false)
+  createdAt               DateTime    @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -423,7 +423,9 @@ model Campagne {
   clientId String
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  sites Dossier[]
+  sites         Dossier[]
+  // Site public généré pour cette campagne (au plus un).
+  generatedSite GeneratedSite?
 
   @@index([clientId])
 }
@@ -431,33 +433,35 @@ model Campagne {
 // Un "Site" (modèle Dossier) = une source/un site d'une campagne, avec son token API et son prix unitaire.
 // C'est lui qui reçoit les leads via l'API.
 model Dossier {
-  id        String   @id @default(cuid())
-  name      String
-  token     String   @unique // 'ml_' + 32 hex, identifie le site dans l'URL de l'API
-  unitPrice Float    @default(0)
+  id               String      @id @default(cuid())
+  name             String
+  token            String      @unique // 'ml_' + 32 hex, identifie le site dans l'URL de l'API
+  unitPrice        Float       @default(0)
   // Formule de facturation DU SITE : MONTHLY (facturé au mois) ou PREPAID (décompté du solde partagé du client).
-  billingMode BillingMode @default(MONTHLY)
-  active    Boolean  @default(true)
+  billingMode      BillingMode @default(MONTHLY)
+  active           Boolean     @default(true)
   // Mode "attribué à JBoost" : quand activé, chaque NOUVEAU lead reçu est automatiquement
   // affecté à JBoost (rappelé par JBoost, exclu de la facture du client). N'affecte pas les leads déjà reçus.
-  autoAssignJboost Boolean @default(false)
+  autoAssignJboost Boolean     @default(false)
   // Département métier du site (regroupement pour s'y retrouver)
-  department Department @default(AUTRE)
+  department       Department  @default(AUTRE)
   // Termes du contrat (texte libre, éditable) propres à ce site
-  contractTerms String? @db.Text
+  contractTerms    String?     @db.Text
   // Lien du site (URL publique), cliquable depuis la page du site
-  websiteUrl    String?
+  websiteUrl       String?
   // Site archivé : arrêté par le client (ne reçoit plus de leads, anciens leads consultables).
-  archived      Boolean @default(false)
+  archived         Boolean     @default(false)
   // Destinataires e-mail (séparés par , ; ou retour ligne) à qui transférer chaque lead reçu
-  notifyEmails  String? @db.Text
-  createdAt DateTime @default(now())
+  notifyEmails     String?     @db.Text
+  createdAt        DateTime    @default(now())
 
   campagneId String
   campagne   Campagne @relation(fields: [campagneId], references: [id], onDelete: Cascade)
 
-  leads  InboundLead[]
-  offers Offer[]
+  leads         InboundLead[]
+  offers        Offer[]
+  // Page publique générée (offreofficiel.fr) adossée à ce site, si créée depuis le portail.
+  generatedSite GeneratedSite?
 
   @@index([campagneId])
   @@index([token])
@@ -485,24 +489,24 @@ model Offer {
 
 // Un lead reçu via l'API, rattaché à un dossier. Statut auto (VALID/DUPLICATE) ou manuel (REJECTED).
 model InboundLead {
-  id         String     @id @default(cuid())
-  name       String?
-  email      String?
-  phone      String?
-  message    String?    @db.Text
-  source     String?
+  id                String     @id @default(cuid())
+  name              String?
+  email             String?
+  phone             String?
+  message           String?    @db.Text
+  source            String?
   // Champs supplémentaires envoyés par le formulaire (destination, dates, compagnie…) : { [clé]: valeur }
-  extra      Json?
+  extra             Json?
   // Note libre partagée (admin ↔ client) sur ce lead. Affichée partout où le lead apparaît.
-  note       String?    @db.Text
-  status     LeadStatus @default(VALID)
-  ip         String?
+  note              String?    @db.Text
+  status            LeadStatus @default(VALID)
+  ip                String?
   // Affecté à JBoost = c'est NOUS qui rappelons ce lead → exclu de la facture du client
-  assignedToJboost Boolean @default(false)
+  assignedToJboost  Boolean    @default(false)
   // Le lead a-t-il bien été transmis au client par e-mail ? false = retenu (client suspendu au moment
   // de la réception) → sera renvoyé automatiquement dès que le client régularise sa facture.
-  forwardedToClient Boolean @default(false)
-  receivedAt DateTime   @default(now())
+  forwardedToClient Boolean    @default(false)
+  receivedAt        DateTime   @default(now())
 
   dossierId String
   dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
@@ -553,7 +557,7 @@ model StopInvoice {
 // Facture mensuelle agrégée d'un client (pay-per-lead). Une seule par client et par période.
 model MonthlyInvoice {
   id              String               @id @default(cuid())
-  period          String               // format "AAAA-MM"
+  period          String // format "AAAA-MM"
   leadCount       Int                  @default(0)
   amount          Float                @default(0)
   currency        Currency             @default(EUR)
@@ -568,4 +572,74 @@ model MonthlyInvoice {
 
   @@unique([clientId, period])
   @@index([clientId])
+}
+
+// --- Sites générés automatiquement (offreofficiel.fr) ---
+
+// Thème d'un site généré (ex. « Voyage cacher »). Liste fermée gérée par l'admin :
+// c'est la première brique du sous-domaine et il porte le prix par lead par défaut.
+model SiteTheme {
+  id               String     @id @default(cuid())
+  name             String
+  slug             String     @unique
+  // Prix par lead repris par les sites créés sur ce thème (l'admin peut l'ajuster ensuite site par site).
+  defaultUnitPrice Float      @default(0)
+  // Département métier appliqué au site créé.
+  department       Department @default(AUTRE)
+  active           Boolean    @default(true)
+  position         Int        @default(0)
+  createdAt        DateTime   @default(now())
+
+  sites GeneratedSite[]
+}
+
+// Période commerciale d'un site généré (ex. « Souccot »). Liste fermée gérée par l'admin :
+// dernière brique du sous-domaine.
+model SitePeriod {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  active    Boolean  @default(true)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  sites GeneratedSite[]
+}
+
+// Un site créé automatiquement par le client depuis son portail.
+// Sert la page publique sur <slug>.offreofficiel.fr et est adossé 1-1 à un Dossier (= le site Mr.Lead
+// qui porte le token d'ingestion). Un seul site généré par campagne (contrainte @unique sur campagneId).
+model GeneratedSite {
+  id   String @id @default(cuid())
+  // Sous-domaine complet, ex. « voyage-cacher-loisirel-souccot » (suffixé -2, -3… en cas de collision).
+  slug String @unique
+
+  // --- Contenu éditable (client depuis le portail, ou admin depuis le back-office) ---
+  brandName        String // nom affiché en en-tête, ex. « Loisirel »
+  offerTitle       String? // accroche sous le nom, ex. « Séjour famille en bord de mer »
+  startDate        DateTime?
+  endDate          DateTime?
+  // HTML du bloc « Présentation », ASSAINI avant enregistrement (voir lib/sanitizeHtml.ts).
+  presentationHtml String?   @db.Text
+  // Photos du carrousel : ["/api/uploads/<siteId>/<fichier>.jpg", …] dans l'ordre d'affichage.
+  photos           Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dossierId String  @unique
+  dossier   Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  // Un seul site généré par campagne.
+  campagneId String   @unique
+  campagne   Campagne @relation(fields: [campagneId], references: [id], onDelete: Cascade)
+
+  themeId String
+  theme   SiteTheme @relation(fields: [themeId], references: [id])
+
+  periodId String
+  period   SitePeriod @relation(fields: [periodId], references: [id])
+
+  @@index([themeId])
+  @@index([periodId])
 }

@@ -181,6 +181,55 @@ touch tmp/restart.txt                                 # redémarrer l'app
 > **cPanel → Setup Node.js App → Environment variables** (elles ont la priorité sur le `.env`).
 > Le webhook Stripe nécessite un certificat SSL valide (Let's Encrypt / AutoSSL) sur le domaine.
 
+## Sites clients générés (offreofficielle.fr)
+
+Depuis son portail, un client crée lui-même sa page publique (**Créer mon site**) : il choisit une
+**campagne**, un **thème**, un **nom d'offre** et une **période**. Le site est en ligne
+immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
+(ex. `voyage-cacher-loisirel-souccot.offreofficielle.fr`), avec son formulaire **déjà relié** à Mr.Lead.
+
+### Comment ça marche
+
+- **Un seul déploiement.** `*.offreofficielle.fr` pointe sur cette application. `proxy.ts` lit le
+  sous-domaine (`x-forwarded-host`) et réécrit la requête vers `/s/<slug>`, qui charge le site en
+  base et rend la page. Créer un site = une ligne en base, aucun fichier ni sous-domaine à créer.
+- **Deux root layouts.** Les pages clients vivent dans `app/(sites)/` avec leur propre `layout.tsx`
+  et `site.css` (repris de `formulaireType/style.css`) ; le back-office est dans `app/(mrlead)/`
+  avec Tailwind. Sans cette séparation, le reset Tailwind casserait la template.
+- **Rattachement automatique.** La création fabrique en une transaction le `Dossier` (avec son token
+  `ml_…`, le prix par lead du thème et la formule du client) **et** le `GeneratedSite`. Le formulaire
+  de la page poste sur `/api/ingest?token=…` : les leads arrivent comme ceux de n'importe quel site.
+- **Contenu éditable** par le client (`/portail/site/<id>/page-publique`) et par l'équipe
+  (`/dossiers/<id>/page-publique`) : nom affiché, titre de l'offre, dates, photos du carrousel et
+  bloc « Présentation » en texte riche. Le HTML est **assaini côté serveur** avant enregistrement.
+- **Un site par campagne.** Contrainte `@unique` sur `GeneratedSite.campagneId` : un client avec
+  deux campagnes peut créer deux sites. Si le slug est déjà pris, il est suffixé (`-2`, `-3`…).
+- **Arrêt d'un site.** Archiver le `Dossier` (parcours d'arrêt existant) rend la page publique
+  introuvable, sans rien supprimer.
+
+Le catalogue des thèmes et des périodes se gère dans **Admin → Sites clients**
+(`/admin/sites`) : chaque thème porte le **prix par lead** appliqué aux sites créés dessus.
+
+### Mise en place (une seule fois)
+
+1. **cPanel** : ajouter `offreofficielle.fr`, puis un sous-domaine **wildcard** `*.offreofficielle.fr`
+   pointant sur le dossier de l'application.
+2. **SSL** : demander au support o2switch un certificat **wildcard** `*.offreofficielle.fr`. Sans lui,
+   chaque sous-domaine sortirait en certificat auto-signé (cf. le problème déjà rencontré sur
+   `monsieurlead.jboost.fr`).
+3. **Variables d'environnement** (cPanel → Setup Node.js App) :
+
+   | Variable | Valeur | Rôle |
+   | --- | --- | --- |
+   | `SITES_DOMAIN` | `offreofficielle.fr` | domaine des sites clients |
+   | `UPLOADS_DIR` | `/home/<user>/mlead-uploads` | photos des sites, **hors** du dossier de l'app (un redéploiement l'écraserait) |
+
+4. **Base de données** : `npx prisma migrate deploy` (ou `npx prisma db push`) — crée `SiteTheme`,
+   `SitePeriod`, `GeneratedSite` et insère le thème « Voyage cacher » et les périodes courantes.
+
+> `formulaireType/` reste la template HTML/CSS/JS d'origine, gardée comme référence de design.
+
+
 ## Scripts
 
 | Script | Description |
