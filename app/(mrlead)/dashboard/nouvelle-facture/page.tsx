@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma'
 import Header from '../Header'
 import NewInvoiceForm from './NewInvoiceForm'
 
+// Page alimentee par la base : elle doit etre rendue a chaque requete.
+// Sans ca, Next la fige au build (donnees perimees, et build impossible sans acces a la base).
+export const dynamic = 'force-dynamic'
+
 export default async function NewInvoicePage() {
   const [clients, apporteurs] = await Promise.all([
     prisma.client.findMany({ where: { archived: false }, select: { id: true, name: true, email: true }, orderBy: { name: 'asc' } }),

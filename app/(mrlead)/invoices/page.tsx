@@ -2,6 +2,10 @@ import { prisma } from '@/lib/prisma'
 import Header from '@/app/(mrlead)/dashboard/Header'
 import AddInvoiceForm from './AddInvoiceForm'
 
+// Page alimentee par la base : elle doit etre rendue a chaque requete.
+// Sans ca, Next la fige au build (donnees perimees, et build impossible sans acces a la base).
+export const dynamic = 'force-dynamic'
+
 function symbol(c: string) {
   return c === 'EUR' ? '€' : c === 'ILS' ? '₪' : '$'
 }

@@ -2,6 +2,10 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import SignupForm from './SignupForm'
 
+// Page alimentee par la base : elle doit etre rendue a chaque requete.
+// Sans ca, Next la fige au build (donnees perimees, et build impossible sans acces a la base).
+export const dynamic = 'force-dynamic'
+
 // L'inscription publique n'est ouverte QUE pour l'amorçage (création du tout premier compte).
 // Dès qu'un compte existe, on redirige vers la connexion : les comptes suivants sont créés par
 // un administrateur depuis l'espace Admin.
