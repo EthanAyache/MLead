@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
     // ce qui échoue en "spawn node EAGAIN" quand le compte a atteint sa limite de process.
     // À false, la compilation se fait dans le process principal.
     webpackBuildWorker: false,
+    // Les etapes suivantes (verification TypeScript, collecte des pages) lancent des workers.
+    // En mode "threads", Next les cree DANS le process courant au lieu de spawner un nouveau
+    // process node - seule facon de passer la limite d'o2switch.
+    workerThreads: true,
   },
 };
 
