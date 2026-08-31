@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // On force 1 worker pour le build.
   experimental: {
     cpus: 1,
+    // Même raison : par défaut Next lance la compilation webpack dans un process séparé,
+    // ce qui échoue en "spawn node EAGAIN" quand le compte a atteint sa limite de process.
+    // À false, la compilation se fait dans le process principal.
+    webpackBuildWorker: false,
   },
 };
 
