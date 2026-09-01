@@ -5,6 +5,11 @@ import type { NextConfig } from "next";
 // car le shell SSH du serveur ne voit pas les variables d'environnement de cPanel.
 const SITES_DOMAIN = process.env.SITES_DOMAIN || "offreofficielle.fr";
 
+// Hôte d'un site client, avec le sous-domaine capturé pour le réutiliser dans la destination.
+// Doublement échappé : cette chaîne est compilée en expression régulière par Next.
+const HOTE_SITE =
+  "(?<siteSlug>[a-z0-9-]+)\\." + SITES_DOMAIN.replace(/\./g, "\\.") + "(?::\\d+)?";
+
 const nextConfig: NextConfig = {
   // Un sous-domaine client (voyage-cacher-loisirel-souccot.offreofficielle.fr) affiche la page
   // publique du site correspondant. La réécriture est faite ICI, par le routeur, et non dans
@@ -15,13 +20,19 @@ const nextConfig: NextConfig = {
       beforeFiles: [
         {
           source: "/",
-          has: [
-            {
-              type: "host",
-              value: `(?<siteSlug>[a-z0-9-]+)\\.${SITES_DOMAIN.replace(/\./g, "\\.")}(?::\\d+)?`,
-            },
-          ],
+          has: [{ type: "host", value: HOTE_SITE }],
           destination: "/s/:siteSlug",
+        },
+        // Fichiers attendus par les moteurs de recherche, servis site par site.
+        {
+          source: "/robots.txt",
+          has: [{ type: "host", value: HOTE_SITE }],
+          destination: "/s/:siteSlug/robots.txt",
+        },
+        {
+          source: "/sitemap.xml",
+          has: [{ type: "host", value: HOTE_SITE }],
+          destination: "/s/:siteSlug/sitemap.xml",
         },
       ],
       afterFiles: [],

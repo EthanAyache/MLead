@@ -9,6 +9,10 @@ const { auth } = NextAuth(authConfig)
 // Request). Ses surcharges de types ne couvrent pas cet appel direct, d'où le cast.
 const authProxy = auth as unknown as (request: NextRequest, event: NextFetchEvent) => Promise<Response>
 
+// Seules adresses servies sur un sous-domaine client : la page, et les fichiers que les moteurs
+// de recherche vont chercher. Tout le reste n'existe pas.
+const CHEMINS_DU_SITE = new Set(["/", "/robots.txt", "/sitemap.xml"])
+
 export default function proxy(request: NextRequest, event: NextFetchEvent) {
   const h = request.headers
   const slug = siteSlugFromHost(resolveHost(h.get("x-forwarded-host"), h.get("host")))
@@ -16,9 +20,9 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
   // Sous-domaine client : on sert la page publique du site, sans jamais passer par NextAuth
   // (ces pages sont publiques et n'ont rien à voir avec les comptes Mr.Lead).
   if (slug) {
-    if (request.nextUrl.pathname === "/") {
-      // On laisse passer sans authentifier : c'est la règle de réécriture de next.config.ts
-      // (évaluée juste après le proxy) qui envoie vers /s/<slug>.
+    if (CHEMINS_DU_SITE.has(request.nextUrl.pathname)) {
+      // On laisse passer sans authentifier : ce sont les règles de réécriture de next.config.ts
+      // (évaluées juste après le proxy) qui envoient vers /s/<slug>/…
       return NextResponse.next()
     }
     // Un site généré n'a qu'une page : tout le reste n'existe pas.

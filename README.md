@@ -224,6 +224,10 @@ pas encore (**Créer ma page**) : il choisit le site, un **thème**, un **nom d'
 - **Qui a le droit de modifier ?** Chaque page porte un `clientCanEdit` (vrai par défaut), basculé
   par l'équipe depuis les réglages du site. À faux, le client voit sa page mais ne peut plus la
   modifier — l'API le refuse aussi, pas seulement l'interface.
+- **Référencement.** Chaque site sert son propre `robots.txt` (avec le lien vers son plan de site)
+  et son `sitemap.xml` — indispensables puisque rien d'autre ne pointe vers ces sous-domaines.
+  La page porte un `<h1>` (nom de l'offre), un `<h2>` (accroche), une URL canonique, et les
+  métadonnées de partage (aperçu WhatsApp / Facebook) avec la première photo.
 - **Une page par site.** Contrainte `@unique` sur `GeneratedSite.dossierId` : un client avec trois
   sites peut mettre en ligne trois pages. Si le slug est déjà pris, il est suffixé (`-2`, `-3`…).
 - **Arrêt d'un site.** Archiver le `Dossier` (parcours d'arrêt existant) rend la page publique
