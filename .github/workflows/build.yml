@@ -29,6 +29,9 @@ jobs:
       AUTH_SECRET: build-placeholder-not-a-real-secret
       AUTH_TRUST_HOST: 'true'
       SITES_DOMAIN: offreofficielle.fr
+      # lib/stripe.ts refuse de se charger sans clé, et la collecte des pages charge les modules.
+      STRIPE_SECRET_KEY: sk_test_placeholder_pour_la_compilation
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder_pour_la_compilation
 
     steps:
       - uses: actions/checkout@v4
