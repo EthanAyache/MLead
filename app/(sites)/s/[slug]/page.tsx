@@ -65,11 +65,7 @@ export default async function GeneratedSitePage({ params }: { params: Promise<{ 
           </div>
         </header>
 
-        <section className="card card--form" aria-labelledby="t-form">
-          <div className="card__head">
-            <h2 className="card__title" id="t-form">Rappelez-moi</h2>
-            <p className="card__sub">Laissez vos coordonnées, nous vous rappelons sous 24&nbsp;h.</p>
-          </div>
+        <section className="card card--form" aria-label="Demande de rappel">
           <SiteForm token={site.dossier.token} />
         </section>
 

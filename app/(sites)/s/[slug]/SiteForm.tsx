@@ -59,8 +59,7 @@ export default function SiteForm({ token }: { token: string }) {
   const [bebes, setBebes] = useState(0)
   // Les âges déjà choisis sont mémorisés à part : ils survivent à un passage par 0 enfant.
   const [ages, setAges] = useState<string[]>([])
-  const [parMail, setParMail] = useState(true)
-  const [whatsapp, setWhatsapp] = useState(true)
+  const [rappel, setRappel] = useState(true)
   const [piege, setPiege] = useState('') // honeypot anti-robot, invisible et laissé vide par un humain
 
   const [erreurs, setErreurs] = useState<Partial<Record<ChampId, string>>>({})
@@ -108,8 +107,7 @@ export default function SiteForm({ token }: { token: string }) {
           Enfants: String(enfants),
           'Bébés': String(bebes),
           'Âges des enfants': Array.from({ length: enfants }, (_, i) => ageEnfant(i)).join(', '),
-          'Rappel par mail': parMail ? 'oui' : 'non',
-          'Rappel WhatsApp': whatsapp ? 'oui' : 'non',
+          'Rappel WhatsApp ou e-mail': rappel ? 'oui' : 'non',
         }),
       })
       if (!res.ok) throw new Error('envoi refusé')
@@ -124,7 +122,7 @@ export default function SiteForm({ token }: { token: string }) {
   function recommencer() {
     setNom(''); setTel(''); setEmail(''); setMessage('')
     setAdultes(1); setEnfants(0); setBebes(0); setAges([])
-    setParMail(true); setWhatsapp(true)
+    setRappel(true)
     setErreurs({}); setEnvoye(false); setEchec('')
   }
 
@@ -171,9 +169,9 @@ export default function SiteForm({ token }: { token: string }) {
     <form onSubmit={envoyer} noValidate>
       <div className="grid-2">
         {champ('nom', {
-          type: 'text', value: nom, placeholder: 'Votre nom', autoComplete: 'name',
+          type: 'text', value: nom, placeholder: 'Nom et prénom', autoComplete: 'name',
           onChange: (e) => { setNom(e.target.value); if (erreurs.nom) valider('nom', e.target.value) },
-        }, 'i-user', 'Nom')}
+        }, 'i-user', 'Votre nom')}
 
         {champ('tel', {
           type: 'tel', value: tel, placeholder: '06 12 34 56 78', inputMode: 'tel', autoComplete: 'tel',
@@ -184,10 +182,10 @@ export default function SiteForm({ token }: { token: string }) {
       {champ('email', {
         type: 'email', value: email, placeholder: 'vous@exemple.com', inputMode: 'email', autoComplete: 'email',
         onChange: (e) => { setEmail(e.target.value); if (erreurs.email) valider('email', e.target.value) },
-      }, 'i-mail', 'E-mail', 'Nous y enverrons le programme détaillé.')}
+      }, 'i-mail', 'E-mail')}
 
       <fieldset className="compteurs">
-        <legend className="compteurs__legend">Nombre de voyageurs</legend>
+        <legend className="compteurs__legend">Composition de votre famille</legend>
         <div className="compteurs__grille">
           <div className="compte">
             <label className="compte__txt" htmlFor="adultes"><strong>Adultes</strong><small>18 ans et plus</small></label>
@@ -230,29 +228,20 @@ export default function SiteForm({ token }: { token: string }) {
       <div className="field">
         <label htmlFor="message">Votre message <span className="opt">(facultatif)</span></label>
         <div className="control">
-          <textarea id="message" name="message" rows={4} value={message}
-                    placeholder="Une question, une demande particulière…"
-                    onChange={(e) => setMessage(e.target.value)} />
+          <input type="text" id="message" name="message" value={message}
+                 placeholder="Une question, une demande particulière…"
+                 onChange={(e) => setMessage(e.target.value)} />
         </div>
         <p className="hint">Vous serez recontacté par téléphone ou par e-mail.</p>
       </div>
 
       <div className="consents">
         <label className="switch">
-          <input type="checkbox" checked={parMail} onChange={(e) => setParMail(e.target.checked)} />
+          <input type="checkbox" checked={rappel} onChange={(e) => setRappel(e.target.checked)} />
           <span className="switch__box" aria-hidden="true"><svg className="ic ic--xs"><use href="#i-check" /></svg></span>
           <span className="switch__txt">
-            <strong>Être recontacté par mail</strong>
-            <small>Réponse écrite à l&apos;adresse renseignée ci-dessus.</small>
-          </span>
-        </label>
-
-        <label className="switch">
-          <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} />
-          <span className="switch__box" aria-hidden="true"><svg className="ic ic--xs"><use href="#i-check" /></svg></span>
-          <span className="switch__txt">
-            <strong>Être recontacté par WhatsApp</strong>
-            <small>Réponse plus rapide, sur le numéro renseigné ci-dessus.</small>
+            <strong>Être recontacté par WhatsApp ou e-mail</strong>
+            <small>Sur le numéro et l&apos;adresse renseignés ci-dessus.</small>
           </span>
         </label>
       </div>
@@ -265,7 +254,7 @@ export default function SiteForm({ token }: { token: string }) {
       <button type="submit" className="btn btn--primary btn--block" aria-busy={envoi} disabled={envoi}>
         <span className="btn__spinner" aria-hidden="true"></span>
         <svg className="ic btn__ic" aria-hidden="true"><use href="#i-send" /></svg>
-        <span className="btn__label">{envoi ? 'Envoi en cours…' : 'Envoyer ma demande'}</span>
+        <span className="btn__label">{envoi ? 'Envoi en cours…' : 'SUIVANT'}</span>
       </button>
 
       {echec && (
@@ -275,7 +264,7 @@ export default function SiteForm({ token }: { token: string }) {
         </p>
       )}
 
-      <p className="legal">Vos données servent uniquement à traiter votre demande. Aucune revente à des tiers.</p>
+      <p className="legal">Nous respectons votre confidentialité — CNIL et RGPD.</p>
     </form>
   )
 }
