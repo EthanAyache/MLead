@@ -140,13 +140,15 @@ export function defaultNotifyEmails(clientEmail: string | null): string {
 }
 
 export type CreateSiteInput = {
-  clientId: string
   // Le site (Dossier) que la page va habiller. Il existe déjà : c'est l'admin qui l'a créé,
   // avec son prix par lead et sa formule.
   dossierId: string
   themeId: string
   periodId: string
   brandName: string
+  // Périmètre d'accès du demandeur, appliqué au client propriétaire du site :
+  // le portail passe { id: <client connecté> }, le back-office passe visibilityFilter(user).
+  clientWhere: Record<string, unknown>
 }
 
 export type CreateSiteResult =
@@ -161,9 +163,9 @@ export async function createGeneratedSite(input: CreateSiteInput): Promise<Creat
   if (brandName.length > 60) return { ok: false, error: "Le nom de l'offre est trop long (60 caractères maximum)." }
   if (!slugify(brandName)) return { ok: false, error: "Le nom de l'offre doit contenir des lettres ou des chiffres." }
 
-  // Le site doit appartenir au client, être actif, et n'avoir pas déjà sa page.
+  // Le site doit être dans le périmètre du demandeur, être actif, et n'avoir pas déjà sa page.
   const dossier = await prisma.dossier.findFirst({
-    where: { id: input.dossierId, archived: false, campagne: { clientId: input.clientId } },
+    where: { id: input.dossierId, archived: false, campagne: { client: input.clientWhere } },
     select: { id: true, websiteUrl: true, generatedSite: { select: { id: true } } },
   })
   if (!dossier) return { ok: false, error: 'Site introuvable.' }

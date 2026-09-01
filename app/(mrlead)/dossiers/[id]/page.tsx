@@ -12,6 +12,8 @@ import LeadsList, { type LeadRow } from './LeadsList'
 import ContractTermsButton from './ContractTermsButton'
 import OffersButton, { type OfferRow } from './OffersButton'
 import LeadsExportButtons, { type LeadExportRow } from '@/app/(mrlead)/components/LeadsExportButtons'
+import CreatePageButton from './CreatePageButton'
+import { SITES_DOMAIN } from '@/lib/generatedSite'
 
 export default async function DossierDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser()
@@ -33,6 +35,14 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
     },
   })
   if (!dossier) notFound()
+
+  // Thèmes et périodes proposés si ce site n'a pas encore sa page publique.
+  const [themes, periods] = dossier.generatedSite
+    ? [[], []]
+    : await Promise.all([
+        prisma.siteTheme.findMany({ where: { active: true }, orderBy: [{ position: 'asc' }, { name: 'asc' }], select: { id: true, name: true, slug: true } }),
+        prisma.sitePeriod.findMany({ where: { active: true }, orderBy: [{ position: 'asc' }, { name: 'asc' }], select: { id: true, name: true, slug: true } }),
+      ])
 
   const offerRows: OfferRow[] = dossier.offers.map((o) => ({
     id: o.id,
@@ -127,11 +137,19 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
                 )}
                 <ContractTermsButton dossierId={dossier.id} contractTerms={dossier.contractTerms ?? ''} />
                 <OffersButton dossierId={dossier.id} offers={offerRows} />
-                {dossier.generatedSite && (
+                {dossier.generatedSite ? (
                   <Link href={`/dossiers/${dossier.id}/page-publique`}
                         className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-blue-400 hover:text-blue-700">
                     Modifier la page publique
                   </Link>
+                ) : !dossier.archived && (
+                  <CreatePageButton
+                    dossierId={dossier.id}
+                    defaultName={dossier.name}
+                    themes={themes}
+                    periods={periods}
+                    sitesDomain={SITES_DOMAIN}
+                  />
                 )}
               </div>
               <p className="text-gray-400 text-xs mt-1">Site (source) — reçoit les leads via son lien API</p>

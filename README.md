@@ -201,7 +201,7 @@ npx prisma generate && npx prisma db push            # uniquement si le schéma 
 L'équipe crée les sites d'un client comme avant (avec leur prix par lead et leur formule). Depuis son
 portail, le client peut ensuite mettre en ligne **la page publique de chacun de ses sites** qui n'en a
 pas encore (**Créer ma page**) : il choisit le site, un **thème**, un **nom d'offre** et une
-**période**. La page est en ligne immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
+**période**. L'équipe peut le faire à sa place depuis la page du site (**Créer la page publique**). La page est en ligne immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
 (ex. `voyage-cacher-loisirel-souccot.offreofficielle.fr`), avec son formulaire **déjà relié** à Mr.Lead.
 
 ### Comment ça marche

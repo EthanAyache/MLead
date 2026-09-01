@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}))
   const result = await createGeneratedSite({
-    clientId: client.id,
+    clientWhere: { id: client.id },
     dossierId: String(body.dossierId ?? ''),
     themeId: String(body.themeId ?? ''),
     periodId: String(body.periodId ?? ''),
