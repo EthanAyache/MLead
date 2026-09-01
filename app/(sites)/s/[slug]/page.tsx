@@ -29,11 +29,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!site) return { title: 'Page introuvable' }
 
   const dates = formatDateRange(site.startDate, site.endDate)
+  // La première photo du carrousel sert d'icône d'onglet. Faute de photo, on laisse le navigateur
+  // afficher son icône par défaut plutôt que celle de Mr.Lead.
+  const premiere = parsePhotos(site.photos)[0]
+  const type = premiere?.endsWith('.png') ? 'image/png' : premiere?.endsWith('.webp') ? 'image/webp' : 'image/jpeg'
+
   return {
     title: site.offerTitle ? `${site.brandName} — ${site.offerTitle}` : `${site.brandName} — ${site.theme.name}`,
     description: [site.offerTitle ?? site.theme.name, site.period.name, dates].filter(Boolean).join(' · '),
     // La page reste atteignable en interne via /s/<slug> : l'adresse de référence est le sous-domaine.
     alternates: { canonical: siteUrl(site.slug) },
+    ...(premiere ? { icons: { icon: [{ url: premiere, type }], apple: [{ url: premiere }] } } : {}),
   }
 }
 
