@@ -423,10 +423,8 @@ model Campagne {
   clientId String
   client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  sites           Dossier[]
-  // Site public généré pour cette campagne (au plus un).
-  generatedSite   GeneratedSite? @relation(fields: [generatedSiteId], references: [id])
-  generatedSiteId String?
+  // Les pages publiques sont rattachées aux sites, pas à la campagne : on passe par Dossier.
+  sites Dossier[]
 
   @@index([clientId])
 }
@@ -631,9 +629,8 @@ model GeneratedSite {
   themeId String
   theme   SiteTheme @relation(fields: [themeId], references: [id])
 
-  periodId  String
-  period    SitePeriod @relation(fields: [periodId], references: [id])
-  campagnes Campagne[]
+  periodId String
+  period   SitePeriod @relation(fields: [periodId], references: [id])
 
   @@index([themeId])
   @@index([periodId])
