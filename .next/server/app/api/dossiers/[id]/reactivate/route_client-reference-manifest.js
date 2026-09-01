@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/dossiers/[id]/reactivate/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/home/runner/work/MLead/MLead/app/api/dossiers/[id]/reactivate/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

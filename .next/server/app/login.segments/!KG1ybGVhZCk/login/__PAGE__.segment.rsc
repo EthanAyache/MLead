@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[45772,["7185","static/chunks/7185-3a39c94fe377bd6c.js","4021","static/chunks/app/(mrlead)/login/page-c037afc5be29de32.js"],"default"]
+3:I[90484,[],"OutletBoundary"]
+4:"$Sreact.suspense"
+0:{"rsc":["$","$1","c",{"children":[["$","main",null,{"className":"flex min-h-dvh items-center justify-center bg-[#F7F8FB] px-4 py-10 text-[#16171D]","children":["$","div",null,{"className":"w-full max-w-md","children":[["$","div",null,{"className":"mb-6 flex items-center justify-center gap-2","children":[["$","span",null,{"className":"flex h-9 w-9 items-center justify-center rounded-xl bg-[#6A4FE6] text-white font-bricolage font-extrabold","children":"M"}],["$","span",null,{"className":"font-bricolage text-lg font-extrabold tracking-tight","children":"MonsieurLead"}]]}],["$","div",null,{"className":"rounded-2xl border border-[#E8E9EF] bg-white p-6 sm:p-8 shadow-[0_1px_2px_rgba(20,22,30,.04)]","children":["$","$L2",null,{}]}],["$","p",null,{"className":"mt-5 text-center text-xs text-[#9AA0AE]","children":"Espace admin et espace client — même connexion."}]]}]}],null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"YTsHdskAoayRQVqx9pzx3"}
+5:null

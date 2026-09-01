@@ -1,0 +1,35 @@
+{
+  "app/(mrlead)/components/LeadsExportButtons.tsx -> jspdf": {
+    "id": 18831,
+    "files": [
+      "static/chunks/2f0b94e8.42b78e3e2fa16a91.js",
+      "static/chunks/164f4fb6.3533bea66250798d.js",
+      "static/chunks/4233.0e26f2761d4498e2.js"
+    ]
+  },
+  "app/(mrlead)/components/LeadsExportButtons.tsx -> jspdf-autotable": {
+    "id": 13280,
+    "files": [
+      "static/chunks/3280.cab9bb084477991c.js"
+    ]
+  },
+  "node_modules/jspdf/dist/jspdf.es.min.js -> canvg": {
+    "id": 3167,
+    "files": [
+      "static/chunks/bc98253f.b50765b70c666750.js",
+      "static/chunks/5902.dac65e4204a83905.js"
+    ]
+  },
+  "node_modules/jspdf/dist/jspdf.es.min.js -> dompurify": {
+    "id": 91992,
+    "files": [
+      "static/chunks/1992.86d144e0622488e4.js"
+    ]
+  },
+  "node_modules/jspdf/dist/jspdf.es.min.js -> html2canvas": {
+    "id": 82201,
+    "files": [
+      "static/chunks/ad2866b8.6c51983a1eb56136.js"
+    ]
+  }
+}
