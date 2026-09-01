@@ -127,6 +127,19 @@ function escapeText(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c] as string)
 }
 
+// Adresse qui reçoit la copie JBoost de chaque lead, si rien n'est configuré ailleurs.
+export const JBOOST_EMAIL = process.env.JBOOST_EMAIL || 'agencejboost@gmail.com'
+
+// Liste de destinataires d'un site fraîchement créé, au format attendu par lib/mail
+// (JSON [{ label, email }] ; un libellé contenant « jboost » vaut copie JBoost).
+export function defaultNotifyEmails(clientEmail: string | null): string {
+  const liste = [
+    ...(clientEmail ? [{ label: 'Mail client', email: clientEmail }] : []),
+    { label: 'Mail JBoost', email: JBOOST_EMAIL },
+  ]
+  return JSON.stringify(liste)
+}
+
 export type CreateSiteInput = {
   clientId: string
   campagneId: string
@@ -150,7 +163,7 @@ export async function createGeneratedSite(input: CreateSiteInput): Promise<Creat
   // La campagne doit appartenir au client, et n'avoir pas déjà son site (une page par campagne).
   const campagne = await prisma.campagne.findFirst({
     where: { id: input.campagneId, clientId: input.clientId },
-    select: { id: true, name: true, generatedSite: { select: { id: true } }, client: { select: { billingMode: true } } },
+    select: { id: true, name: true, generatedSite: { select: { id: true } }, client: { select: { billingMode: true, email: true } } },
   })
   if (!campagne) return { ok: false, error: 'Campagne introuvable.' }
   if (campagne.generatedSite) return { ok: false, error: 'Cette campagne a déjà son site.' }
@@ -189,6 +202,10 @@ export async function createGeneratedSite(input: CreateSiteInput): Promise<Creat
         campagneId: campagne.id,
         token,
         unitPrice: reference?.unitPrice ?? theme.defaultUnitPrice,
+        // Destinataires pré-remplis : l'e-mail du client + la copie JBoost. Tous deux restent
+        // modifiables ensuite (réglages du site) ; sans eux le site retomberait sur les
+        // destinataires du client, qui n'incluent pas forcément de copie JBoost.
+        notifyEmails: defaultNotifyEmails(campagne.client.email),
         department: theme.department,
         billingMode: reference?.billingMode ?? campagne.client.billingMode,
         websiteUrl: siteUrl(slug),

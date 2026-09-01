@@ -216,6 +216,9 @@ immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
   convenus avec le client** (ceux de sa campagne, sinon ceux de ses autres sites) ; le prix du thème
   n'est qu'un repli pour un client sans aucun site. Le formulaire
   de la page poste sur `/api/ingest?token=…` : les leads arrivent comme ceux de n'importe quel site.
+  Les destinataires du site sont pré-remplis à la création — **l'e-mail du client** (celui de sa
+  fiche) et la **copie JBoost** (`JBOOST_EMAIL`, par défaut `agencejboost@gmail.com`) — et restent
+  modifiables dans les réglages du site.
 - **Contenu éditable** par le client (`/portail/site/<id>/page-publique`) et par l'équipe
   (`/dossiers/<id>/page-publique`) : nom affiché, titre de l'offre, dates, photos du carrousel et
   bloc « Présentation » en texte riche. Le HTML est **assaini côté serveur** avant enregistrement.
