@@ -2,15 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { DEPARTMENTS } from '@/lib/departments'
 
 // Catalogue des thèmes et périodes proposés aux clients dans « Créer mon site ».
 // Le slug fixe l'adresse publique des sites : il est choisi à la création et n'est plus modifiable.
 
-export type ThemeRow = {
-  id: string; name: string; slug: string; defaultUnitPrice: number
-  department: string; active: boolean; position: number; sitesCount: number
-}
+export type ThemeRow = { id: string; name: string; slug: string; active: boolean; position: number; sitesCount: number }
 export type PeriodRow = { id: string; name: string; slug: string; active: boolean; position: number; sitesCount: number }
 
 const champ = 'rounded-lg border border-[#E8E9EF] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-[#6A4FE6]'
@@ -22,8 +18,6 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
   const [busy, setBusy] = useState(false)
 
   const [themeName, setThemeName] = useState('')
-  const [themePrice, setThemePrice] = useState('0')
-  const [themeDept, setThemeDept] = useState('AUTRE')
   const [periodName, setPeriodName] = useState('')
 
   async function appel(url: string, method: string, body?: unknown) {
@@ -55,8 +49,8 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
       <section className="rounded-2xl border border-[#E8E9EF] bg-white p-5">
         <h2 className="font-bricolage text-lg font-bold">Thèmes</h2>
         <p className="mt-1 text-sm text-[#787C8A]">
-          Un site créé par un client reprend le prix par lead déjà convenu avec lui (celui de sa campagne).
-          Le prix ci-dessous ne sert que de repli, pour un client qui n&apos;a encore aucun site.
+          Première partie de l&apos;adresse du site (ex. voyage-cacher). Le prix par lead reste celui du
+          site, tel que tu l&apos;as fixé avec le client.
         </p>
 
         <div className="mt-4 overflow-x-auto">
@@ -65,8 +59,6 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
               <tr className="text-left text-xs uppercase tracking-wide text-[#9AA0AE]">
                 <th className="py-2">Nom</th>
                 <th className="py-2">Adresse</th>
-                <th className="py-2">€ HT / lead (repli)</th>
-                <th className="py-2">Département</th>
                 <th className="py-2">Sites</th>
                 <th className="py-2">Proposé</th>
                 <th className="py-2"></th>
@@ -80,16 +72,6 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
                            onBlur={(e) => e.target.value !== t.name && appel('/api/site-themes', 'PATCH', { id: t.id, name: e.target.value })} />
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-[#787C8A]">{t.slug}</td>
-                  <td className="py-2 pr-3">
-                    <input className={`${champ} w-24`} type="number" step="0.01" min="0" defaultValue={t.defaultUnitPrice} disabled={busy}
-                           onBlur={(e) => Number(e.target.value) !== t.defaultUnitPrice && appel('/api/site-themes', 'PATCH', { id: t.id, defaultUnitPrice: e.target.value })} />
-                  </td>
-                  <td className="py-2 pr-3">
-                    <select className={champ} defaultValue={t.department} disabled={busy}
-                            onChange={(e) => appel('/api/site-themes', 'PATCH', { id: t.id, department: e.target.value })}>
-                      {DEPARTMENTS.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
-                    </select>
-                  </td>
                   <td className="py-2 pr-3 text-[#787C8A]">{t.sitesCount}</td>
                   <td className="py-2 pr-3">
                     <input type="checkbox" defaultChecked={t.active} disabled={busy}
@@ -115,22 +97,11 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
             <input className={`mt-1 block ${champ}`} value={themeName} placeholder="Voyage cacher"
                    onChange={(e) => setThemeName(e.target.value)} />
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold text-[#787C8A]">€ HT / lead (repli)</span>
-            <input className={`mt-1 block w-24 ${champ}`} type="number" step="0.01" min="0" value={themePrice}
-                   onChange={(e) => setThemePrice(e.target.value)} />
-          </label>
-          <label className="block">
-            <span className="text-xs font-semibold text-[#787C8A]">Département</span>
-            <select className={`mt-1 block ${champ}`} value={themeDept} onChange={(e) => setThemeDept(e.target.value)}>
-              {DEPARTMENTS.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
-            </select>
-          </label>
           <button type="button" disabled={busy || !themeName.trim()}
                   className="rounded-lg bg-[#6A4FE6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5840CC] disabled:opacity-60"
                   onClick={async () => {
-                    await appel('/api/site-themes', 'POST', { name: themeName, defaultUnitPrice: themePrice, department: themeDept })
-                    setThemeName(''); setThemePrice('0')
+                    await appel('/api/site-themes', 'POST', { name: themeName })
+                    setThemeName('')
                   }}>
             Ajouter
           </button>

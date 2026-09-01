@@ -9,7 +9,7 @@ export async function findEditableSite(siteId: string): Promise<{ id: string } |
   const client = await getPortalClient()
   if (client) {
     return prisma.generatedSite.findFirst({
-      where: { id: siteId, campagne: { clientId: client.id } },
+      where: { id: siteId, dossier: { campagne: { clientId: client.id } } },
       select: { id: true },
     })
   }
@@ -17,7 +17,7 @@ export async function findEditableSite(siteId: string): Promise<{ id: string } |
   const user = await getCurrentUser()
   if (user) {
     return prisma.generatedSite.findFirst({
-      where: { id: siteId, campagne: { client: visibilityFilter(user) } },
+      where: { id: siteId, dossier: { campagne: { client: visibilityFilter(user) } } },
       select: { id: true },
     })
   }

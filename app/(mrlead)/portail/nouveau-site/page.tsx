@@ -13,12 +13,12 @@ export default async function NewSitePage() {
   const client = await getPortalClient()
   if (!client) redirect('/login')
 
-  const [campagnes, themes, periods, locked] = await Promise.all([
-    // Une campagne qui a déjà son site n'est plus proposée : un site public par campagne.
-    prisma.campagne.findMany({
-      where: { clientId: client.id, generatedSite: null },
+  const [sites, themes, periods, locked] = await Promise.all([
+    // Les sites du client qui n'ont pas encore leur page publique (une page par site).
+    prisma.dossier.findMany({
+      where: { archived: false, campagne: { clientId: client.id }, generatedSite: null },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true },
+      select: { id: true, name: true, unitPrice: true, campagne: { select: { name: true } } },
     }),
     prisma.siteTheme.findMany({ where: { active: true }, orderBy: [{ position: 'asc' }, { name: 'asc' }], select: { id: true, name: true, slug: true } }),
     prisma.sitePeriod.findMany({ where: { active: true }, orderBy: [{ position: 'asc' }, { name: 'asc' }], select: { id: true, name: true, slug: true } }),
@@ -26,8 +26,8 @@ export default async function NewSitePage() {
   ])
 
   const indisponible =
-    locked ? "Une facture d'arrêt est en attente de paiement. Réglez-la pour créer un nouveau site."
-    : campagnes.length === 0 ? "Toutes vos campagnes ont déjà leur site. Contactez-nous pour en ouvrir une nouvelle."
+    locked ? "Une facture d'arrêt est en attente de paiement. Réglez-la pour créer votre page."
+    : sites.length === 0 ? "Tous vos sites ont déjà leur page. Contactez-nous pour en ouvrir un nouveau."
     : themes.length === 0 || periods.length === 0 ? "Aucun thème n'est disponible pour le moment. Contactez-nous."
     : null
 
@@ -40,10 +40,10 @@ export default async function NewSitePage() {
           Retour
         </Link>
 
-        <h1 className="mt-3 font-bricolage text-2xl font-bold tracking-tight">Créer mon site</h1>
+        <h1 className="mt-3 font-bricolage text-2xl font-bold tracking-tight">Créer ma page</h1>
         <p className="mt-1 text-sm text-[#787C8A]">
-          Votre page en ligne en quelques secondes, avec son formulaire déjà relié à votre compte :
-          chaque demande arrive directement dans vos leads.
+          Mettez en ligne la page d&apos;un de vos sites en quelques secondes. Son formulaire est déjà
+          relié à votre compte : chaque demande arrive directement dans vos leads.
         </p>
 
         {indisponible ? (
@@ -51,7 +51,16 @@ export default async function NewSitePage() {
             {indisponible}
           </div>
         ) : (
-          <NewSiteForm campagnes={campagnes} themes={themes} periods={periods} sitesDomain={SITES_DOMAIN} />
+          <NewSiteForm
+            sites={sites.map((s) => ({
+              id: s.id,
+              name: s.name,
+              detail: `${s.campagne.name} · ${s.unitPrice.toFixed(2)} € HT / lead`,
+            }))}
+            themes={themes}
+            periods={periods}
+            sitesDomain={SITES_DOMAIN}
+          />
         )}
       </main>
     </>

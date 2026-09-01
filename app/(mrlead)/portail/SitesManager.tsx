@@ -18,7 +18,7 @@ export default function SitesManager({
   archived: SiteRow[]
   locked: boolean
   stopPayUrl: string | null
-  // Reste-t-il une campagne sans site ? (un site public par campagne)
+  // Reste-t-il un site sans page publique ? (une page par site)
   canCreateSite: boolean
 }) {
   return (
@@ -28,7 +28,7 @@ export default function SitesManager({
         {canCreateSite && !locked && (
           <Link href="/portail/nouveau-site"
                 className="rounded-xl bg-[#6A4FE6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5840CC]">
-            Créer mon site
+            Créer ma page
           </Link>
         )}
       </div>
@@ -54,12 +54,10 @@ export default function SitesManager({
                   <div className="truncate font-semibold text-[#16171D] hover:text-[#6A4FE6]">{s.name}</div>
                   <div className="truncate text-xs text-[#9AA0AE]">{s.campagneName} · {s.unitPrice.toFixed(2)} € HT / lead</div>
                 </Link>
-                {s.hasPublicPage && (
-                  <Link href={`/portail/site/${s.id}/page-publique`}
-                        className="shrink-0 text-xs font-semibold text-[#6A4FE6] hover:underline">
-                    Ma page
-                  </Link>
-                )}
+                <Link href={s.hasPublicPage ? `/portail/site/${s.id}/page-publique` : '/portail/nouveau-site'}
+                      className="shrink-0 text-xs font-semibold text-[#6A4FE6] hover:underline">
+                  {s.hasPublicPage ? 'Ma page' : 'Créer ma page'}
+                </Link>
                 <FormulaBadge mode={s.billingMode} />
                 <span className="shrink-0 text-sm"><span className="font-bold text-[#16171D]">{s.leadsCount}</span> <span className="text-[#9AA0AE]">leads</span></span>
               </li>

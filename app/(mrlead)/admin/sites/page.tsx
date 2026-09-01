@@ -117,8 +117,8 @@ export default async function AdminSitesPage() {
         <div className="mt-6">
           <SiteCatalog
             themes={themes.map((t) => ({
-              id: t.id, name: t.name, slug: t.slug, defaultUnitPrice: t.defaultUnitPrice,
-              department: t.department, active: t.active, position: t.position, sitesCount: t._count.sites,
+              id: t.id, name: t.name, slug: t.slug,
+              active: t.active, position: t.position, sitesCount: t._count.sites,
             }))}
             periods={periods.map((p) => ({
               id: p.id, name: p.name, slug: p.slug, active: p.active, position: p.position, sitesCount: p._count.sites,

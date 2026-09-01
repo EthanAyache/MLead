@@ -14,7 +14,7 @@ export default async function PortalDashboard() {
   const client = await getPortalClient()
   if (!client) redirect('/login')
 
-  const [recent, sites, leadCounts, unpaidMonthly, topupCount, pendingStop, campagnesSansSite] = await Promise.all([
+  const [recent, sites, leadCounts, unpaidMonthly, topupCount, pendingStop, sitesSansPage] = await Promise.all([
     prisma.inboundLead.findMany({
       where: { status: 'VALID', forwardedToClient: true, assignedToJboost: false, dossier: { campagne: { clientId: client.id } } },
       orderBy: { receivedAt: 'desc' },
@@ -37,8 +37,8 @@ export default async function PortalDashboard() {
     prisma.prepaidTopup.count({ where: { clientId: client.id, status: { in: ['PAID', 'MANUAL'] } } }),
     // Facture d'arrêt en attente de paiement (verrou du compte).
     prisma.stopInvoice.findFirst({ where: { clientId: client.id, status: { in: ['SENT', 'FAILED'] } }, orderBy: { createdAt: 'desc' }, select: { payUrl: true } }),
-    // Une campagne sans site public = le client peut encore en créer un (un site par campagne).
-    prisma.campagne.count({ where: { clientId: client.id, generatedSite: null } }),
+    // Un site sans page publique = le client peut encore en créer une (une page par site).
+    prisma.dossier.count({ where: { archived: false, campagne: { clientId: client.id }, generatedSite: null } }),
   ])
 
   const countByDossier = new Map(leadCounts.map((c) => [c.dossierId, c._count._all]))
@@ -115,7 +115,7 @@ export default async function PortalDashboard() {
         </section>
 
         {/* Mes sites : consultation + arrêt / réactivation */}
-        <SitesManager active={activeSites} archived={archivedSites} locked={stopLocked} stopPayUrl={stopPayUrl} canCreateSite={campagnesSansSite > 0} />
+        <SitesManager active={activeSites} archived={archivedSites} locked={stopLocked} stopPayUrl={stopPayUrl} canCreateSite={sitesSansPage > 0} />
 
         {/* E-mail de réception des leads */}
         <section className="mt-6 rounded-2xl border border-[#E8E9EF] bg-white p-6">

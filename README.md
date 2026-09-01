@@ -198,9 +198,10 @@ npx prisma generate && npx prisma db push            # uniquement si le schéma 
 
 ## Sites clients générés (offreofficielle.fr)
 
-Depuis son portail, un client crée lui-même sa page publique (**Créer mon site**) : il choisit une
-**campagne**, un **thème**, un **nom d'offre** et une **période**. Le site est en ligne
-immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
+L'équipe crée les sites d'un client comme avant (avec leur prix par lead et leur formule). Depuis son
+portail, le client peut ensuite mettre en ligne **la page publique de chacun de ses sites** qui n'en a
+pas encore (**Créer ma page**) : il choisit le site, un **thème**, un **nom d'offre** et une
+**période**. La page est en ligne immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
 (ex. `voyage-cacher-loisirel-souccot.offreofficielle.fr`), avec son formulaire **déjà relié** à Mr.Lead.
 
 ### Comment ça marche
@@ -211,10 +212,8 @@ immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
 - **Deux root layouts.** Les pages clients vivent dans `app/(sites)/` avec leur propre `layout.tsx`
   et `site.css` (repris de `formulaireType/style.css`) ; le back-office est dans `app/(mrlead)/`
   avec Tailwind. Sans cette séparation, le reset Tailwind casserait la template.
-- **Rattachement automatique.** La création fabrique en une transaction le `Dossier` (avec son token
-  `ml_…`) **et** le `GeneratedSite`. Le nouveau site reprend le **prix par lead et la formule déjà
-  convenus avec le client** (ceux de sa campagne, sinon ceux de ses autres sites) ; le prix du thème
-  n'est qu'un repli pour un client sans aucun site. Le formulaire
+- **Rattachement automatique.** La page s'attache à un `Dossier` existant : elle ne touche ni à son
+  prix, ni à sa formule, ni à son token — tout cela reste défini par l'équipe. Le formulaire
   de la page poste sur `/api/ingest?token=…` : les leads arrivent comme ceux de n'importe quel site.
   Les destinataires du site sont pré-remplis à la création — **l'e-mail du client** (celui de sa
   fiche) et la **copie JBoost** (`JBOOST_EMAIL`, par défaut `agencejboost@gmail.com`) — et restent
@@ -222,14 +221,14 @@ immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
 - **Contenu éditable** par le client (`/portail/site/<id>/page-publique`) et par l'équipe
   (`/dossiers/<id>/page-publique`) : nom affiché, titre de l'offre, dates, photos du carrousel et
   bloc « Présentation » en texte riche. Le HTML est **assaini côté serveur** avant enregistrement.
-- **Un site par campagne.** Contrainte `@unique` sur `GeneratedSite.campagneId` : un client avec
-  deux campagnes peut créer deux sites. Si le slug est déjà pris, il est suffixé (`-2`, `-3`…).
+- **Une page par site.** Contrainte `@unique` sur `GeneratedSite.dossierId` : un client avec trois
+  sites peut mettre en ligne trois pages. Si le slug est déjà pris, il est suffixé (`-2`, `-3`…).
 - **Arrêt d'un site.** Archiver le `Dossier` (parcours d'arrêt existant) rend la page publique
   introuvable, sans rien supprimer.
 
 Le catalogue des thèmes et des périodes se gère dans **Admin → Sites clients**
-(`/admin/sites`) : chaque thème porte un **prix par lead de repli**, utilisé seulement si le client
-n'a encore aucun site.
+(`/admin/sites`), qui liste aussi les pages déjà en ligne. Un thème ne sert qu'à composer l'adresse :
+le prix par lead reste celui du site.
 
 ### Mise en place (une seule fois)
 

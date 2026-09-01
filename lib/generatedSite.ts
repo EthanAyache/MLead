@@ -1,6 +1,5 @@
 import sanitizeHtml from 'sanitize-html'
 import { prisma } from '@/lib/prisma'
-import { generateDossierToken } from '@/lib/token'
 import { SITES_DOMAIN } from '@/lib/siteHost'
 
 // Réexporté pour que les pages n'aient qu'un seul module à connaître.
@@ -142,7 +141,9 @@ export function defaultNotifyEmails(clientEmail: string | null): string {
 
 export type CreateSiteInput = {
   clientId: string
-  campagneId: string
+  // Le site (Dossier) que la page va habiller. Il existe déjà : c'est l'admin qui l'a créé,
+  // avec son prix par lead et sa formule.
+  dossierId: string
   themeId: string
   periodId: string
   brandName: string
@@ -160,13 +161,13 @@ export async function createGeneratedSite(input: CreateSiteInput): Promise<Creat
   if (brandName.length > 60) return { ok: false, error: "Le nom de l'offre est trop long (60 caractères maximum)." }
   if (!slugify(brandName)) return { ok: false, error: "Le nom de l'offre doit contenir des lettres ou des chiffres." }
 
-  // La campagne doit appartenir au client, et n'avoir pas déjà son site (une page par campagne).
-  const campagne = await prisma.campagne.findFirst({
-    where: { id: input.campagneId, clientId: input.clientId },
-    select: { id: true, name: true, generatedSite: { select: { id: true } }, client: { select: { billingMode: true, email: true } } },
+  // Le site doit appartenir au client, être actif, et n'avoir pas déjà sa page.
+  const dossier = await prisma.dossier.findFirst({
+    where: { id: input.dossierId, archived: false, campagne: { clientId: input.clientId } },
+    select: { id: true, websiteUrl: true, generatedSite: { select: { id: true } } },
   })
-  if (!campagne) return { ok: false, error: 'Campagne introuvable.' }
-  if (campagne.generatedSite) return { ok: false, error: 'Cette campagne a déjà son site.' }
+  if (!dossier) return { ok: false, error: 'Site introuvable.' }
+  if (dossier.generatedSite) return { ok: false, error: 'Ce site a déjà sa page.' }
 
   const theme = await prisma.siteTheme.findFirst({ where: { id: input.themeId, active: true } })
   if (!theme) return { ok: false, error: 'Thème indisponible.' }
@@ -175,58 +176,30 @@ export async function createGeneratedSite(input: CreateSiteInput): Promise<Creat
 
   const slug = await uniqueSiteSlug(buildSiteSlug(theme.slug, brandName, period.slug))
 
-  let token = generateDossierToken()
-  while (await prisma.dossier.findUnique({ where: { token }, select: { id: true } })) {
-    token = generateDossierToken()
-  }
-
-  // Le prix par lead et la formule ont déjà été convenus avec le client : le nouveau site reprend
-  // ceux de la campagne concernée, sinon ceux de ses autres sites. Le prix du thème ne sert que
-  // de repli, pour un client qui n'aurait encore aucun site.
-  const reference =
-    (await prisma.dossier.findFirst({
-      where: { campagneId: campagne.id },
-      orderBy: { createdAt: 'desc' },
-      select: { unitPrice: true, billingMode: true },
-    })) ??
-    (await prisma.dossier.findFirst({
-      where: { campagne: { clientId: input.clientId } },
-      orderBy: { createdAt: 'desc' },
-      select: { unitPrice: true, billingMode: true },
-    }))
-
   try {
-    const dossier = await prisma.dossier.create({
+    const site = await prisma.generatedSite.create({
       data: {
-        name: `${brandName} — ${period.name}`,
-        campagneId: campagne.id,
-        token,
-        unitPrice: reference?.unitPrice ?? theme.defaultUnitPrice,
-        // Destinataires pré-remplis : l'e-mail du client + la copie JBoost. Tous deux restent
-        // modifiables ensuite (réglages du site) ; sans eux le site retomberait sur les
-        // destinataires du client, qui n'incluent pas forcément de copie JBoost.
-        notifyEmails: defaultNotifyEmails(campagne.client.email),
-        department: theme.department,
-        billingMode: reference?.billingMode ?? campagne.client.billingMode,
-        websiteUrl: siteUrl(slug),
-        generatedSite: {
-          create: {
-            slug,
-            campagneId: campagne.id,
-            themeId: theme.id,
-            periodId: period.id,
-            brandName,
-            presentationHtml: defaultPresentation(brandName, theme.name, period.name),
-            photos: [],
-          },
-        },
+        slug,
+        dossierId: dossier.id,
+        themeId: theme.id,
+        periodId: period.id,
+        brandName,
+        presentationHtml: defaultPresentation(brandName, theme.name, period.name),
+        photos: [],
       },
-      select: { id: true, generatedSite: { select: { id: true } } },
+      select: { id: true },
     })
-    return { ok: true, slug, siteId: dossier.generatedSite!.id, dossierId: dossier.id }
+
+    // Le lien du site devient la page publique — sauf si l'admin en avait déjà renseigné un
+    // (site externe existant) : on ne l'écrase pas.
+    if (!dossier.websiteUrl) {
+      await prisma.dossier.update({ where: { id: dossier.id }, data: { websiteUrl: siteUrl(slug) } })
+    }
+
+    return { ok: true, slug, siteId: site.id, dossierId: dossier.id }
   } catch {
-    // Collision sur une contrainte unique (deux créations simultanées sur la même campagne
-    // ou le même slug) : on demande simplement de réessayer plutôt que de créer un doublon.
+    // Collision sur une contrainte unique (deux créations simultanées sur le même site ou le
+    // même slug) : on demande simplement de réessayer plutôt que de créer un doublon.
     return { ok: false, error: 'La création a échoué, réessayez.' }
   }
 }

@@ -3,8 +3,8 @@ import { getPortalClient } from '@/lib/clientSession'
 import { hasUnpaidStopInvoice } from '@/lib/stopBilling'
 import { createGeneratedSite, siteUrl } from '@/lib/generatedSite'
 
-// Création d'un site par le client depuis son portail (bouton « Créer mon site »).
-// Gratuite : la facturation reste au lead, via le Dossier créé en même temps.
+// Génération de la page publique d'un site, par le client depuis son portail.
+// Le site (prix par lead, formule) a été créé par l'admin : on ne fait qu'y attacher la page.
 export async function POST(request: Request) {
   const client = await getPortalClient()
   if (!client) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   // Compte verrouillé par une facture d'arrêt impayée : même règle que le reste du portail.
   if (await hasUnpaidStopInvoice(client.id)) {
     return NextResponse.json(
-      { error: "Une facture d'arrêt est en attente de paiement : réglez-la pour créer un nouveau site." },
+      { error: "Une facture d'arrêt est en attente de paiement : réglez-la pour créer votre page." },
       { status: 403 },
     )
   }
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
   const result = await createGeneratedSite({
     clientId: client.id,
-    campagneId: String(body.campagneId ?? ''),
+    dossierId: String(body.dossierId ?? ''),
     themeId: String(body.themeId ?? ''),
     periodId: String(body.periodId ?? ''),
     brandName: String(body.brandName ?? ''),
