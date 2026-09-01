@@ -31,7 +31,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
       campagne: { include: { client: { select: { id: true, name: true, billingMode: true, prepaidBalance: true } } } },
       leads: { orderBy: { receivedAt: 'desc' }, include: { chosenOffers: true } },
       offers: { orderBy: { createdAt: 'asc' } },
-      generatedSite: { select: { id: true, slug: true } },
+      generatedSite: { select: { id: true, slug: true, clientCanEdit: true } },
     },
   })
   if (!dossier) notFound()
@@ -214,6 +214,7 @@ export default async function DossierDetailPage({ params }: { params: Promise<{ 
             origin={origin}
             notifyEmails={dossier.notifyEmails ?? ''}
             department={dossier.department}
+            generatedSite={dossier.generatedSite}
           />
 
           <LeadsList rows={rows} clientName={dossier.campagne.client.name} />

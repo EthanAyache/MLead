@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { findEditableSite } from '@/lib/siteAccess'
+import { prisma } from '@/lib/prisma'
 import { updateGeneratedSiteContent } from '@/lib/generatedSite'
 import { deleteUploadByUrl } from '@/lib/uploads'
 
@@ -11,6 +12,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!site) return NextResponse.json({ error: 'Site introuvable' }, { status: 404 })
 
   const body = await request.json().catch(() => ({}))
+
+  // Le droit de modification du client ne se change que depuis le back-office.
+  if (body.clientCanEdit !== undefined) {
+    if (!site.isAdmin) return NextResponse.json({ error: "Réservé à l'équipe Mr.Lead" }, { status: 403 })
+    await prisma.generatedSite.update({ where: { id: site.id }, data: { clientCanEdit: Boolean(body.clientCanEdit) } })
+    if (Object.keys(body).length === 1) return NextResponse.json({ ok: true })
+  }
+
   const result = await updateGeneratedSiteContent(site.id, body)
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
 

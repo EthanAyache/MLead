@@ -52,6 +52,18 @@ export default async function PortalSitePagePublique({ params }: { params: Promi
           </div>
         )}
 
+        {!site.clientCanEdit ? (
+          <div className="mt-6 rounded-2xl border border-[#E8E9EF] bg-white p-5">
+            <p className="text-sm font-semibold text-[#16171D]">Cette page est gérée par notre équipe.</p>
+            <p className="mt-1 text-sm text-[#787C8A]">
+              Pour toute modification, contactez-nous : nous l&apos;appliquons pour vous.
+            </p>
+            <a href={siteUrl(site.slug)} target="_blank" rel="noopener noreferrer"
+               className="mt-4 inline-flex rounded-xl border border-[#E8E9EF] bg-white px-4 py-2 text-sm font-semibold text-[#414350] transition hover:border-[#6A4FE6] hover:text-[#6A4FE6]">
+              Voir ma page publique
+            </a>
+          </div>
+        ) : (
         <div className="mt-6">
           <SiteEditor
             siteId={site.id}
@@ -66,6 +78,7 @@ export default async function PortalSitePagePublique({ params }: { params: Promi
             }}
           />
         </div>
+        )}
       </main>
     </>
   )

@@ -221,6 +221,9 @@ pas encore (**Créer ma page**) : il choisit le site, un **thème**, un **nom d'
 - **Contenu éditable** par le client (`/portail/site/<id>/page-publique`) et par l'équipe
   (`/dossiers/<id>/page-publique`) : nom affiché, titre de l'offre, dates, photos du carrousel et
   bloc « Présentation » en texte riche. Le HTML est **assaini côté serveur** avant enregistrement.
+- **Qui a le droit de modifier ?** Chaque page porte un `clientCanEdit` (vrai par défaut), basculé
+  par l'équipe depuis les réglages du site. À faux, le client voit sa page mais ne peut plus la
+  modifier — l'API le refuse aussi, pas seulement l'interface.
 - **Une page par site.** Contrainte `@unique` sur `GeneratedSite.dossierId` : un client avec trois
   sites peut mettre en ligne trois pages. Si le slug est déjà pris, il est suffixé (`-2`, `-3`…).
 - **Arrêt d'un site.** Archiver le `Dossier` (parcours d'arrêt existant) rend la page publique

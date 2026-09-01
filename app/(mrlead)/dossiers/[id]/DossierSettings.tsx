@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { DEPARTMENTS } from '@/lib/departments'
 import { ttcFromHt, formatEuros, TVA_PERCENT } from '@/lib/tva'
 
@@ -29,7 +30,7 @@ function parseEmails(raw: string): { client: string; jboost: string; extras: Ext
 }
 
 export default function DossierSettings({
-  dossierId, token, unitPrice, active, autoAssignJboost, websiteUrl, billingMode, archived, isAdmin, origin, notifyEmails, department,
+  dossierId, token, unitPrice, active, autoAssignJboost, websiteUrl, billingMode, archived, isAdmin, origin, notifyEmails, department, generatedSite,
 }: {
   dossierId: string
   token: string
@@ -43,8 +44,11 @@ export default function DossierSettings({
   origin: string
   notifyEmails: string
   department: string
+  // Page publique du site, si elle a été mise en ligne.
+  generatedSite: { id: string; clientCanEdit: boolean } | null
 }) {
   const router = useRouter()
+  const [canEdit, setCanEdit] = useState(generatedSite?.clientCanEdit ?? true)
   const [tok, setTok] = useState(token)
   const [price, setPrice] = useState(String(unitPrice))
   const [mode, setMode] = useState(billingMode)
@@ -62,6 +66,28 @@ export default function DossierSettings({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [showApi, setShowApi] = useState(false)
+
+  // Autoriser (ou non) le client à modifier la page publique depuis son portail.
+  async function toggleClientCanEdit(valeur: boolean) {
+    if (!generatedSite) return
+    setCanEdit(valeur)
+    setBusy(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/generated-sites/${generatedSite.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientCanEdit: valeur }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Modification impossible.')
+      router.refresh()
+    } catch (e) {
+      setCanEdit(!valeur)
+      setError(e instanceof Error ? e.message : 'Erreur')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const apiUrl = `${origin}/api/ingest?token=${tok}`
 
@@ -272,6 +298,29 @@ export default function DossierSettings({
           </button>
         )}
       </div>
+
+      {/* Page publique du site */}
+      {generatedSite && (
+        <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="text-xs font-bold text-gray-700 uppercase">Modifier le site</div>
+            <p className="text-[11px] text-gray-400 mt-1 max-w-xl">
+              En-tête, dates, photos et texte de présentation de la page publique.
+            </p>
+            {isAdmin && (
+              <label className="mt-2 inline-flex items-center gap-2 text-[12px] text-gray-600 cursor-pointer">
+                <input type="checkbox" checked={canEdit} disabled={busy}
+                       onChange={(e) => toggleClientCanEdit(e.target.checked)} />
+                Le client peut la modifier depuis son portail
+              </label>
+            )}
+          </div>
+          <Link href={`/dossiers/${dossierId}/page-publique`}
+                className="shrink-0 px-4 py-2 rounded-lg border border-blue-200 text-blue-700 text-sm font-semibold hover:bg-blue-50">
+            Modifier le site
+          </Link>
+        </div>
+      )}
 
       {/* Lien du site */}
       <div className="mt-5 pt-4 border-t border-gray-100">

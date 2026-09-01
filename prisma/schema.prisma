@@ -619,6 +619,10 @@ model GeneratedSite {
   // Photos du carrousel : ["/api/uploads/<siteId>/<fichier>.jpg", …] dans l'ordre d'affichage.
   photos           Json?
 
+  // Le client peut-il modifier cette page depuis son portail ? Décidé par l'équipe Mr.Lead ;
+  // à false, seul le back-office peut l'éditer (le client la voit toujours en lecture).
+  clientCanEdit Boolean @default(true)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
