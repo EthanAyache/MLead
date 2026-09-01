@@ -167,16 +167,30 @@ export async function createGeneratedSite(input: CreateSiteInput): Promise<Creat
     token = generateDossierToken()
   }
 
+  // Le prix par lead et la formule ont déjà été convenus avec le client : le nouveau site reprend
+  // ceux de la campagne concernée, sinon ceux de ses autres sites. Le prix du thème ne sert que
+  // de repli, pour un client qui n'aurait encore aucun site.
+  const reference =
+    (await prisma.dossier.findFirst({
+      where: { campagneId: campagne.id },
+      orderBy: { createdAt: 'desc' },
+      select: { unitPrice: true, billingMode: true },
+    })) ??
+    (await prisma.dossier.findFirst({
+      where: { campagne: { clientId: input.clientId } },
+      orderBy: { createdAt: 'desc' },
+      select: { unitPrice: true, billingMode: true },
+    }))
+
   try {
     const dossier = await prisma.dossier.create({
       data: {
         name: `${brandName} — ${period.name}`,
         campagneId: campagne.id,
         token,
-        unitPrice: theme.defaultUnitPrice,
+        unitPrice: reference?.unitPrice ?? theme.defaultUnitPrice,
         department: theme.department,
-        // Le site suit la formule du client (mensuel ou prépayé) ; l'admin peut la changer ensuite.
-        billingMode: campagne.client.billingMode,
+        billingMode: reference?.billingMode ?? campagne.client.billingMode,
         websiteUrl: siteUrl(slug),
         generatedSite: {
           create: {

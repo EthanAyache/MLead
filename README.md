@@ -212,7 +212,9 @@ immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
   et `site.css` (repris de `formulaireType/style.css`) ; le back-office est dans `app/(mrlead)/`
   avec Tailwind. Sans cette séparation, le reset Tailwind casserait la template.
 - **Rattachement automatique.** La création fabrique en une transaction le `Dossier` (avec son token
-  `ml_…`, le prix par lead du thème et la formule du client) **et** le `GeneratedSite`. Le formulaire
+  `ml_…`) **et** le `GeneratedSite`. Le nouveau site reprend le **prix par lead et la formule déjà
+  convenus avec le client** (ceux de sa campagne, sinon ceux de ses autres sites) ; le prix du thème
+  n'est qu'un repli pour un client sans aucun site. Le formulaire
   de la page poste sur `/api/ingest?token=…` : les leads arrivent comme ceux de n'importe quel site.
 - **Contenu éditable** par le client (`/portail/site/<id>/page-publique`) et par l'équipe
   (`/dossiers/<id>/page-publique`) : nom affiché, titre de l'offre, dates, photos du carrousel et
@@ -223,7 +225,8 @@ immédiatement à l'adresse `theme-nom-periode.offreofficielle.fr`
   introuvable, sans rien supprimer.
 
 Le catalogue des thèmes et des périodes se gère dans **Admin → Sites clients**
-(`/admin/sites`) : chaque thème porte le **prix par lead** appliqué aux sites créés dessus.
+(`/admin/sites`) : chaque thème porte un **prix par lead de repli**, utilisé seulement si le client
+n'a encore aucun site.
 
 ### Mise en place (une seule fois)
 

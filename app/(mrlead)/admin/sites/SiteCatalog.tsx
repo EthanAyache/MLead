@@ -55,7 +55,8 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
       <section className="rounded-2xl border border-[#E8E9EF] bg-white p-5">
         <h2 className="font-bricolage text-lg font-bold">Thèmes</h2>
         <p className="mt-1 text-sm text-[#787C8A]">
-          Le prix par lead du thème est repris par chaque site créé dessus (modifiable ensuite site par site).
+          Un site créé par un client reprend le prix par lead déjà convenu avec lui (celui de sa campagne).
+          Le prix ci-dessous ne sert que de repli, pour un client qui n&apos;a encore aucun site.
         </p>
 
         <div className="mt-4 overflow-x-auto">
@@ -64,7 +65,7 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
               <tr className="text-left text-xs uppercase tracking-wide text-[#9AA0AE]">
                 <th className="py-2">Nom</th>
                 <th className="py-2">Adresse</th>
-                <th className="py-2">€ HT / lead</th>
+                <th className="py-2">€ HT / lead (repli)</th>
                 <th className="py-2">Département</th>
                 <th className="py-2">Sites</th>
                 <th className="py-2">Proposé</th>
@@ -115,7 +116,7 @@ export default function SiteCatalog({ themes, periods }: { themes: ThemeRow[]; p
                    onChange={(e) => setThemeName(e.target.value)} />
           </label>
           <label className="block">
-            <span className="text-xs font-semibold text-[#787C8A]">€ HT / lead</span>
+            <span className="text-xs font-semibold text-[#787C8A]">€ HT / lead (repli)</span>
             <input className={`mt-1 block w-24 ${champ}`} type="number" step="0.01" min="0" value={themePrice}
                    onChange={(e) => setThemePrice(e.target.value)} />
           </label>
