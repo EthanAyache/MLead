@@ -164,18 +164,33 @@ L'app est déployée sur o2switch (CloudLinux + Passenger). Le build utilise **W
 **1 worker** (`experimental.cpus = 1` dans `next.config.ts`) car Turbopack ne supporte pas le
 lien symbolique `node_modules` du venv et le nombre de threads est limité.
 
-Procédure de déploiement (en SSH, après un `git push`) :
+**La compilation ne se fait plus sur o2switch.** Le compte plafonne le nombre de threads
+(CloudLinux) : `next build` y échouait aléatoirement en `EAGAIN` selon la charge des autres sites
+hébergés. GitHub Actions compile désormais à chaque push sur `main`
+(`.github/workflows/build.yml`) et publie le dossier `.next` sur la branche **`deploy`**.
+
+Procédure de déploiement (en SSH), une fois la compilation GitHub au vert :
 
 ```bash
-source /home/<user>/nodevenv/<app>/24/bin/activate   # activer l'environnement Node
 cd /home/<user>/<app>
-git fetch origin && git reset --hard origin/main      # .env / .htaccess / app.js ne sont pas suivis par git
-npm install --include=dev                             # outils de build (NODE_ENV=production sinon les exclut)
-npx prisma generate
-npx prisma db push                                    # si le schéma a changé
-npm run build
-touch tmp/restart.txt                                 # redémarrer l'app
+git fetch origin && git reset --hard origin/deploy   # code + build ; .env / .htaccess / app.js sont préservés
+touch tmp/restart.txt                                # redémarrer l'app
 ```
+
+> Toujours déployer depuis **`origin/deploy`**, jamais depuis `origin/main` : `.next` n'est suivi
+> par git que sur la branche `deploy`, un reset sur `main` effacerait le build et casserait le site.
+
+Deux cas demandent une commande de plus, en SSH :
+
+```bash
+source /home/<user>/nodevenv/<app>/24/bin/activate   # sinon npm/npx sont introuvables
+npm install --include=dev                            # uniquement si une dépendance a été ajoutée
+npx prisma generate && npx prisma db push            # uniquement si le schéma Prisma a changé
+```
+
+> `npx prisma db push` lit le `.env` du serveur, qui peut diverger de la vraie `DATABASE_URL`
+> (celle de cPanel fait foi). En cas de `P1001`, relancer en préfixant la commande par la bonne
+> valeur : `DATABASE_URL='mysql://…' npx prisma db push`.
 
 > Sur o2switch, les variables d'environnement de production sont gérées dans
 > **cPanel → Setup Node.js App → Environment variables** (elles ont la priorité sur le `.env`).
