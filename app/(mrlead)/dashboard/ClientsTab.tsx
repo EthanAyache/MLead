@@ -1,6 +1,9 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
+
+type Category = { id: string; name: string; position: number }
 
 type Client = {
   id: string
@@ -8,6 +11,7 @@ type Client = {
   email: string | null
   phone: string | null
   apporteurName: string | null
+  categories: Category[]
   totalOwed: number
   invoiceCount: number
   hasLate: boolean
@@ -19,6 +23,26 @@ function fmt(n: number) {
 }
 
 export default function ClientsTab({ clients }: { clients: Client[] }) {
+  const [categoryId, setCategoryId] = useState('')
+
+  // Catégories réellement utilisées, dans l'ordre défini, avec leur nombre de clients.
+  const categories = useMemo(() => {
+    const map = new Map<string, Category & { count: number }>()
+    for (const c of clients) for (const cat of c.categories) {
+      const e = map.get(cat.id) ?? { ...cat, count: 0 }
+      e.count++
+      map.set(cat.id, e)
+    }
+    return [...map.values()].sort((a, b) => a.position - b.position)
+  }, [clients])
+  const uncategorized = clients.filter((c) => c.categories.length === 0).length
+
+  const filtered = clients.filter((c) =>
+    !categoryId ? true
+      : categoryId === '__none__' ? c.categories.length === 0
+      : c.categories.some((cat) => cat.id === categoryId),
+  )
+
   return (
     <section className="bg-white border border-[#E8E9EF] rounded-[14px] shadow-[0_1px_2px_rgba(20,22,30,.04),0_6px_24px_rgba(20,22,30,.05)] overflow-hidden">
       <div className="px-5 py-[17px] border-b border-[#E8E9EF] flex items-center gap-2.5 flex-wrap">
@@ -30,21 +54,35 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
           Clients JBOOST
         </h2>
         <span className="text-[#787C8A] text-[13px] font-medium">
-          {clients.length} client{clients.length > 1 ? 's' : ''} actif{clients.length > 1 ? 's' : ''}.
+          {categoryId ? `${filtered.length} sur ` : ''}{clients.length} client{clients.length > 1 ? 's' : ''} actif{clients.length > 1 ? 's' : ''}.
         </span>
-        <Link href="/clients" className="ml-auto h-9 px-3 rounded-lg bg-[#6A4FE6] hover:bg-[#5840CC] text-white text-sm font-semibold flex items-center gap-2 transition shadow-[0_4px_12px_rgba(106,79,230,.25)]">
-          <span className="text-base leading-none">+</span> Gérer les clients
-        </Link>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="h-9 max-w-full px-3 rounded-lg border border-[#DCDDE6] bg-white text-sm text-[#16171D] font-medium focus:outline-none focus:ring-2 focus:ring-[#6A4FE6]"
+          >
+            <option value="">Toutes les catégories</option>
+            {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name} ({cat.count})</option>)}
+            {uncategorized > 0 && <option value="__none__">Sans catégorie ({uncategorized})</option>}
+          </select>
+          <Link href="/clients" className="h-9 px-3 rounded-lg bg-[#6A4FE6] hover:bg-[#5840CC] text-white text-sm font-semibold flex items-center gap-2 transition shadow-[0_4px_12px_rgba(106,79,230,.25)]">
+            <span className="text-base leading-none">+</span> Gérer les clients
+          </Link>
+        </div>
       </div>
 
-      {clients.length === 0 ? (
-        <div className="p-12 text-center text-[#787C8A] text-sm">Aucun client. Rendez-vous sur la page Clients pour en ajouter.</div>
+      {filtered.length === 0 ? (
+        <div className="p-12 text-center text-[#787C8A] text-sm">
+          {categoryId ? 'Aucun client dans cette catégorie.' : 'Aucun client. Rendez-vous sur la page Clients pour en ajouter.'}
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-[#FAFAFC] border-b border-[#E8E9EF]">
               <tr>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Client</th>
+                <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Catégorie</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Contact</th>
                 <th className="text-left px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Apporteur</th>
                 <th className="text-right px-5 py-3 text-[11.5px] font-bold uppercase tracking-[0.05em] text-[#787C8A]">Factures impayées</th>
@@ -54,12 +92,33 @@ export default function ClientsTab({ clients }: { clients: Client[] }) {
               </tr>
             </thead>
             <tbody>
-              {clients.map((c) => (
+              {filtered.map((c) => (
                 <tr key={c.id} className="border-b border-[#E8E9EF] last:border-0 hover:bg-[#FAFAFC] transition">
                   <td className="px-5 py-3.5 font-semibold text-[#16171D]">
-                    {c.name}
+                    <Link href={`/clients/${c.id}`} className="hover:text-[#2563EB] hover:underline underline-offset-2 transition">
+                      {c.name}
+                    </Link>
                     {c.suspended && (
                       <span className="badge b-late ml-2 align-middle"><span className="b-dot" />Suspendu</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs">
+                    {c.categories.length === 0 ? (
+                      <span className="text-[#B8BAC6]">—</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {c.categories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => setCategoryId(cat.id)}
+                            title="Filtrer sur cette catégorie"
+                            className="px-2 py-0.5 rounded-md bg-[#E3EEFD] text-[#2563EB] font-semibold whitespace-nowrap hover:bg-[#C9DEFB] transition"
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </td>
                   <td className="px-5 py-3.5 text-[#414350] text-xs">
