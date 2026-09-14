@@ -12,13 +12,17 @@ export default async function ClientsPage() {
 
   const filter = visibilityFilter(me)
 
-  const [clients, apporteurs] = await Promise.all([
+  const [clients, apporteurs, categories] = await Promise.all([
     prisma.client.findMany({
       where: { archived: false, ...filter },
       orderBy: { name: 'asc' },
-      include: { apporteur: { select: { id: true, name: true } } },
+      include: {
+        apporteur: { select: { id: true, name: true } },
+        categories: { select: { id: true, name: true }, orderBy: { position: 'asc' } },
+      },
     }),
     prisma.apporteur.findMany({ where: { archived: false, ...filter }, orderBy: { name: 'asc' } }),
+    prisma.clientCategory.findMany({ orderBy: { position: 'asc' }, select: { id: true, name: true } }),
   ])
 
   const apporteurOptions = apporteurs.map(a => ({ id: a.id, name: a.name }))
@@ -42,10 +46,10 @@ export default async function ClientsPage() {
               {clients.length} client{clients.length > 1 ? 's' : ''} actif{clients.length > 1 ? 's' : ''}
             </p>
           </div>
-          <AddClientForm />
+          <AddClientForm categories={categories} />
         </div>
 
-        <SearchAndList clients={clients} apporteurs={apporteurOptions} />
+        <SearchAndList clients={clients} apporteurs={apporteurOptions} categories={categories} />
       </div>
       </main>
     </>

@@ -200,9 +200,22 @@ model Client {
   topups          PrepaidTopup[]
   loginTokens     ClientLoginToken[]
   stopInvoices    StopInvoice[]
+  // Catégories métier du client (salle, traiteur, DJ…). Un prestataire peut en cumuler plusieurs.
+  categories      ClientCategory[]
 
   @@index([userId])
   @@index([apporteurId])
+}
+
+// Catégorie métier d'un client / partenaire (ex. « Salle & Lieu de réception », « DJ »).
+model ClientCategory {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  clients Client[]
 }
 
 // Jeton de connexion "lien magique" du portail client : usage unique, courte durée.

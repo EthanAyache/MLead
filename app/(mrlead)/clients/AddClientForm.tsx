@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import CategoryPicker from './CategoryPicker'
 
-export default function AddClientForm() {
+type Option = { id: string; name: string }
+
+export default function AddClientForm({ categories }: { categories: Option[] }) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState('')
@@ -12,6 +15,7 @@ export default function AddClientForm() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [notifyEmails, setNotifyEmails] = useState('')
+  const [categoryIds, setCategoryIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string; siret?: string }>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -41,7 +45,7 @@ export default function AddClientForm() {
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, companyName, siret, email, phone, notifyEmails }),
+        body: JSON.stringify({ name, companyName, siret, email, phone, notifyEmails, categoryIds }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -54,7 +58,7 @@ export default function AddClientForm() {
       setLoading(false)
       return
     }
-    setName(''); setCompanyName(''); setSiret(''); setEmail(''); setPhone(''); setNotifyEmails(''); setErrors({})
+    setName(''); setCompanyName(''); setSiret(''); setEmail(''); setPhone(''); setNotifyEmails(''); setCategoryIds([]); setErrors({})
     setIsOpen(false)
     setLoading(false)
     router.refresh()
@@ -71,8 +75,8 @@ export default function AddClientForm() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => { setIsOpen(false); setErrors({}); setSubmitError(null) }}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setIsOpen(false); setErrors({}); setSubmitError(null) }}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold mb-4 text-gray-900">Nouveau client</h2>
             <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               <div>
@@ -97,6 +101,10 @@ export default function AddClientForm() {
               <div>
                 <textarea value={notifyEmails} onChange={(e) => setNotifyEmails(e.target.value)} rows={2} placeholder="E-mails de réception des leads (ex: client@x.fr, copie@jboost.fr)" className={`${inputBase} ${inputOk}`} />
                 <p className="text-[11px] text-gray-400 mt-1 ml-1">Où transférer les leads de ce client (défaut pour ses sites). Optionnel.</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-1 ml-1">Catégories</p>
+                <CategoryPicker categories={categories} value={categoryIds} onChange={setCategoryIds} />
               </div>
               {submitError && <p className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">⚠ {submitError}</p>}
               <div className="flex gap-2 justify-end pt-2">

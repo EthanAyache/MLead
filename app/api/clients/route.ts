@@ -9,7 +9,7 @@ export async function GET() {
   const clients = await prisma.client.findMany({
     where: { archived: false, ...visibilityFilter(user) },
     orderBy: { name: 'asc' },
-    include: { apporteur: { select: { id: true, name: true } } },
+    include: { apporteur: { select: { id: true, name: true } }, categories: { select: { id: true, name: true } } },
   })
   return NextResponse.json(clients)
 }
@@ -34,6 +34,9 @@ export async function POST(request: Request) {
       notifyEmails: body.notifyEmails?.trim() || null,
       apporteurId: body.apporteurId || null,
       userId: user.id,
+      ...(Array.isArray(body.categoryIds) && body.categoryIds.length
+        ? { categories: { connect: body.categoryIds.filter((c: unknown) => typeof c === 'string').map((id: string) => ({ id })) } }
+        : {}),
     },
   })
   return NextResponse.json(client, { status: 201 })

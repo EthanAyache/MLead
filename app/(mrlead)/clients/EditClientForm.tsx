@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import CategoryPicker from './CategoryPicker'
 
 type Client = {
   id: string
@@ -12,11 +13,12 @@ type Client = {
   phone: string | null
   notifyEmails: string | null
   apporteurId: string | null
+  categoryIds: string[]
 }
 
 type Option = { id: string; name: string }
 
-export default function EditClientForm({ client, apporteurs }: { client: Client; apporteurs: Option[] }) {
+export default function EditClientForm({ client, apporteurs, categories }: { client: Client; apporteurs: Option[]; categories: Option[] }) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [name, setName] = useState(client.name)
@@ -26,6 +28,7 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
   const [phone, setPhone] = useState(client.phone ?? '')
   const [notifyEmails, setNotifyEmails] = useState(client.notifyEmails ?? '')
   const [apporteurId, setApporteurId] = useState(client.apporteurId ?? '')
+  const [categoryIds, setCategoryIds] = useState<string[]>(client.categoryIds)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -48,7 +51,7 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
       const res = await fetch(`/api/clients/${client.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, companyName, siret, email, phone, notifyEmails, apporteurId: apporteurId || null }),
+        body: JSON.stringify({ name, companyName, siret, email, phone, notifyEmails, apporteurId: apporteurId || null, categoryIds }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -108,7 +111,7 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
 
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => { setIsOpen(false); setErrors({}); setSubmitError(null) }}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto text-left" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold mb-4 text-gray-900">Modifier le client</h2>
             <form onSubmit={handleSubmit} className="space-y-3" noValidate>
               <div>
@@ -151,6 +154,11 @@ export default function EditClientForm({ client, apporteurs }: { client: Client;
                   <option value="">— Aucun —</option>
                   {apporteurs.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Catégories</label>
+                <CategoryPicker categories={categories} value={categoryIds} onChange={setCategoryIds} />
               </div>
 
               {submitError && <p className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">⚠ {submitError}</p>}
