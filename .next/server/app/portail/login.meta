@@ -1,0 +1,19 @@
+{
+  "status": 307,
+  "headers": {
+    "location": "/login",
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/(mrlead)/layout,_N_T_/(mrlead)/portail/layout,_N_T_/(mrlead)/portail/login/layout,_N_T_/(mrlead)/portail/login/page,_N_T_/portail/login"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/!KG1ybGVhZCk/portail/login/__PAGE__",
+    "/!KG1ybGVhZCk/portail/login",
+    "/!KG1ybGVhZCk/portail",
+    "/!KG1ybGVhZCk",
+    "/_index",
+    "/_head"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "functions": {
+    "/_middleware": {
+      "runtime": "nodejs",
+      "matchers": [
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!api|_next\\/static|_next\\/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$",
+          "originalSource": "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
+        }
+      ]
+    },
+    "/api/clients/[id]/prepaid": {},
+    "/api/cron/monthly-billing": {},
+    "/api/dossiers/[id]/reactivate": {},
+    "/api/dossiers/[id]/stop": {},
+    "/api/monthly-invoices/[id]": {},
+    "/api/monthly-invoices/run": {},
+    "/api/portal/lead-email": {},
+    "/api/portal/lead-note": {},
+    "/api/portal/login": {},
+    "/api/portal/logout": {},
+    "/api/portal/recharge": {},
+    "/api/portal/request-password": {},
+    "/api/portal/set-password": {},
+    "/api/stripe/webhook": {}
+  }
+}
